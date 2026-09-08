@@ -4,7 +4,13 @@
     {
       "name": "dashboard",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "-p", "3939"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3939"
+      ],
       "cwd": "dashboard",
       "port": 3939
     },
@@ -17,6 +23,18 @@
       ],
       "cwd": "dashboard",
       "port": 3940
+    },
+    {
+      "name": "photo-review",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8899",
+        "--directory",
+        "/private/tmp/claude-501/-Users-kelanliparoto-Documents-Claude-Projects-Apps-SocialScheduler/85e072c3-c395-450b-8d0c-ebf4114af444/scratchpad"
+      ],
+      "port": 8899
     }
   ]
 }
