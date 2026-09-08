@@ -95,6 +95,7 @@ class GraphClient:
     ) -> None:
         self.graph_version = graph_version
         self.base = f"{base_url.rstrip('/')}/{graph_version}"
+        print(f">>> DEBUG: base_url usado = {self.base}")
         self.session = session or requests.Session()
         self.timeout = timeout
         # Percentage (0-100) of the rate-limit quota consumed as of the last response,
