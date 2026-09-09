@@ -16,8 +16,8 @@ export default function TagsPage() {
   return (
     <div>
       <PageHeader
-        title="Tags"
-        subtitle="Every label in this install. Rename a topic to fix it everywhere, or delete it to take it off the posts that carry it — the posts stay either way."
+        title="Etiquetas"
+        subtitle="Todos os rótulos desta instalação. Renomeie um tópico para corrigir em todo lugar, ou exclua para tirá-lo das publicações que o carregam — as publicações continuam existindo de qualquer forma."
       />
       <div className="px-8 py-6">
         <TagManager topicTags={topicTags} bandTags={bands} />

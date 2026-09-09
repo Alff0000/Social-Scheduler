@@ -6,21 +6,29 @@ import { ThemeControls } from "@/components/theme-controls";
 import { UpdateBanner } from "@/components/update-banner";
 
 const NAV = [
-  { href: "/", label: "Overview", hint: "Queue & status" },
-  { href: "/calendar", label: "Calendar", hint: "Week & month view" },
-  { href: "/compose", label: "Compose", hint: "New post" },
-  { href: "/import", label: "Import", hint: "Bulk add images" },
-  { href: "/library", label: "Library", hint: "Posts & bulk schedule" },
-  { href: "/insights", label: "Insights", hint: "How accounts perform" },
-  { href: "/insights/pool", label: "BPP Pool", hint: "Posts worth repeating" },
-  { href: "/media", label: "Media", hint: "Stored files & cleanup" },
-  { href: "/periods", label: "Periods", hint: "In-season windows" },
-  { href: "/tags", label: "Tags", hint: "Topics & cleanup" },
-  { href: "/channels", label: "Channels", hint: "Accounts & config" },
+  { href: "/", label: "Visão geral", hint: "Fila e status" },
+  { href: "/calendar", label: "Calendário", hint: "Visão semanal e mensal" },
+  { href: "/compose", label: "Compor", hint: "Nova publicação" },
+  { href: "/import", label: "Importar", hint: "Adicionar imagens em massa" },
+  { href: "/library", label: "Biblioteca", hint: "Publicações e agendamento em massa" },
+  { href: "/insights", label: "Estatísticas", hint: "Desempenho das contas" },
+  { href: "/insights/pool", label: "Pool BPP", hint: "Publicações que valem repetir" },
+  { href: "/media", label: "Mídia", hint: "Arquivos armazenados e limpeza" },
+  { href: "/periods", label: "Períodos", hint: "Janelas sazonais" },
+  { href: "/tags", label: "Etiquetas", hint: "Tópicos e limpeza" },
+  { href: "/channels", label: "Canais", hint: "Contas e configuração" },
 ];
 
-export function Sidebar() {
+export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
+  const nav = isAdmin
+    ? [...NAV, { href: "/users", label: "Usuários", hint: "Acesso à plataforma" }]
+    : NAV;
+
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  }
 
   return (
     // sticky + self-start + h-screen: as a flex child it would otherwise stretch to the
@@ -38,17 +46,17 @@ export function Sidebar() {
             }}
           />
           <span className="font-display text-[15px] font-semibold tracking-tight text-ink">
-            SocialScheduler
+            InstaVips
           </span>
         </div>
         <p className="mt-1.5 text-[11px] leading-tight text-faint">
-          Self-hosted · local only
+          Auto-hospedado · somente local
         </p>
       </div>
 
       <nav className="flex-1 p-3">
         <ul className="space-y-1">
-          {NAV.map((item) => {
+          {nav.map((item) => {
             // Exact match for /insights so the nested "BPP pool" page does not light up
             // its parent as well — two highlighted rows reads as a bug.
             const active =
@@ -77,10 +85,16 @@ export function Sidebar() {
       <div className="p-3 border-t border-border space-y-3">
         <UpdateBanner />
         <ThemeControls />
+        <button
+          onClick={handleLogout}
+          className="w-full rounded-lg border border-border px-3 py-2 text-left text-[13px] text-ink-soft hover:bg-surface-sunken"
+        >
+          Sair
+        </button>
         <p className="px-3 text-[11px] leading-relaxed text-faint">
-          Worker runs separately.
+          O worker roda separadamente.
           <br />
-          Safety switches live in{" "}
+          Os interruptores de segurança ficam no{" "}
           <code className="data text-[10px] text-muted">.env</code>.
         </p>
       </div>

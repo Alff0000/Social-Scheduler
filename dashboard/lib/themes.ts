@@ -1,5 +1,5 @@
 export type ThemeId =
-  | "socialscheduler"
+  | "instavips"
   | "claude"
   | "apt"
   | "fyzical"
@@ -10,7 +10,7 @@ export type ThemeId =
 export type ThemeMode = "light" | "dark";
 
 export const THEMES: { id: ThemeId; label: string }[] = [
-  { id: "socialscheduler", label: "SocialScheduler" },
+  { id: "instavips", label: "InstaVips" },
   { id: "claude", label: "Claude" },
   { id: "apt", label: "APT" },
   { id: "fyzical", label: "FYZICAL" },
@@ -19,7 +19,7 @@ export const THEMES: { id: ThemeId; label: string }[] = [
   { id: "vela", label: "Vela" },
 ];
 
-export const DEFAULT_THEME: ThemeId = "socialscheduler";
+export const DEFAULT_THEME: ThemeId = "instavips";
 export const DEFAULT_MODE: ThemeMode = "light";
 
 export const THEME_STORAGE_KEY = "ss-theme";

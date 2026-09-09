@@ -85,8 +85,8 @@ export default async function ChannelsPage({
   return (
     <div>
       <PageHeader
-        title="Channels"
-        subtitle="Each social account is configured independently — its own credentials, timezone, and rules."
+        title="Canais"
+        subtitle="Cada conta social é configurada de forma independente — suas próprias credenciais, fuso horário e regras."
       />
 
       <div className="px-8 py-6 space-y-6">

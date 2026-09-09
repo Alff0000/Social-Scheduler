@@ -70,8 +70,8 @@ export default function LibraryPage() {
   return (
     <div>
       <PageHeader
-        title="Library"
-        subtitle="Every post you've made — select several to bulk-schedule at a cadence, or reuse for recycling."
+        title="Biblioteca"
+        subtitle="Todas as publicações que você já fez — selecione várias para agendar em massa num ritmo, ou reaproveite para reciclar."
         action={
           <Link href="/import" className="text-sm text-brand underline underline-offset-2">
             Bulk import →

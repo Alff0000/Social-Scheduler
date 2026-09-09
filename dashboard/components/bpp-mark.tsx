@@ -33,7 +33,7 @@ export function BppMark({
     return (
       <span
         className="text-[10px] text-faint"
-        title="Only posts in your library can be reposted — this one was published outside SocialScheduler, so there is no caption or image to send again."
+        title="Only posts in your library can be reposted — this one was published outside InstaVips, so there is no caption or image to send again."
       >
         not in library
       </span>

@@ -34,8 +34,8 @@ export default function BppPoolPage() {
   return (
     <div>
       <PageHeader
-        title="BPP Pool"
-        subtitle="The posts you've marked worth running again — in the order they'll be used."
+        title="Pool BPP"
+        subtitle="As publicações que você marcou como boas para repetir — na ordem em que serão usadas."
       />
 
       <div className="space-y-6 px-8 py-6">

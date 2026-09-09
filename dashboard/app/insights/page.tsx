@@ -115,8 +115,8 @@ export default function InsightsPage() {
   return (
     <div>
       <PageHeader
-        title="Insights"
-        subtitle="How each connected account is actually doing — every post, not just the ones scheduled here."
+        title="Estatísticas"
+        subtitle="Como cada conta conectada está realmente indo — todas as publicações, não só as agendadas aqui."
       />
 
       <div className="px-8 py-6 space-y-8">

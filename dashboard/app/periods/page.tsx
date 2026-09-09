@@ -10,8 +10,8 @@ export default function PeriodsPage() {
   return (
     <div>
       <PageHeader
-        title="Periods"
-        subtitle="Reusable in-season windows. Attach any to a post as green (in-season) or blackout (excluded) when you compose."
+        title="Períodos"
+        subtitle="Janelas sazonais reutilizáveis. Vincule qualquer uma a uma publicação como ativa (dentro da temporada) ou bloqueada (excluída) na hora de compor."
       />
 
       <div className="px-8 py-6 space-y-6">

@@ -90,8 +90,8 @@ export default async function CalendarPage({
   return (
     <div>
       <PageHeader
-        title="Calendar"
-        subtitle="The shape of the schedule — what is coming, and what already went out."
+        title="Calendário"
+        subtitle="O formato da agenda — o que está por vir, e o que já foi publicado."
       />
       <div className="px-8 py-6">
         <CalendarView

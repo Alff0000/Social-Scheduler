@@ -1,35 +1,35 @@
 @import "tailwindcss";
 
 /*
-  SocialScheduler — "publishing control room" tokens.
+  InstaVips — "publishing control room" tokens.
   Deliberately not the cream/serif or black/acid-green AI defaults:
   cool paper canvas, pine-green brand, signal-orange for primary actions only,
   monospace for all times/IDs/counts (the scheduling-cockpit signature).
 */
 @theme {
-  --color-canvas: #f5f6f8;
+  --color-canvas: #faf6f6;
   --color-surface: #ffffff;
-  --color-surface-sunken: #eef0f3;
-  --color-border: #e4e7ec;
-  --color-border-strong: #d3d8e0;
-  --color-ink: #161b22;
-  --color-ink-soft: #37414f;
-  --color-muted: #656c76;
-  --color-faint: #9aa2ad;
+  --color-surface-sunken: #f5eeee;
+  --color-border: #ecdede;
+  --color-border-strong: #d9c2c2;
+  --color-ink: #1a1214;
+  --color-ink-soft: #4a2f33;
+  --color-muted: #7a6165;
+  --color-faint: #b09a9d;
 
-  --color-brand: #0e5c4a;
-  --color-brand-ink: #0a4437;
-  --color-brand-weak: #e2efe9;
-  --color-accent: #f0653a;
-  --color-accent-ink: #c94a22;
-  --color-accent-weak: #fdeae2;
+  --color-brand: #9c1c2e;
+  --color-brand-ink: #7a1523;
+  --color-brand-weak: #f6e2e5;
+  --color-accent: #b8860b;
+  --color-accent-ink: #8f6a08;
+  --color-accent-weak: #f7ecd3;
 
   /* Button foreground (white or dark per theme) + pill/chip text on the -weak tints.
      Split out so brand/accent stay vivid while buttons and pills each stay legible. */
   --color-on-brand: #ffffff;
   --color-on-accent: #ffffff;
-  --color-brand-strong: #0a4437;
-  --color-accent-strong: #b23c17;
+  --color-brand-strong: #7a1523;
+  --color-accent-strong: #8f6a08;
 
   /* Status semantics (draft / scheduled / posted / failed / publishing / blocked)
 
@@ -126,7 +126,7 @@ body {
 
 /* ==========================================================================
    Themes — data-theme (family) × data-mode (light|dark) override the
-   @theme --color-* defaults. SocialScheduler-light = the @theme default
+   @theme --color-* defaults. InstaVips-light = the @theme default
    (no block needed). Token roles: brand/accent = solid button + identity;
    on-brand/on-accent = that button's text (white or dark, per theme);
    brand-ink/accent-ink = button hover + solid secondary bg; brand-weak/
@@ -144,26 +144,26 @@ html[data-mode="dark"] {
   --color-status-blocked: #fb923c;
 }
 
-html[data-theme="socialscheduler"][data-mode="dark"] {
-  --color-canvas: #0f1417;
-  --color-surface: #161d22;
-  --color-surface-sunken: #1e262c;
-  --color-border: #2a333b;
-  --color-border-strong: #3a454e;
-  --color-ink: #e8ecf0;
-  --color-ink-soft: #c2cad2;
-  --color-muted: #8b95a1;
-  --color-faint: #5f6975;
-  --color-brand: #127a61;
+html[data-theme="instavips"][data-mode="dark"] {
+  --color-canvas: #160f10;
+  --color-surface: #201517;
+  --color-surface-sunken: #2a1b1e;
+  --color-border: #3a2226;
+  --color-border-strong: #4d2c31;
+  --color-ink: #f3e6e8;
+  --color-ink-soft: #d9bfc3;
+  --color-muted: #a98d91;
+  --color-faint: #6b5457;
+  --color-brand: #d43b52;
   --color-on-brand: #ffffff;
-  --color-brand-ink: #0d5b48;
-  --color-brand-weak: #173f34;
-  --color-brand-strong: #7fd9c0;
-  --color-accent: #f0653a;
-  --color-on-accent: #ffffff;
-  --color-accent-ink: #c94a22;
-  --color-accent-weak: #3a2019;
-  --color-accent-strong: #ff9d78;
+  --color-brand-ink: #b12e42;
+  --color-brand-weak: #3f1b21;
+  --color-brand-strong: #ff8a9b;
+  --color-accent: #e0b23d;
+  --color-on-accent: #1a1214;
+  --color-accent-ink: #b88f2e;
+  --color-accent-weak: #3a2e14;
+  --color-accent-strong: #f0c96a;
 }
 
 html[data-theme="claude"][data-mode="light"] {

@@ -42,8 +42,8 @@ export default function OverviewPage() {
   return (
     <div>
       <PageHeader
-        title="Overview"
-        subtitle="Everything queued, and exactly which account it's headed to."
+        title="Visão geral"
+        subtitle="Tudo o que está na fila, e para qual conta exatamente vai."
         action={
           <Link
             href="/compose"

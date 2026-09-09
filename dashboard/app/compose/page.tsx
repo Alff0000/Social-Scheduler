@@ -73,8 +73,8 @@ export default async function ComposePage({
   return (
     <div>
       <PageHeader
-        title="Compose"
-        subtitle="Assemble a post, set its order, and choose exactly where it goes."
+        title="Compor"
+        subtitle="Monte uma publicação, defina a ordem, e escolha exatamente para onde vai."
       />
       <div className="px-8 py-6">
         {channels.length === 0 ? (

@@ -11,8 +11,8 @@ export default function MediaPage() {
   return (
     <div>
       <PageHeader
-        title="Media"
-        subtitle="Every file in your asset store. Anything nothing else is using can be deleted to reclaim disk space."
+        title="Mídia"
+        subtitle="Todos os arquivos no seu banco de mídia. Qualquer coisa que não está mais em uso pode ser excluída para liberar espaço."
       />
       <div className="px-8 py-6">
         {assets.length === 0 ? (

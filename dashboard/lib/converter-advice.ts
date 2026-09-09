@@ -11,7 +11,7 @@
 export function converterAdvice(platform: NodeJS.Platform): string {
   if (platform === "win32") {
     return (
-      "This install has no video converter yet. Close SocialScheduler and double-click " +
+      "This install has no video converter yet. Close InstaVips and double-click " +
       "Start-SocialScheduler-Windows.bat — it installs one automatically, then upload " +
       "this video again."
     );
