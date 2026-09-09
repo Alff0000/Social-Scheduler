@@ -607,7 +607,13 @@ def _poll_until_finished(client, container_id, token, config, sleep_fn, status_f
         if status == "FINISHED":
             return
         if status in ("ERROR", "EXPIRED"):
-            raise RuntimeError(f"container {container_id} status={status}")
+            # Best-effort: only Instagram's client carries this extra lookup (Threads'
+            # container has no equivalent field), and it must never itself blow up a
+            # failure report — see get_container_status_detail's own docstring.
+            detail_fn = getattr(client, "get_container_status_detail", None)
+            detail = detail_fn(container_id, token) if detail_fn else None
+            reason = f" ({detail})" if detail else ""
+            raise RuntimeError(f"container {container_id} status={status}{reason}")
         sleep_fn(interval)
     raise RuntimeError(f"container {container_id} not FINISHED after polling")
 

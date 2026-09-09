@@ -327,6 +327,30 @@ class GraphClient:
             container_id, {"fields": "status_code", "access_token": token}
         )["status_code"]
 
+    def get_container_status_detail(self, container_id: str, token: str) -> str | None:
+        """Why an ERROR/EXPIRED container failed, when Meta says.
+
+        get_container_status above reads only `status_code` — the ERROR/EXPIRED/FINISHED
+        enum — which is why a failed publish logged nothing but "status=ERROR" with no
+        reason. Meta's container object carries the human-readable reason in a separate
+        `status` field (e.g. "Container is not ready for publishing" or a description of
+        what's wrong with the source media); this reads that field on demand, only once a
+        container has already reached a terminal failure state.
+
+        Best-effort and silent on failure: this call happens while handling an existing
+        failure, so a network hiccup or an expired container that also fails this lookup
+        must fall back to "no detail" rather than raising a second, more confusing error
+        that replaces the one actually worth reporting.
+        """
+        try:
+            body = self._get(
+                container_id, {"fields": "status,status_code", "access_token": token}
+            )
+        except Exception:
+            return None
+        detail = body.get("status")
+        return detail if isinstance(detail, str) and detail.strip() else None
+
     def publish_container(self, ig_user_id: str, creation_id: str, token: str) -> str:
         return self._post(
             f"{ig_user_id}/media_publish",
