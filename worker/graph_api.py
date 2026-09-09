@@ -78,6 +78,54 @@ def _error_fields(body: str) -> dict:
     return fields
 
 
+# Meta's own IG publishing error-codes reference (developers.facebook.com/docs/
+# instagram-platform/instagram-graph-api/reference/error-codes/), keyed by the SUBCODE
+# only — the one GraphClient.get_container_status_detail actually receives via a
+# container's `status` field. Several subcodes share a top-level `code` in Meta's table
+# (ads/product-tagging ones all sit under 100, say) but every subcode is unique, so this
+# does not need the pair to disambiguate. Verified 2026-07-22 against v25.0; Meta adds
+# subcodes over time, so an unrecognised one is expected, not a bug — see the fallback in
+# get_container_status_detail.
+_CONTAINER_ERROR_MESSAGES: dict[int, str] = {
+    2207001: "Unspecified upload error.",
+    2207003: "It took too long to download the media.",
+    2207004: "The image is too large to download.",
+    2207005: "The image format is not supported.",
+    2207006: "The media could not be found.",
+    2207008: "The media builder (creation id) could not be found.",
+    2207009: "The image's aspect ratio is not supported.",
+    2207010: "The image's caption was invalid.",
+    2207020: "The media has expired.",
+    2207023: "The media type is unknown.",
+    2207026: "The video format is not supported.",
+    2207027: "The media is not ready for publishing.",
+    2207028: "This won't work as a carousel item.",
+    2207032: "Creating the media failed — try re-creating it.",
+    2207035: "Product tag positions should not be specified for this media.",
+    2207036: "Product tag positions are required for photo media.",
+    2207037: "Not all product tags could be added.",
+    2207040: "Too many tags for this media.",
+    2207042: "Reached the maximum number of allowed posts.",
+    2207050: "The Instagram account is restricted.",
+    2207051: "Restricted for potential spam/abuse.",
+    2207052: "The media could not be fetched from the given URL.",
+    2207053: "Unknown upload error.",
+    2207057: "Thumbnail offset must be greater than or equal to 0.",
+    9050: "Provide either user_id or ig_user_id, not both.",
+    9052: "Missing or invalid purpose for product=ADS.",
+    9053: "Ads audio swap discovery is not yet available.",
+    9054: "The ig_media_id parameter is required.",
+    9055: "This media does not contain copyrighted licensed audio.",
+    9056: "Missing required parameter audio_replacement_mode.",
+    9057: "Invalid audio_replacement_mode value.",
+    9058: "Missing required parameter search_query.",
+    9060: "The search_query parameter is only valid in certain modes.",
+    9062: "The supplied ig_media_id refers to non-Reel media.",
+    9063: "The supplied partnership_ad_code is invalid.",
+    9064: "The supplied partnership_ad_code does not match.",
+}
+
+
 class GraphClient:
     # Meta reports rate-limit consumption in a response HEADER, not the body, and the
     # numbers are percentages of a quota it never publishes. Reading it is the only
@@ -328,19 +376,26 @@ class GraphClient:
         )["status_code"]
 
     def get_container_status_detail(self, container_id: str, token: str) -> str | None:
-        """Why an ERROR/EXPIRED container failed, when Meta says.
+        """Why an ERROR container failed, when Meta says.
 
         get_container_status above reads only `status_code` — the ERROR/EXPIRED/FINISHED
-        enum — which is why a failed publish logged nothing but "status=ERROR" with no
-        reason. Meta's container object carries the human-readable reason in a separate
-        `status` field (e.g. "Container is not ready for publishing" or a description of
-        what's wrong with the source media); this reads that field on demand, only once a
-        container has already reached a terminal failure state.
+        enum — which is why a failed publish used to log nothing but "status=ERROR" with
+        no reason. Per Meta's own IG Container reference, the separate `status` field is
+        "Publishing status. If status_code is ERROR, this value will be an error subcode"
+        — a NUMBER (e.g. 2207009), not a sentence, referencing Meta's own error-codes
+        table (developers.facebook.com/docs/instagram-platform/instagram-graph-api/
+        reference/error-codes/). _CONTAINER_ERROR_MESSAGES below is that table, so the
+        number can be shown alongside what it actually means.
+
+        Meta does not always populate a subcode — some failures genuinely have none, and
+        `status` then just repeats "ERROR" (mirroring status_code, not a real subcode).
+        That case returns None rather than the useless "(ERROR)" this used to produce:
+        no new information came back, so nothing should claim otherwise.
 
         Best-effort and silent on failure: this call happens while handling an existing
-        failure, so a network hiccup or an expired container that also fails this lookup
-        must fall back to "no detail" rather than raising a second, more confusing error
-        that replaces the one actually worth reporting.
+        failure, so a network hiccup while fetching the reason for ANOTHER failure must
+        fall back to "no detail" rather than raising a second, more confusing error that
+        replaces the one actually worth reporting.
         """
         try:
             body = self._get(
@@ -348,8 +403,18 @@ class GraphClient:
             )
         except Exception:
             return None
-        detail = body.get("status")
-        return detail if isinstance(detail, str) and detail.strip() else None
+        status = body.get("status")
+        status_code = body.get("status_code")
+        if not isinstance(status, str) or not status.strip() or status == status_code:
+            return None
+        try:
+            subcode = int(status)
+        except ValueError:
+            # Not the documented numeric shape — still real text Meta sent, so show it
+            # verbatim rather than discard it on a format assumption that might be wrong.
+            return status
+        message = _CONTAINER_ERROR_MESSAGES.get(subcode)
+        return f"error subcode {subcode}: {message}" if message else f"error subcode {subcode}"
 
     def publish_container(self, ig_user_id: str, creation_id: str, token: str) -> str:
         return self._post(
