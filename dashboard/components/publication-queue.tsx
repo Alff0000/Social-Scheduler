@@ -282,8 +282,8 @@ export function PublicationQueue({
           Nenhum envio corresponde a esses filtros.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-card border border-border bg-surface">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-card border border-border bg-surface">
+          <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-faint">
                 <th className="px-4 py-2.5 font-medium">Post</th>

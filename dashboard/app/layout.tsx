@@ -67,7 +67,9 @@ export default async function RootLayout({
               "(function(){try{var v={instavips:1,claude:1,apt:1,fyzical:1,default:1,solarized:1,vela:1};var d=document.documentElement;function hasCookie(n){return document.cookie.split('; ').some(function(c){return c.indexOf(n+'=')===0;});}function setCookie(n,val){document.cookie=n+'='+val+'; path=/; max-age=31536000; samesite=lax';}var t=localStorage.getItem('ss-theme'),m=localStorage.getItem('ss-mode');if(t&&v[t]&&!hasCookie('ss-theme')){setCookie('ss-theme',t);d.setAttribute('data-theme',t);}if((m==='light'||m==='dark')&&!hasCookie('ss-mode')){setCookie('ss-mode',m);d.setAttribute('data-mode',m);}}catch(e){}})();",
           }}
         />
-        <div className="flex min-h-screen">
+        {/* flex-col below md so the sidebar's mobile top bar stacks above <main> instead
+            of squeezing beside it; md:flex-row restores the original side-by-side shell. */}
+        <div className="flex min-h-screen flex-col md:flex-row">
           {user ? <Sidebar isAdmin={user.is_admin} /> : null}
           <main className="flex-1 min-w-0">{children}</main>
         </div>
