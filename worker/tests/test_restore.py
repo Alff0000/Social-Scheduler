@@ -17,6 +17,7 @@ from pathlib import Path
 import pytest
 
 from worker import single_instance
+from worker.config import Config
 from worker.export.__main__ import DB_COPY_NAME, run_export
 from worker.restore import (
     RestoreError,
@@ -96,7 +97,16 @@ def test_round_trip_brings_back_posts_and_image_bytes(
         assert dest.read_bytes() == expected, f"{storage_path} restored the wrong bytes"
 
 
-def test_dry_run_changes_nothing(config, conn, make_publication, tmp_path, capsys):
+def test_dry_run_changes_nothing(config, conn, make_publication, tmp_path, capsys, monkeypatch):
+    # main() builds its OWN Config via Config.from_env() rather than taking one as an
+    # argument — it's the real CLI entry point, meant to read the real install's .env.
+    # Without this patch, calling it here reads whatever .env this checkout actually has,
+    # which on a real install means every "restore" test operates on the live database
+    # instead of this test's isolated `config` fixture. Dry-run's own "must not write"
+    # checks below happened to make that harmless — nothing dry-run touches ever gets
+    # written — but test_refuses_while_a_worker_holds_the_lock's `--apply` call did not
+    # have that safety net (see its own comment).
+    monkeypatch.setattr(Config, "from_env", staticmethod(lambda: config))
     make_publication()
     _seed_assets(config, conn)
     conn.close()
@@ -153,9 +163,19 @@ def test_rejects_a_backup_from_a_future_version(config, conn, make_publication, 
 
 
 def test_refuses_while_a_worker_holds_the_lock(
-    config, conn, make_publication, tmp_path, capsys
+    config, conn, make_publication, tmp_path, capsys, monkeypatch
 ):
-    """The most dangerous case: replacing the database under a running worker."""
+    """The most dangerous case: replacing the database under a running worker.
+
+    monkeypatch is load-bearing, not incidental: main() calls --apply for real, and
+    without pinning it to this test's isolated `config` via Config.from_env() it reads
+    whatever .env this checkout actually has — meaning a REAL install's database gets
+    restored over for real the moment this test runs, lock check or no lock check
+    (verified the hard way: this test's lock lived under `config`'s tmp path while
+    main()'s own from_env() Config pointed at the real data/socialscheduler.db, so the
+    lock it actually checked was never held and the restore went ahead for real).
+    """
+    monkeypatch.setattr(Config, "from_env", staticmethod(lambda: config))
     make_publication()
     _seed_assets(config, conn)
     conn.close()
