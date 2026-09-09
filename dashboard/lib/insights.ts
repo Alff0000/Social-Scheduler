@@ -253,8 +253,8 @@ export function engagementOf(post: PostRow): number | null {
  * A post whose metric is unknown must not outrank one with a real number in either
  * direction — it is missing, not best and not worst.
  */
-export function sortPosts(posts: PostRow[], key: PostSortKey): PostRow[] {
-  const valueOf = (p: PostRow): number | string | null =>
+export function sortPosts<T extends PostRow>(posts: T[], key: PostSortKey): T[] {
+  const valueOf = (p: T): number | string | null =>
     key === "engagement" ? engagementOf(p)
       : key === "published_at" ? p.published_at
         : p[key];
