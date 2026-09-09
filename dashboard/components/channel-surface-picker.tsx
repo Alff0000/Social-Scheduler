@@ -3,6 +3,7 @@
 import { channelColor } from "@/lib/format";
 import { ChannelAvatar } from "@/components/ui";
 import {
+  feedChipLabel,
   platformLabel,
   supportsStory,
   supportsText,
@@ -46,8 +47,11 @@ export function toggleTarget(
  * the same way — because each pair is two independent sends: that is what lets one photo
  * be a Story on Instagram and an ordinary post on Telegram, or one video land in a
  * Facebook Page's feed as an ordinary video and ALSO as a Reel. Instagram never gets a
- * Reel chip: its feed video already IS a Reel, so a separate toggle would be a distinction
- * with no difference.
+ * SEPARATE Reel chip: its feed video already IS a Reel (media_type=REELS — there is no
+ * other kind on Instagram anymore), so a second toggle would be a distinction with no
+ * difference and would let both be picked at once, sending the same Reel twice. What that
+ * first chip is LABELLED still changes with the content, via feedChipLabel: "Reel" for an
+ * Instagram video, "Feed" for everything else — same single destination either way.
  *
  * Guards state their reason rather than silently disappearing, so an unavailable
  * destination is explained rather than merely absent.
@@ -146,6 +150,7 @@ export function ChannelSurfacePicker({
           const reelLimitReason =
             offersReel && mediaAsset ? destinationDisabledReason(c.platform, "reel", mediaAsset) : null;
           const reelDisabled = videoDisabled || !!reelLimitReason;
+          const feedLabel = feedChipLabel(c.platform, hasVideo);
           const feedOn = hasTarget(value, c.id, "feed");
           const storyOn = hasTarget(value, c.id, "story");
           const reelOn = hasTarget(value, c.id, "reel");
@@ -216,7 +221,7 @@ export function ChannelSurfacePicker({
                   <span className="ml-auto flex shrink-0 gap-1" role="group"
                         aria-label={`Destinos de ${c.account_name}`}>
                     <SurfaceChip
-                      label="Feed"
+                      label={feedLabel}
                       on={feedOn}
                       disabled={feedDisabled}
                       disabledReason={reason}

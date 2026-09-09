@@ -15,7 +15,7 @@
  * reaches one directory up to read it. See that module's docstring for the full story.
  */
 import raw from "@/media-limits.json" with { type: "json" };
-import { PLATFORMS, supportsImages, supportsStory, videoSurfaces } from "@/lib/platforms";
+import { PLATFORMS, feedChipLabel, supportsImages, supportsStory, videoSurfaces } from "@/lib/platforms";
 
 export type Violation = {
   kind: "too_short" | "too_long" | "too_small" | "too_large" | "wrong_aspect" | "wrong_format";
@@ -180,7 +180,14 @@ export function destinationDisabledReason(
 ): string | null {
   const refusals = checkMedia(platform, surface, asset).filter((v) => v.severity === "refuse");
   if (refusals.length === 0) return null;
-  const surfaceLabel = surface === "reel" ? "Reels" : surface === "story" ? "Stories" : "o feed";
+  const surfaceLabel =
+    surface === "reel"
+      ? "Reels"
+      : surface === "story"
+        ? "Stories"
+        : feedChipLabel(platform, asset.media_kind === "video") === "Reel"
+          ? "Reels"
+          : "o feed";
   const v = refusals[0];
   const lead = v.kind === "too_long" ? "Longo demais para"
     : v.kind === "too_short" ? "Curto demais para"

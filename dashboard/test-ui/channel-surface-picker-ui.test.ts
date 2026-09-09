@@ -97,9 +97,14 @@ test("an image post offers no Reel toggle", () => {
   assert.doesNotMatch(html, />Reel</);
 });
 
-test("instagram never offers a Reel toggle", () => {
+test("instagram never offers a SEPARATE Reel toggle alongside its feed chip", () => {
+  // A video's feed chip is labelled "Reel" (it publishes as one either way — see
+  // feedChipLabel), but there must still be exactly one video-destination chip, never a
+  // second independent one: picking both would send the same Reel twice.
   const html = render({ channels: [ig], hasVideo: true });
-  assert.doesNotMatch(html, />Reel</);
+  const reelChips = html.match(/<button[^>]*>Reel<\/button>/g) ?? [];
+  assert.equal(reelChips.length, 1);
+  assert.doesNotMatch(html, />Feed</);
 });
 
 test("a video post still offers Facebook Feed alongside Reel", () => {
@@ -328,7 +333,8 @@ test("an in-spec video leaves both Instagram chips enabled", () => {
     assets: [{ width: 1080, height: 1920, duration_ms: 20_000 }],
   });
   assert.doesNotMatch(html, /Too long/);
-  const feedChip = /<button[^>]*>Feed<\/button>/.exec(html);
+  // Labelled "Reel", not "Feed", for a video — same single destination either way.
+  const feedChip = /<button[^>]*>Reel<\/button>/.exec(html);
   assert.ok(feedChip);
   assert.doesNotMatch(feedChip![0], /\bdisabled=""/);
   assert.doesNotMatch(storyButton(html), /\bdisabled=""/);

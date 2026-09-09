@@ -203,6 +203,19 @@ export function supportsVideo(value: string): boolean {
   return videoSurfaces(value).length > 0;
 }
 
+// Instagram's own API has had no separate "ordinary feed video" endpoint since Reels
+// absorbed it: a video sent to Instagram's feed surface is created with media_type=REELS
+// (worker/graph_api.py's create_video_container), never anything else. Facebook is the
+// platform that genuinely has two different video destinations (its own "feed" surface
+// AND a separate "reel" one — see videoSurfaces above) — Instagram does not, which is
+// also why it never gets a standalone Reel chip (channel-surface-picker.tsx): offering
+// Feed and Reel as independent toggles there would let both be picked at once and send
+// the exact same Reel twice. The one chip it does show is worth labelling honestly
+// instead, so this exists purely to pick that label — it changes no publishing behaviour.
+export function feedChipLabel(value: string, isVideo: boolean): string {
+  return isVideo && value === "instagram" ? "Reel" : "Feed";
+}
+
 // Default TRUE for an unrecognised platform — and note this is the OPPOSITE direction to
 // supportsVideo above, deliberately. Nearly every platform takes images, so the risky
 // mistake here is hiding image posting from one that supports it; offering an image post
