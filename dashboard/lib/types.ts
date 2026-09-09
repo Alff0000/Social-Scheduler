@@ -86,6 +86,19 @@ export interface Channel {
   avatar_fetched_at: string | null;
   avatar_refresh_requested: number;
   avatar_error: string | null;
+  /** Which folder (migration 0030) this account is organized under, or null for none.
+   *  Purely organizational — unrelated to group_id's auto-fill coordination. */
+  folder_id: number | null;
+}
+
+/** A purely organizational grouping of accounts (migration 0030) — "which accounts
+ *  belong together for browsing/bulk operations", e.g. the Stories composer's folder
+ *  picker, Story Rotina's per-folder renewal, or a pack of Estoque accounts. Deliberately
+ *  has no cadence/timezone/auto-fill fields of its own; see ChannelGroup for that. */
+export interface Folder {
+  id: number;
+  name: string;
+  created_at: string;
 }
 
 /** A named set of channels that auto-fills as ONE unit — one cadence, one selection

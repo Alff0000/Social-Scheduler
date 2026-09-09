@@ -7,9 +7,14 @@ import type { DayRow, PostRow } from "./insights";
   the compose/schedule path — these answer a different question against different tables
   and share none of its helpers.
 
-  Every query is scoped to one channel. There is no cross-account aggregate anywhere:
-  summing reach across two accounts double-counts the people who follow both, and no
-  honest total exists for it.
+  Most queries here are scoped to one channel. There is no cross-account AUDIENCE
+  aggregate anywhere: summing reach or followers across two accounts double-counts the
+  people who follow both, and no honest total exists for it.
+
+  getReelPosts and getStoryPublications are the exceptions, and deliberately so — they
+  sum per-post EVENT counts (views, likes, comments, taps), not audience size. A view on
+  one account's Reel and a view on another's are always two different events, so summing
+  them across accounts is just arithmetic, not the overlap problem above.
 */
 
 export interface InsightsChannel {
@@ -99,6 +104,92 @@ export function getChannelPosts(channelId: number, limit = 500): PostRow[] {
       `,
     )
     .all(channelId, limit) as PostRow[];
+}
+
+export interface ReelRow extends PostRow {
+  channel_id: number;
+  account_name: string;
+  color_hue: number | null;
+  avatar_path: string | null;
+}
+
+/**
+ * Every Reel across every active channel, most recent first, with its most recent
+ * metrics reading — the cross-account counterpart to getChannelPosts, filtered to
+ * `media_product_type = 'REELS'` (Reels is Instagram-only; other platforms simply
+ * contribute nothing here rather than needing their own branch).
+ */
+export function getReelPosts(limit = 300): ReelRow[] {
+  return getDb()
+    .prepare(
+      `
+      SELECT
+        rm.id, rm.remote_post_id, rm.permalink, rm.caption, rm.thumbnail_url,
+        rm.media_type, rm.media_product_type, rm.published_at, rm.publication_id,
+        rm.thumbnail_path,
+        mm.reach, mm.likes, mm.comments, mm.saves, mm.shares, mm.impressions,
+        c.id AS channel_id, c.account_name, c.color_hue, c.avatar_path
+      FROM remote_media rm
+      JOIN channels c ON c.id = rm.channel_id AND c.is_active = 1
+      LEFT JOIN media_metrics mm ON mm.id = (
+        SELECT id FROM media_metrics
+        WHERE remote_media_id = rm.id
+        ORDER BY fetched_at DESC, id DESC
+        LIMIT 1
+      )
+      WHERE rm.media_product_type = 'REELS' AND rm.is_deleted = 0
+      ORDER BY rm.published_at DESC
+      LIMIT ?
+      `,
+    )
+    .all(limit) as ReelRow[];
+}
+
+export interface StoryPublicationRow {
+  id: number;
+  channel_id: number;
+  account_name: string;
+  color_hue: number | null;
+  avatar_path: string | null;
+  published_at: string | null;
+  reach: number | null;
+  impressions: number | null;
+  comments: number | null;
+  raw_json: string | null;
+}
+
+/**
+ * Every Story this install actually published, most recent first, with its most recent
+ * metrics reading.
+ *
+ * Scoped to `publications` (surface = 'story'), NOT remote_media — a Story is gone from
+ * the account within 24h (see worker/metrics.py's STORY_LIFETIME_HOURS), so the account
+ * sync has nothing lasting to mirror. Our own publish record is the only surviving trace,
+ * which is also why this is naturally scoped to stories WE sent, not "every story this
+ * account ever posted" the way getReelPosts covers every Reel.
+ */
+export function getStoryPublications(limit = 500): StoryPublicationRow[] {
+  return getDb()
+    .prepare(
+      `
+      SELECT
+        pub.id, pub.channel_id, pub.published_at,
+        c.account_name, c.color_hue, c.avatar_path,
+        pm.reach, pm.impressions, pm.comments, pm.raw_json
+      FROM publications pub
+      JOIN channels c ON c.id = pub.channel_id
+      LEFT JOIN post_metrics pm ON pm.id = (
+        SELECT id FROM post_metrics
+        WHERE publication_id = pub.id
+        ORDER BY fetched_at DESC, id DESC
+        LIMIT 1
+      )
+      WHERE pub.surface = 'story' AND pub.status = 'posted' AND pub.is_dry_run = 0
+      ORDER BY pub.published_at DESC
+      LIMIT ?
+      `,
+    )
+    .all(limit) as StoryPublicationRow[];
 }
 
 export interface DemographicRow {

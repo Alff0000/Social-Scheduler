@@ -11,6 +11,7 @@ import type {
   ChannelGroup,
   ContentKind,
   ContentStatus,
+  Folder,
   Period,
   PeriodMode,
   Post,
@@ -290,6 +291,35 @@ export function getGroupMembers(groupId: number): Channel[] {
   return getDb()
     .prepare("SELECT * FROM channels WHERE group_id = ? ORDER BY id")
     .all(groupId) as Channel[];
+}
+
+// ---- Folders (migration 0030) ------------------------------------------------------
+// Purely organizational — see Folder's doc comment in lib/types.ts for why this is a
+// separate concept from channel_groups above rather than reusing it.
+
+export function listFolders(): Folder[] {
+  return getDb().prepare("SELECT * FROM folders ORDER BY name COLLATE NOCASE").all() as Folder[];
+}
+
+export function createFolder(name: string): number {
+  const info = getDb().prepare("INSERT INTO folders (name) VALUES (?)").run(name.trim());
+  return info.lastInsertRowid as number;
+}
+
+export function deleteFolder(id: number): boolean {
+  const info = getDb().prepare("DELETE FROM folders WHERE id = ?").run(id);
+  return info.changes > 0;
+}
+
+/** Move a channel into a folder, or out of every folder when `folderId` is null. */
+export function setChannelFolder(channelId: number, folderId: number | null): void {
+  getDb().prepare("UPDATE channels SET folder_id = ? WHERE id = ?").run(folderId, channelId);
+}
+
+export function getFolderMembers(folderId: number): Channel[] {
+  return getDb()
+    .prepare("SELECT * FROM channels WHERE folder_id = ? ORDER BY id")
+    .all(folderId) as Channel[];
 }
 
 /** Ready posts targeted at `surface`, per time_of_day band, across a set of channels.
@@ -3282,12 +3312,81 @@ export function updatePostContentModel(
     .run({ ...fields, id: postId, updated_at: nowIso() });
 }
 
+// ---- Publish quota ------------------------------------------------------------------
+// publish_limits (migration 0001) caches Meta's own content_publishing_limit response,
+// written by worker/publisher.py after each real publish (see db.record_publish_limit) —
+// never computed or hardcoded here (CLAUDE.md: Meta's own docs disagree on the number).
+
+export interface PublishLimit {
+  channel_id: number;
+  quota_usage: number | null;
+  quota_total: number | null;
+  quota_duration: number | null;
+  checked_at: string;
+}
+
+/** Each channel's most recent quota reading, keyed by channel id. Channels that have
+ *  never published for real (dry-run only) or whose platform has no quota endpoint
+ *  (Facebook, Discord, Telegram, TikTok) simply have no entry — never a fabricated zero. */
+export function getLatestPublishLimits(): Record<number, PublishLimit> {
+  const rows = getDb()
+    .prepare(
+      `SELECT channel_id, quota_usage, quota_total, quota_duration, checked_at
+       FROM publish_limits pl
+       WHERE pl.id = (
+         SELECT id FROM publish_limits WHERE channel_id = pl.channel_id
+         ORDER BY checked_at DESC, id DESC LIMIT 1
+       )`
+    )
+    .all() as PublishLimit[];
+  const out: Record<number, PublishLimit> = {};
+  for (const r of rows) out[r.channel_id] = r;
+  return out;
+}
+
 // ---- Worker liveness --------------------------------------------------------------
 /** The worker is a separate process that must be running for metrics refreshes,
  *  scheduled publishing, and auto-fill to happen. It stamps worker_heartbeat every
  *  poll (~30s); we treat it as online if that stamp is recent. Generous window so a
  *  slow poll or clock skew doesn't flap the indicator. */
 const WORKER_ONLINE_WINDOW_MS = 120_000;
+
+// ---- Notification preferences ------------------------------------------------------
+// notification_settings (migration 0033) is PREFERENCE STORAGE ONLY — see that file's
+// header. No code anywhere sends an alert based on these values yet.
+
+export interface NotificationSettings {
+  queue_error_enabled: boolean;
+  auto_report_enabled: boolean;
+  account_blocked_enabled: boolean;
+}
+
+export function getNotificationSettings(): NotificationSettings {
+  const row = getDb()
+    .prepare(
+      "SELECT queue_error_enabled, auto_report_enabled, account_blocked_enabled FROM notification_settings WHERE id = 1",
+    )
+    .get() as
+    | { queue_error_enabled: number; auto_report_enabled: number; account_blocked_enabled: number }
+    | undefined;
+  return {
+    queue_error_enabled: Boolean(row?.queue_error_enabled),
+    auto_report_enabled: Boolean(row?.auto_report_enabled),
+    account_blocked_enabled: Boolean(row?.account_blocked_enabled),
+  };
+}
+
+export function updateNotificationSettings(patch: Partial<NotificationSettings>): void {
+  const fields = Object.keys(patch) as (keyof NotificationSettings)[];
+  if (fields.length === 0) return;
+  const setClause = fields.map((f) => `${f} = @${f}`).join(", ");
+  getDb()
+    .prepare(`UPDATE notification_settings SET ${setClause}, updated_at = @updated_at WHERE id = 1`)
+    .run({
+      ...Object.fromEntries(fields.map((f) => [f, patch[f] ? 1 : 0])),
+      updated_at: nowIso(),
+    });
+}
 
 export function getWorkerStatus(): { online: boolean; lastSeenAt: string | null } {
   const row = getDb()

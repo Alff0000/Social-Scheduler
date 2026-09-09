@@ -551,3 +551,102 @@ export function standoutsFor(
   }
   return out;
 }
+
+/*
+  Story funnel — publicado -> visualizado -> toque -> clique no link -> resposta.
+
+  Instagram's Story navigation is not exposed as its own reach/comments-style column.
+  worker/metrics.py requests it (the `navigation` metric) but stores it only in
+  post_metrics.raw_json (see REQUESTED_STORY_METRICS and reference.md's "first real
+  Story" section) — Meta rejects `taps_forward`/`taps_back`/`exits` outright and returns
+  a single breakdown metric instead, shaped as a Graph API breakdown response:
+  `{ data: [{ name: "navigation", total_value: { breakdowns: [{ results: [
+  { dimension_values: ["TAP_FORWARD"], value: N }, ... ] }] } }] }`.
+
+  That shape is DOCUMENTED but not verified here against a live payload with nonzero
+  values — the one real Story this app has published so far had views: 6 and every other
+  metric, including navigation, at 0 (reference.md). Parsing is therefore defensive: an
+  unrecognised or missing shape returns nulls rather than a wrong number, exactly like
+  every other "platform did not report this" case in this file.
+*/
+
+export interface StoryNavigation {
+  tapForward: number | null;
+  tapBack: number | null;
+  tapExit: number | null;
+  /** A tap or swipe on a link/sticker — the funnel's "clique no link" step. */
+  swipeForward: number | null;
+}
+
+const EMPTY_NAVIGATION: StoryNavigation = {
+  tapForward: null, tapBack: null, tapExit: null, swipeForward: null,
+};
+
+export function parseStoryNavigation(rawJson: string | null): StoryNavigation {
+  if (!rawJson) return EMPTY_NAVIGATION;
+  try {
+    const parsed = JSON.parse(rawJson);
+    const entries: unknown[] = Array.isArray(parsed?.data) ? parsed.data : [];
+    const nav = entries.find(
+      (e): e is { total_value?: { breakdowns?: unknown[] } } =>
+        !!e && typeof e === "object" && (e as { name?: unknown }).name === "navigation",
+    );
+    const results = nav?.total_value?.breakdowns?.[0] as
+      | { results?: { dimension_values?: unknown[]; value?: unknown }[] }
+      | undefined;
+    if (!Array.isArray(results?.results)) return EMPTY_NAVIGATION;
+
+    const out = { ...EMPTY_NAVIGATION };
+    for (const r of results.results) {
+      const key = String(r?.dimension_values?.[0] ?? "").toUpperCase();
+      const value = typeof r?.value === "number" ? r.value : null;
+      if (value === null) continue;
+      if (key === "TAP_FORWARD") out.tapForward = value;
+      else if (key === "TAP_BACK") out.tapBack = value;
+      else if (key === "TAP_EXIT") out.tapExit = value;
+      else if (key === "SWIPE_FORWARD") out.swipeForward = value;
+    }
+    return out;
+  } catch {
+    return EMPTY_NAVIGATION;
+  }
+}
+
+export interface StoryFunnelStep {
+  key: "viewed" | "touch" | "link" | "reply";
+  label: string;
+  value: number | null;
+}
+
+/**
+ * Aggregate the funnel across a set of story publications.
+ *
+ * Deliberately starts at "visualizado", not "publicado". A count of STORIES (how many
+ * were posted) and a count of VIEW/TAP EVENTS across all of them are different units —
+ * one story reaching 500 people is not "500% of 3 published", and putting both on the
+ * same relative bar chart produces exactly that nonsense. How many stories were
+ * published belongs beside the chart as context, not as its first bar.
+ *
+ * Each step sums whatever posts actually reported that metric — same null/zero
+ * discipline as sumMetric: a step nobody reported is null, not a false zero, so the
+ * chart can say "not tracked" instead of drawing a flat line at the bottom.
+ */
+export function buildStoryFunnel(
+  rows: { reach: number | null; impressions: number | null; comments: number | null; raw_json: string | null }[],
+): StoryFunnelStep[] {
+  const sum = (values: (number | null)[]): number | null => {
+    const present = values.filter((v): v is number => v !== null && v !== undefined);
+    return present.length ? present.reduce((a, b) => a + b, 0) : null;
+  };
+  const navs = rows.map((r) => parseStoryNavigation(r.raw_json));
+  return [
+    { key: "viewed", label: "Visualizado", value: sum(rows.map((r) => r.reach)) },
+    {
+      key: "touch",
+      label: "Toque",
+      value: sum(navs.flatMap((n) => [n.tapForward, n.tapBack, n.tapExit])),
+    },
+    { key: "link", label: "Clique no link", value: sum(navs.map((n) => n.swipeForward)) },
+    { key: "reply", label: "Resposta", value: sum(rows.map((r) => r.comments)) },
+  ];
+}

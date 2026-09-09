@@ -386,6 +386,74 @@ export function HBarList({
   );
 }
 
+/* ----------------------------------------------------------------- FunnelChart ---- */
+
+/**
+ * A stepped funnel: one bar per stage, width proportional to the FIRST stage that has a
+ * value (not the previous stage) — so a null in the middle does not silently rescale
+ * everything after it and make a flat unreported step look like 100% retention.
+ *
+ * A stage with no data draws as a dashed outline rather than a bar, matching this file's
+ * rule that "unreported" and "reported zero" must never look the same.
+ */
+export function FunnelChart({
+  steps,
+  color,
+  label,
+}: {
+  steps: { key: string; label: string; value: number | null }[];
+  color: string;
+  label: string;
+}) {
+  const base = steps.find((s) => s.value !== null && s.value > 0)?.value ?? null;
+
+  if (base === null) {
+    return (
+      <div className="rounded-card border border-dashed border-border px-4 py-10 text-center text-sm text-muted">
+        Nenhum dado de story ainda.
+      </div>
+    );
+  }
+
+  return (
+    <div role="img" aria-label={label} className="space-y-2.5">
+      {steps.map((step, i) => {
+        const pct = step.value === null ? null : Math.round((step.value / base) * 100);
+        const widthPct = step.value === null ? 100 : Math.max(pct ?? 0, step.value > 0 ? 3 : 0);
+        const prev = i > 0 ? steps[i - 1] : null;
+        const dropPct =
+          prev && prev.value !== null && prev.value > 0 && step.value !== null
+            ? Math.round((step.value / prev.value) * 100)
+            : null;
+        return (
+          <div key={step.key}>
+            <div className="mb-1 flex items-baseline justify-between text-[11px]">
+              <span className="font-medium text-ink-soft">{step.label}</span>
+              <span className="data text-muted">
+                {step.value === null
+                  ? "não disponível"
+                  : `${step.value.toLocaleString()}${pct !== null ? ` · ${pct}%` : ""}${
+                      dropPct !== null && i > 0 ? ` · ${dropPct}% do passo anterior` : ""
+                    }`}
+              </span>
+            </div>
+            <div className="h-6 overflow-hidden rounded-md bg-surface-sunken">
+              {step.value === null ? (
+                <div className="h-full w-full rounded-md border border-dashed border-border-strong" />
+              ) : (
+                <div
+                  className="h-full rounded-md"
+                  style={{ width: `${widthPct}%`, backgroundColor: color, opacity: 0.85 }}
+                />
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /* -------------------------------------------------------------------- HeatGrid ---- */
 
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

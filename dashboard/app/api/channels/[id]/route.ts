@@ -4,7 +4,9 @@ import {
   getChannelGroup,
   updateChannel,
   setChannelGroup,
+  setChannelFolder,
   upsertAutofillLane,
+  listFolders,
 } from "@/lib/queries";
 import { isSurface } from "@/lib/story-fanout";
 import type { Surface } from "@/lib/types";
@@ -104,6 +106,17 @@ export async function PATCH(
       return NextResponse.json({ error: "Group not found." }, { status: 400 });
     }
     setChannelGroup(channelId, gid);
+  }
+
+  // folder_id goes through setChannelFolder() for the same reason group_id does above:
+  // it is a membership change to a separate organizational concept (migration 0030,
+  // see Folder in lib/types.ts), not a plain column write.
+  if ("folder_id" in body) {
+    const fid = body.folder_id === null || body.folder_id === "" ? null : Number(body.folder_id);
+    if (fid !== null && !listFolders().some((f) => f.id === fid)) {
+      return NextResponse.json({ error: "Folder not found." }, { status: 400 });
+    }
+    setChannelFolder(channelId, fid);
   }
 
   updateChannel(channelId, fields);

@@ -5,25 +5,74 @@ import { usePathname } from "next/navigation";
 import { ThemeControls } from "@/components/theme-controls";
 import { UpdateBanner } from "@/components/update-banner";
 
-const NAV = [
-  { href: "/", label: "Visão geral", hint: "Fila e status" },
-  { href: "/calendar", label: "Calendário", hint: "Visão semanal e mensal" },
-  { href: "/compose", label: "Compor", hint: "Nova publicação" },
-  { href: "/import", label: "Importar", hint: "Adicionar imagens em massa" },
-  { href: "/library", label: "Biblioteca", hint: "Publicações e agendamento em massa" },
-  { href: "/insights", label: "Estatísticas", hint: "Desempenho das contas" },
-  { href: "/insights/pool", label: "Pool BPP", hint: "Publicações que valem repetir" },
-  { href: "/media", label: "Mídia", hint: "Arquivos armazenados e limpeza" },
-  { href: "/periods", label: "Períodos", hint: "Janelas sazonais" },
-  { href: "/tags", label: "Etiquetas", hint: "Tópicos e limpeza" },
-  { href: "/channels", label: "Canais", hint: "Contas e configuração" },
+const NAV_GROUPS = [
+  {
+    group: "Visão Geral",
+    items: [
+      { href: "/", label: "Dashboard", hint: "Fila e status" },
+      { href: "/calendar", label: "Calendário", hint: "Visão semanal e mensal" },
+    ],
+  },
+  {
+    group: "Conteúdo",
+    items: [
+      { href: "/compose", label: "Postar Reel", hint: "Nova publicação" },
+      { href: "/stories", label: "Stories", hint: "Story avulso, na hora" },
+      { href: "/import", label: "Importar", hint: "Adicionar imagens em massa" },
+      { href: "/library", label: "Agendamento em Massa", hint: "Publicações e agendamento em massa" },
+      { href: "/media", label: "Biblioteca", hint: "Arquivos armazenados e limpeza" },
+      { href: "/periods", label: "Períodos", hint: "Janelas sazonais" },
+      { href: "/tags", label: "Etiquetas", hint: "Tópicos e limpeza" },
+    ],
+  },
+  {
+    group: "Desempenho",
+    items: [
+      { href: "/insights", label: "Relatório", hint: "Desempenho das contas" },
+      { href: "/insights/reels", label: "Métricas de Reels", hint: "Views, likes e comentários por reel" },
+      { href: "/insights/funnel", label: "Funil de Stories", hint: "Publicado → visualizado → toque → link → resposta" },
+    ],
+  },
+  {
+    group: "Publicação Automática",
+    items: [
+      { href: "/insights/pool", label: "Loop", hint: "Publicações que valem repetir" },
+      { href: "/queue", label: "Status da Fila", hint: "Ok, pendentes, erros e progresso" },
+      { href: "/queue/control", label: "Controle", hint: "Ritmo por conta e término estimado" },
+    ],
+  },
+  {
+    group: "Configuração",
+    items: [
+      { href: "/channels", label: "Contas", hint: "Contas e configuração" },
+      { href: "/accounts/stock", label: "Estoque", hint: "Contas do Instagram em lotes" },
+      { href: "/settings/meta-apps", label: "Apps Meta", hint: "Apps cadastrados no Meta for Developers" },
+      { href: "/settings/integration", label: "Integração", hint: "Links de OAuth por app Meta" },
+      { href: "/settings/notifications", label: "Notificações", hint: "Alertas de erro, relatório e bloqueio" },
+    ],
+  },
 ];
 
 export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
-  const nav = isAdmin
-    ? [...NAV, { href: "/users", label: "Usuários", hint: "Acesso à plataforma" }]
-    : NAV;
+  const groups = isAdmin
+    ? NAV_GROUPS.map((g) =>
+        g.group === "Configuração"
+          ? { ...g, items: [...g.items, { href: "/users", label: "Usuários", hint: "Acesso à plataforma" }] }
+          : g,
+      )
+    : NAV_GROUPS;
+
+  // The longest href that matches the current path wins — so a parent route (e.g.
+  // /insights) does not light up alongside a nested one (e.g. /insights/reels) that
+  // also matches. Generalises the old one-off exact-match special case to every route
+  // that gains children as more pages are added.
+  const matches = (href: string) =>
+    href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+  const activeHref = groups
+    .flatMap((g) => g.items.map((i) => i.href))
+    .filter(matches)
+    .sort((a, b) => b.length - a.length)[0];
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -54,32 +103,37 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
         </p>
       </div>
 
-      <nav className="flex-1 p-3">
-        <ul className="space-y-1">
-          {nav.map((item) => {
-            // Exact match for /insights so the nested "BPP pool" page does not light up
-            // its parent as well — two highlighted rows reads as a bug.
-            const active =
-              item.href === "/" || item.href === "/insights"
-                ? pathname === item.href
-                : pathname.startsWith(item.href);
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`block rounded-lg px-3 py-2 transition-colors ${
-                    active
-                      ? "bg-brand-weak text-brand-strong"
-                      : "text-ink-soft hover:bg-surface-sunken"
-                  }`}
-                >
-                  <span className="block text-sm font-medium">{item.label}</span>
-                  <span className="block text-[11px] text-muted">{item.hint}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+      <nav className="flex-1 space-y-5 p-3">
+        {groups.map((group) => (
+          <div key={group.group}>
+            <h2 className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-faint">
+              {group.group}
+            </h2>
+            <ul className="space-y-1">
+              {group.items.map((item) => {
+                // The most specific href that matches wins, so a parent (e.g. /insights)
+                // does not also light up while a nested page (e.g. /insights/reels) is
+                // open — two highlighted rows reads as a bug.
+                const active = item.href === activeHref;
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={`block rounded-lg px-3 py-2 transition-colors ${
+                        active
+                          ? "bg-brand-weak text-brand-strong"
+                          : "text-ink-soft hover:bg-surface-sunken"
+                      }`}
+                    >
+                      <span className="block text-sm font-medium">{item.label}</span>
+                      <span className="block text-[11px] text-muted">{item.hint}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
 
       <div className="p-3 border-t border-border space-y-3">

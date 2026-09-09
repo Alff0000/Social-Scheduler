@@ -3,33 +3,33 @@
 /*
   InstaVips — "publishing control room" tokens.
   Deliberately not the cream/serif or black/acid-green AI defaults:
-  cool paper canvas, pine-green brand, signal-orange for primary actions only,
+  cool paper canvas, vibrant red brand, warm orange for primary actions only,
   monospace for all times/IDs/counts (the scheduling-cockpit signature).
 */
 @theme {
-  --color-canvas: #faf6f6;
+  --color-canvas: #fdf5f6;
   --color-surface: #ffffff;
-  --color-surface-sunken: #f5eeee;
-  --color-border: #ecdede;
-  --color-border-strong: #d9c2c2;
-  --color-ink: #1a1214;
-  --color-ink-soft: #4a2f33;
-  --color-muted: #7a6165;
-  --color-faint: #b09a9d;
+  --color-surface-sunken: #f8e9eb;
+  --color-border: #f0d3d7;
+  --color-border-strong: #ddabb2;
+  --color-ink: #1f1113;
+  --color-ink-soft: #4a262b;
+  --color-muted: #7a4d52;
+  --color-faint: #b08a8e;
 
-  --color-brand: #9c1c2e;
-  --color-brand-ink: #7a1523;
-  --color-brand-weak: #f6e2e5;
-  --color-accent: #b8860b;
-  --color-accent-ink: #8f6a08;
-  --color-accent-weak: #f7ecd3;
+  --color-brand: #ff2d55;
+  --color-brand-ink: #d81f45;
+  --color-brand-weak: #ffe1e7;
+  --color-accent: #ff6b4a;
+  --color-accent-ink: #e0532f;
+  --color-accent-weak: #ffe6dc;
 
   /* Button foreground (white or dark per theme) + pill/chip text on the -weak tints.
      Split out so brand/accent stay vivid while buttons and pills each stay legible. */
   --color-on-brand: #ffffff;
-  --color-on-accent: #ffffff;
-  --color-brand-strong: #7a1523;
-  --color-accent-strong: #8f6a08;
+  --color-on-accent: #2a0f08;
+  --color-brand-strong: #b3123a;
+  --color-accent-strong: #b23c1f;
 
   /* Status semantics (draft / scheduled / posted / failed / publishing / blocked)
 
@@ -145,25 +145,25 @@ html[data-mode="dark"] {
 }
 
 html[data-theme="instavips"][data-mode="dark"] {
-  --color-canvas: #160f10;
-  --color-surface: #201517;
-  --color-surface-sunken: #2a1b1e;
-  --color-border: #3a2226;
-  --color-border-strong: #4d2c31;
-  --color-ink: #f3e6e8;
-  --color-ink-soft: #d9bfc3;
-  --color-muted: #a98d91;
-  --color-faint: #6b5457;
-  --color-brand: #d43b52;
+  --color-canvas: #0a0910;
+  --color-surface: #15111a;
+  --color-surface-sunken: #1d1720;
+  --color-border: #2b232f;
+  --color-border-strong: #3a2f40;
+  --color-ink: #f5eef0;
+  --color-ink-soft: #d9c3c8;
+  --color-muted: #a98d93;
+  --color-faint: #6b5459;
+  --color-brand: #ff2d55;
   --color-on-brand: #ffffff;
-  --color-brand-ink: #b12e42;
-  --color-brand-weak: #3f1b21;
-  --color-brand-strong: #ff8a9b;
-  --color-accent: #e0b23d;
-  --color-on-accent: #1a1214;
-  --color-accent-ink: #b88f2e;
-  --color-accent-weak: #3a2e14;
-  --color-accent-strong: #f0c96a;
+  --color-brand-ink: #d81f45;
+  --color-brand-weak: #3f1420;
+  --color-brand-strong: #ff8aa0;
+  --color-accent: #ff6b4a;
+  --color-on-accent: #1a0e0a;
+  --color-accent-ink: #e0532f;
+  --color-accent-weak: #3a1f16;
+  --color-accent-strong: #ffab8e;
 }
 
 html[data-theme="claude"][data-mode="light"] {
