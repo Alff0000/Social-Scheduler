@@ -266,11 +266,11 @@ export function Composer({
     const incoming = Array.from(files);
     const incomingHasVideo = incoming.some((f) => f.type.startsWith("video/"));
     if (hasVideo) {
-      setError("Remove the current video before adding more media.");
+      setError("Remova o vídeo atual antes de adicionar mais mídia.");
       return;
     }
     if (incomingHasVideo && (assets.length > 0 || incoming.length > 1)) {
-      setError("A Reel is a single video with no other images or videos alongside it.");
+      setError("Um Reel é um único vídeo, sem outras imagens ou vídeos junto.");
       return;
     }
 
@@ -282,7 +282,7 @@ export function Composer({
       const res = await fetch("/api/assets/upload", { method: "POST", body: fd });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(body.error ?? `Couldn't upload ${file.name}.`);
+        setError(body.error ?? `Não foi possível enviar ${file.name}.`);
         continue;
       }
       if (body.deduped) dedupCount += 1;
@@ -348,19 +348,19 @@ export function Composer({
   async function submit() {
     setError(null);
     if (textOnly) {
-      if (!caption.trim()) return setError("Write a caption for the text post.");
+      if (!caption.trim()) return setError("Escreva uma legenda para o post de texto.");
     } else if (assets.length === 0) {
-      return setError("Add at least one image.");
+      return setError("Adicione ao menos uma imagem.");
     }
     if (overCaptionLimit) {
       const names = allCaptionChecks
         .filter((c) => c.length > c.limit)
         .map((c) => (c.channel ? `${c.channel.account_name} (${c.length}/${c.limit})` : `${c.limit}-character limit`))
         .join(", ");
-      return setError(`Caption is over the limit for: ${names}.`);
+      return setError(`Legenda acima do limite para: ${names}.`);
     }
-    if (effectiveTargets.length === 0) return setError("Select at least one channel.");
-    if (!postNow && !scheduledLocal) return setError("Pick a date and time.");
+    if (effectiveTargets.length === 0) return setError("Selecione ao menos uma conta.");
+    if (!postNow && !scheduledLocal) return setError("Escolha uma data e hora.");
 
     const res = await fetch("/api/posts", {
       method: "POST",
@@ -381,7 +381,7 @@ export function Composer({
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setError(body.error ?? "Could not schedule the post.");
+      setError(body.error ?? "Não foi possível agendar a publicação.");
       return;
     }
     startSubmit(() => router.push("/"));
@@ -390,9 +390,9 @@ export function Composer({
   async function saveDraft() {
     setError(null);
     if (textOnly) {
-      if (!caption.trim()) return setError("Write a caption for the text post.");
+      if (!caption.trim()) return setError("Escreva uma legenda para o post de texto.");
     } else if (assets.length === 0) {
-      return setError("Add at least one image to save a draft.");
+      return setError("Adicione ao menos uma imagem para salvar um rascunho.");
     }
     const res = await fetch("/api/posts/draft", {
       method: "POST",
@@ -412,7 +412,7 @@ export function Composer({
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setError(body.error ?? "Could not save the draft.");
+      setError(body.error ?? "Não foi possível salvar o rascunho.");
       return;
     }
     startSubmit(() => router.push("/library"));
@@ -433,10 +433,10 @@ export function Composer({
         {/* Text only toggle */}
         <section className="flex items-center justify-between rounded-card border border-border bg-surface p-4">
           <div>
-            <h3 className="font-display text-sm font-semibold text-ink">Text only</h3>
+            <h3 className="font-display text-sm font-semibold text-ink">Só texto</h3>
             <p className="text-xs text-muted">
-              Write a caption with no image — only channels that support text posts can be
-              picked.
+              Escreva uma legenda sem imagem — só contas que suportam posts de texto podem
+              ser escolhidas.
             </p>
           </div>
           <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-ink-soft">
@@ -445,7 +445,7 @@ export function Composer({
               checked={textOnly}
               onChange={(e) => toggleTextOnly(e.target.checked)}
             />
-            {textOnly ? "On" : "Off"}
+            {textOnly ? "Ligado" : "Desligado"}
           </label>
         </section>
 
@@ -454,7 +454,7 @@ export function Composer({
           <section className="rounded-card border border-border bg-surface p-5">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="font-display text-sm font-semibold text-ink">
-                {hasVideo ? "Video" : "Images"}
+                {hasVideo ? "Vídeo" : "Imagens"}
                 <span className="data ml-2 text-xs font-normal text-faint">{postType}</span>
               </h3>
               <button
@@ -462,7 +462,7 @@ export function Composer({
                 disabled={hasVideo}
                 className="rounded-md border border-border-strong px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-surface-sunken disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {uploading ? "Uploading…" : "Add media"}
+                {uploading ? "Enviando…" : "Adicionar mídia"}
               </button>
               {/* The accept list names extensions ALONGSIDE the MIME types on purpose: a
                   file picker matches MIME entries against the type the OS reports, and a
@@ -487,11 +487,11 @@ export function Composer({
                 }}
                 className="rounded-lg border border-dashed border-border-strong px-4 py-10 text-center text-sm text-muted"
               >
-                Drag images or a video here, or use <span className="text-ink-soft">Add media</span>.
+                Arraste imagens ou um vídeo aqui, ou use <span className="text-ink-soft">Adicionar mídia</span>.
                 <br />
                 <span className="text-xs text-faint">
-                  Dedup is by content — the same file won&rsquo;t be stored twice. A single
-                  video becomes a Reel; it can&rsquo;t be mixed with images.
+                  A deduplicação é por conteúdo — o mesmo arquivo não é guardado duas vezes. Um
+                  único vídeo vira um Reel; não pode ser misturado com imagens.
                 </span>
               </div>
             ) : hasVideo ? (
@@ -499,8 +499,8 @@ export function Composer({
                 <CoverFramePicker asset={assets[0].asset} />
                 {assets[0].converted ? (
                   <p className="inline-block rounded bg-accent-weak px-1.5 py-0.5 text-[11px] font-medium text-accent-strong">
-                    Converted to {assets[0].converted.to} so Instagram will accept it. Your
-                    original is untouched.
+                    Convertido para {assets[0].converted.to} para o Instagram aceitar. Seu
+                    original permanece intacto.
                   </p>
                 ) : null}
                 {assets[0].warnings.length > 0 ? (
@@ -517,13 +517,13 @@ export function Composer({
                   onClick={() => removeAsset(assets[0].asset.id)}
                   className="text-xs font-medium text-status-failed hover:underline"
                 >
-                  Remove video
+                  Remover vídeo
                 </button>
               </div>
             ) : (
               <div>
                 <p className="mb-2 text-xs text-muted">
-                  Drag to reorder — this is the carousel order.
+                  Arraste para reordenar — esta é a ordem do carrossel.
                 </p>
                 <SlideReorder
                   slides={assets.map((a): Slide => ({
@@ -563,9 +563,9 @@ export function Composer({
 
         {/* Content kind */}
         <section className="rounded-card border border-border bg-surface p-5">
-          <h3 className="mb-1 font-display text-sm font-semibold text-ink">Kind</h3>
+          <h3 className="mb-1 font-display text-sm font-semibold text-ink">Tipo</h3>
           <p className="mb-3 text-xs text-muted">
-            Evergreen recycles over time. One-time posts once per account, then retires.
+            Evergreen recicla ao longo do tempo. Uma vez posta uma única vez por conta, depois se aposenta.
           </p>
           <div className="inline-flex rounded-lg border border-border p-0.5">
             <button
@@ -580,7 +580,7 @@ export function Composer({
               className={segBtn(contentKind === "one_time")}
               onClick={() => setContentKind("one_time")}
             >
-              One-time
+              Uma vez
             </button>
           </div>
         </section>
@@ -597,17 +597,17 @@ export function Composer({
                 overCaptionLimit ? "font-medium text-accent-strong" : "text-muted"
               }`}
             >
-              {worstCaptionCheck.length} / {worstCaptionCheck.limit} characters
-              {worstCaptionCheck.channel ? ` for ${platformLabel(worstCaptionCheck.channel.platform)}` : ""}
-              {overCaptionLimit ? " — over the limit for a selected channel." : ""}
+              {worstCaptionCheck.length} / {worstCaptionCheck.limit} caracteres
+              {worstCaptionCheck.channel ? ` para ${platformLabel(worstCaptionCheck.channel.platform)}` : ""}
+              {overCaptionLimit ? " — acima do limite de uma conta selecionada." : ""}
             </p>
           ) : null}
           <div>
             <div className="flex items-center justify-between gap-2">
               <label className={label}>
-                First comment{" "}
+                Primeiro comentário{" "}
                 <span className="font-normal text-faint">
-                  (auto-posted after publish — good for hashtags)
+                  (postado automaticamente após publicar — bom para hashtags)
                 </span>
               </label>
               <EmojiPicker onInsert={insertFirstCommentEmoji} />
@@ -615,7 +615,7 @@ export function Composer({
             <textarea
               ref={firstCommentRef}
               className={`${fieldCls} min-h-16 resize-y`}
-              placeholder="#hashtags #go #here"
+              placeholder="#hashtags #vai #aqui"
               value={firstComment}
               onChange={(e) => setFirstComment(e.target.value)}
             />
@@ -625,11 +625,11 @@ export function Composer({
         {/* Channels */}
         <section className="rounded-card border border-border bg-surface p-5">
           <h3 className="mb-1 font-display text-sm font-semibold text-ink">
-            Where does this go?
+            Para onde isso vai?
           </h3>
           <p className="mb-3 text-xs text-muted">
-            Pick the accounts. Each gets its own scheduled send — and on Instagram,
-            Feed and Story are separate sends you can pick independently.
+            Escolha as contas. Cada uma recebe seu próprio envio agendado — e no Instagram,
+            Feed e Story são envios separados que você pode escolher de forma independente.
           </p>
           <ChannelSurfacePicker
             channels={channels}
@@ -659,21 +659,21 @@ export function Composer({
         {/* Schedule */}
         <section className="rounded-card border border-border bg-surface p-5">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="font-display text-sm font-semibold text-ink">Schedule</h3>
+            <h3 className="font-display text-sm font-semibold text-ink">Agendamento</h3>
             <div className="inline-flex rounded-lg border border-border p-0.5">
               <button
                 type="button"
                 className={segBtn(!postNow)}
                 onClick={() => setPostNow(false)}
               >
-                Schedule
+                Agendar
               </button>
               <button
                 type="button"
                 className={segBtn(postNow)}
                 onClick={() => setPostNow(true)}
               >
-                Post now
+                Postar agora
               </button>
             </div>
           </div>
@@ -681,7 +681,7 @@ export function Composer({
           {!postNow ? (
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className={label}>Date &amp; time</label>
+                <label className={label}>Data e hora</label>
                 <input
                   type="datetime-local"
                   className={fieldCls}
@@ -690,7 +690,7 @@ export function Composer({
                 />
               </div>
               <div>
-                <label className={label}>Timezone</label>
+                <label className={label}>Fuso horário</label>
                 <TimezonePicker
                   value={timezone}
                   onChange={setTimezone}
@@ -707,7 +707,7 @@ export function Composer({
         <PeriodAttach periods={periods} value={periodModes} onChange={setPeriodModes} />
 
         <section className="rounded-card border border-border bg-surface p-5">
-          <h3 className="mb-2 font-display text-sm font-semibold text-ink">Tags</h3>
+          <h3 className="mb-2 font-display text-sm font-semibold text-ink">Etiquetas</h3>
           <TagEditor
             timeOfDayTags={timeOfDayTags}
             topicTags={topicTags}
@@ -739,23 +739,23 @@ export function Composer({
             filled in, but nothing on the first screen said so, which is no better than
             having to remember it. This card is visible the moment the page loads. */}
         <div className="rounded-card border border-border bg-surface p-4">
-          <p className="mb-2 text-xs font-medium text-ink-soft">When</p>
+          <p className="mb-2 text-xs font-medium text-ink-soft">Quando</p>
           {postNow ? (
-            <p className="text-sm text-ink">As soon as you press Post now</p>
+            <p className="text-sm text-ink">Assim que você clicar em Postar agora</p>
           ) : whenLabel ? (
             <>
               <p className="text-sm text-ink">{whenLabel}</p>
               <p className="data mt-0.5 text-[11px] text-faint">{timezone}</p>
             </>
           ) : (
-            <p className="text-xs text-faint">No date picked yet.</p>
+            <p className="text-xs text-faint">Nenhuma data escolhida ainda.</p>
           )}
         </div>
 
         <div className="rounded-card border border-border bg-surface p-4">
-          <p className="mb-2 text-xs font-medium text-ink-soft">Headed to</p>
+          <p className="mb-2 text-xs font-medium text-ink-soft">Indo para</p>
           {effectiveTargets.length === 0 ? (
-            <p className="text-xs text-faint">No channels selected yet.</p>
+            <p className="text-xs text-faint">Nenhuma conta selecionada ainda.</p>
           ) : (
             <ul className="space-y-1.5">
               {channels
@@ -779,8 +779,8 @@ export function Composer({
           {anyApprovalNeeded ? (
             <p className="mt-3 rounded bg-surface-sunken px-2 py-1.5 text-[11px] text-muted">
               {postNow
-                ? "One or more channels require approval — Post now skips that step."
-                : "One or more channels require approval — those sends wait until approved."}
+                ? "Uma ou mais contas exigem aprovação — Postar agora pula essa etapa."
+                : "Uma ou mais contas exigem aprovação — esses envios esperam até serem aprovados."}
             </p>
           ) : null}
         </div>
@@ -790,30 +790,30 @@ export function Composer({
           disabled={submitting || overCaptionLimit || (!postNow && !tzValid)}
           className="w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent hover:bg-accent-ink disabled:opacity-50"
         >
-          {submitting ? (postNow ? "Sending…" : "Scheduling…") : postNow ? "Post now" : "Schedule post"}
+          {submitting ? (postNow ? "Enviando…" : "Agendando…") : postNow ? "Postar agora" : "Agendar publicação"}
         </button>
         <div className="rounded-card border border-border bg-surface p-4">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-xs font-medium text-ink-soft">Library status</p>
+            <p className="text-xs font-medium text-ink-soft">Status na biblioteca</p>
             <div className="inline-flex rounded-lg border border-border p-0.5">
               <button
                 type="button"
                 className={segBtn(libraryStatus === "draft")}
                 onClick={() => setLibraryStatus("draft")}
               >
-                Draft
+                Rascunho
               </button>
               <button
                 type="button"
                 className={segBtn(libraryStatus === "ready")}
                 onClick={() => setLibraryStatus("ready")}
               >
-                Ready
+                Pronto
               </button>
             </div>
           </div>
           <p className="text-[11px] text-faint">
-            Ready content is eligible for auto-fill; drafts are not.
+            Conteúdo pronto é elegível para preenchimento automático; rascunhos não são.
           </p>
         </div>
         <button
@@ -821,10 +821,10 @@ export function Composer({
           disabled={submitting}
           className="w-full rounded-lg border border-border-strong bg-surface px-4 py-2 text-sm font-medium text-ink-soft hover:bg-surface-sunken disabled:opacity-50"
         >
-          Save to library
+          Salvar na biblioteca
         </button>
         <p className="text-center text-[11px] text-faint">
-          Drafts live in the Library — bulk-schedule or reuse them anytime.
+          Rascunhos ficam na Agendamento em Massa — agende em lote ou reaproveite quando quiser.
         </p>
       </div>
     </div>

@@ -85,7 +85,7 @@ export default async function ChannelsPage({
   return (
     <div>
       <PageHeader
-        title="Canais"
+        title="Contas"
         subtitle="Cada conta social é configurada de forma independente — suas próprias credenciais, fuso horário e regras."
       />
 
@@ -94,16 +94,16 @@ export default async function ChannelsPage({
           <div className="rounded-card border border-border bg-surface-muted p-4 text-sm text-ink-soft">
             {params.tiktok_reconnected === "1" ? (
               <>
-                <span className="font-medium text-ink">TikTok reconnected.</span> The
-                existing channel was refreshed with new credentials — its queue, history
-                and name are untouched.
+                <span className="font-medium text-ink">TikTok reconectado.</span> A conta
+                existente foi atualizada com novas credenciais — sua fila, histórico e
+                nome permanecem intactos.
               </>
             ) : (
               <>
-                <span className="font-medium text-ink">TikTok connected.</span> Run{" "}
-                <code>python -m worker.preflight</code> to confirm it, then schedule a
-                video. Remember: TikTok delivers the video to your inbox — you write the
-                caption and publish in the app.
+                <span className="font-medium text-ink">TikTok conectado.</span> Rode{" "}
+                <code>python -m worker.preflight</code> pra confirmar, depois agende um
+                vídeo. Lembrete: o TikTok entrega o vídeo na sua caixa de entrada — você
+                escreve a legenda e publica no app.
               </>
             )}
           </div>
@@ -119,10 +119,11 @@ export default async function ChannelsPage({
         />
 
         {channels.length === 0 ? (
-          <EmptyState title="No channels configured">
-            Add your first account above — Instagram, Facebook, Threads, Discord,
-            Telegram, or TikTok. Most need an account id and a long-lived access token;
-            Discord just needs a webhook URL, and TikTok connects through your browser.
+          <EmptyState title="Nenhuma conta configurada">
+            Adicione sua primeira conta acima — Instagram, Facebook, Threads, Discord,
+            Telegram, ou TikTok. A maioria precisa de um id de conta e um access token de
+            longa duração; o Discord só precisa de uma URL de webhook, e o TikTok conecta
+            pelo seu navegador.
           </EmptyState>
         ) : (
           <>
@@ -170,7 +171,7 @@ export default async function ChannelsPage({
                 </div>
 
                 <dl className="mt-4 space-y-1.5 text-xs">
-                  <Row label="Timezone">
+                  <Row label="Fuso horário">
                     <span className="data text-ink-soft">
                       {c.timezone} · {tzAbbrev(c.timezone)}
                     </span>
@@ -178,16 +179,16 @@ export default async function ChannelsPage({
                   {usesAccountId(c.platform) ? (
                     <Row label={accountIdLabel(c.platform)}>
                       <span className="data text-ink-soft">
-                        {c.remote_account_id || <span className="text-faint">not set</span>}
+                        {c.remote_account_id || <span className="text-faint">não definido</span>}
                       </span>
                     </Row>
                   ) : null}
                   <Row label="Access token">
                     <span className="text-ink-soft">
                       {c.access_token ? (
-                        <span className="text-status-posted">configured</span>
+                        <span className="text-status-posted">configurado</span>
                       ) : (
-                        <span className="text-status-failed">missing</span>
+                        <span className="text-status-failed">faltando</span>
                       )}
                     </span>
                   </Row>
@@ -198,15 +199,15 @@ export default async function ChannelsPage({
                     id={c.id}
                     field="requires_approval"
                     value={c.requires_approval === 1}
-                    labelOn="Approval required"
-                    labelOff="No approval"
+                    labelOn="Aprovação necessária"
+                    labelOff="Sem aprovação"
                   />
                   <ChannelToggle
                     id={c.id}
                     field="is_active"
                     value={c.is_active === 1}
-                    labelOn="Active"
-                    labelOff="Inactive"
+                    labelOn="Ativa"
+                    labelOff="Inativa"
                   />
                 </div>
 
@@ -223,16 +224,16 @@ export default async function ChannelsPage({
                   <ChannelTimezone target={{ kind: "channel", id: c.id }} timezone={c.timezone} />
                 ) : (
                   <p className="mt-3 rounded-lg border border-border bg-surface-sunken/40 p-3 text-xs text-muted">
-                    Timezone is changed on{" "}
+                    O fuso horário é alterado em{" "}
                     <span className="font-medium text-ink-soft">
                       {groupNames.get(c.group_id)}
                     </span>
-                    , which auto-fills in{" "}
+                    , que preenche automaticamente em{" "}
                     <span className="data text-ink-soft">
                       {groupTimezones.get(c.group_id)}
                     </span>
-                    . Moving this channel on its own would pull its sends off the slots
-                    it shares with the rest of the group.
+                    . Mover esta conta sozinha tiraria seus envios dos horários que ela
+                    compartilha com o resto do grupo.
                   </p>
                 )}
 
@@ -244,11 +245,11 @@ export default async function ChannelsPage({
                   <div className="mt-3 rounded-lg border border-border bg-surface-sunken/40 p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-xs font-medium text-ink-soft">Connection</p>
+                        <p className="text-xs font-medium text-ink-soft">Conexão</p>
                         <p className="mt-0.5 text-[11px] text-muted">
-                          Re-authorize with {platformLabel(c.platform)} — needed yearly when
-                          the refresh token expires, or after a new permission is added.
-                          Your queue, history and name are kept.
+                          Reautorize com {platformLabel(c.platform)} — necessário anualmente
+                          quando o refresh token expira, ou depois que uma nova permissão é
+                          adicionada. Sua fila, histórico e nome são mantidos.
                         </p>
                       </div>
                       <a
@@ -256,7 +257,7 @@ export default async function ChannelsPage({
                         href={oauthConnectPath(c.platform) as string}
                         className="shrink-0 rounded-md border border-border px-2.5 py-1 text-xs font-medium text-ink hover:bg-surface"
                       >
-                        Reconnect
+                        Reconectar
                       </a>
                     </div>
                   </div>
@@ -290,11 +291,11 @@ export default async function ChannelsPage({
                   />
                 ) : (
                   <p className="mt-4 rounded-lg border border-border bg-surface-sunken/50 p-3 text-xs text-muted">
-                    Auto-filled as part of{" "}
+                    Preenchida automaticamente como parte de{" "}
                     <span className="font-medium text-ink-soft">
                       {groupNames.get(c.group_id)}
                     </span>
-                    . Its cadence is set on the group above.
+                    . A cadência dela é definida no grupo acima.
                   </p>
                 )}
               </div>

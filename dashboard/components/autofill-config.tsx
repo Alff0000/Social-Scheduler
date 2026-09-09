@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import {
   DAYS,
   type Cadence,
+  bandLabel,
   coveredBands,
+  dayLabel,
   deriveBand,
   intervalNote,
   uncoveredBandWarning,
@@ -104,7 +106,7 @@ function DayToggles({
           onClick={() => onToggle(d)}
           className={dayToggleClass(days.includes(d))}
         >
-          {d}
+          {dayLabel(d)}
         </button>
       ))}
     </div>
@@ -128,7 +130,7 @@ export function AutofillConfig(props: Props) {
     props.target.kind === "group"
       ? `/api/channel-groups/${props.target.id}`
       : `/api/channels/${props.target.id}`;
-  const noun = props.target.kind === "group" ? "group" : "channel";
+  const noun = props.target.kind === "group" ? "grupo" : "conta";
   const [open, setOpen] = useState(false);
   // Everything on offer, plus any lane still switched on for a surface that is not — the
   // whole panel keys off this rather than props.surfaces, or a stranded lane would have no
@@ -151,10 +153,10 @@ export function AutofillConfig(props: Props) {
             line, and a header that tracked the open lane's unsaved edits would go quiet
             about the other one exactly when the owner wants to compare them. */}
         <span className="text-xs font-medium text-ink-soft">
-          Auto-fill{" "}
+          Preenchimento automático{" "}
           <span className="text-faint">· {panelSummary(props.lanes, shown)}</span>
         </span>
-        <span className="text-xs text-muted">{open ? "Hide" : "Edit"}</span>
+        <span className="text-xs text-muted">{open ? "Ocultar" : "Editar"}</span>
       </button>
 
       {open ? (
@@ -163,7 +165,7 @@ export function AutofillConfig(props: Props) {
             <div>
               <div
                 role="group"
-                aria-label="Which rotation to edit"
+                aria-label="Qual rotação editar"
                 className="inline-flex gap-0.5 rounded-md border border-border bg-surface p-0.5"
               >
                 {shown.map((s) => (
@@ -183,9 +185,9 @@ export function AutofillConfig(props: Props) {
                 ))}
               </div>
               <p className="mt-1.5 text-[11px] text-muted">
-                {shown.map(surfaceLabel).join(" and ")} fill independently — each
-                has its own cadence, queue depths and reuse rule. Saving one leaves the
-                other untouched.
+                {shown.map(surfaceLabel).join(" e ")} preenchem de forma independente —
+                cada um tem sua própria cadência, profundidade de fila e regra de reuso.
+                Salvar um deixa o outro intocado.
               </p>
             </div>
           ) : null}
@@ -295,8 +297,8 @@ function LaneEditor({
           checked={enabled}
           onChange={(e) => setEnabled(e.target.checked)}
         />
-        Automatically keep this {noun}&rsquo;s{" "}
-        {multi ? `${surfaceLabel(lane.surface)} ` : ""}queue topped up
+        Manter automaticamente a fila{" "}
+        {multi ? `de ${surfaceLabel(lane.surface)} ` : ""}d{noun === "grupo" ? "o" : "a"} {noun} cheia
       </label>
 
       {/* A lane left switched on for a surface nothing here can post any more. Shown as
@@ -315,7 +317,7 @@ function LaneEditor({
             checked={cadence.mode === "times"}
             onChange={() => switchMode("times")}
           />
-          At set times
+          Em horários definidos
         </label>
         <label className="flex items-center gap-1.5">
           <input
@@ -323,7 +325,7 @@ function LaneEditor({
             checked={cadence.mode === "interval"}
             onChange={() => switchMode("interval")}
           />
-          Every…
+          A cada…
         </label>
       </div>
 
@@ -350,7 +352,7 @@ function LaneEditor({
                   }}
                   className={field}
                 />
-                <span className="text-[11px] capitalize text-muted">{band}</span>
+                <span className="text-[11px] capitalize text-muted">{bandLabel(band)}</span>
                 <DayToggles
                   days={slot.days}
                   onToggle={(d) =>
@@ -379,8 +381,8 @@ function LaneEditor({
                       })
                     }
                     className="text-faint hover:text-status-failed"
-                    aria-label={`Remove the ${slot.time} slot`}
-                    title="Remove this time"
+                    aria-label={`Remover o horário ${slot.time}`}
+                    title="Remover este horário"
                   >
                     ×
                   </button>
@@ -401,13 +403,13 @@ function LaneEditor({
             }}
             className="rounded-md border border-border px-2 py-1 text-[11px] text-muted hover:border-border-strong hover:text-ink-soft"
           >
-            + Add a time
+            + Adicionar horário
           </button>
         </div>
       ) : (
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2 text-xs text-ink-soft">
-            <span>Every</span>
+            <span>A cada</span>
             <input
               type="number"
               min={0}
@@ -448,19 +450,19 @@ function LaneEditor({
             />
             <span>m</span>
             {cadence.everyMinutes < 15 ? (
-              <span className="text-[11px] text-status-failed">Minimum 15 minutes.</span>
+              <span className="text-[11px] text-status-failed">Mínimo de 15 minutos.</span>
             ) : null}
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-xs text-ink-soft">
-            <span>Between</span>
+            <span>Entre</span>
             <input
               type="time"
               value={cadence.from}
               onChange={(e) => setCadence({ ...cadence, from: e.target.value })}
               className={field}
             />
-            <span>and</span>
+            <span>e</span>
             <input
               type="time"
               value={cadence.to}
@@ -497,7 +499,7 @@ function LaneEditor({
 
       <div className="flex flex-wrap gap-3">
         <label className="text-xs text-ink-soft">
-          <span className="mb-1 block">Refill below</span>
+          <span className="mb-1 block">Reabastecer abaixo de</span>
           <input
             type="number"
             min={0}
@@ -507,7 +509,7 @@ function LaneEditor({
           />
         </label>
         <label className="text-xs text-ink-soft">
-          <span className="mb-1 block">Fill to</span>
+          <span className="mb-1 block">Preencher até</span>
           <input
             type="number"
             min={0}
@@ -517,7 +519,7 @@ function LaneEditor({
           />
         </label>
         <label className="text-xs text-ink-soft">
-          <span className="mb-1 block">Reuse after (days)</span>
+          <span className="mb-1 block">Reusar após (dias)</span>
           <input
             type="number"
             min={0}
@@ -528,7 +530,7 @@ function LaneEditor({
         </label>
         {isFeed ? (
           <label className="text-xs text-ink-soft">
-            <span className="mb-1 block">Repost a BPP every (days)</span>
+            <span className="mb-1 block">Repostar um BPP a cada (dias)</span>
             <input
               type="number"
               min={0}
@@ -552,32 +554,32 @@ function LaneEditor({
             <>
               <p className="text-muted">
                 <span className="data text-ink-soft">{bppPoolSize}</span> post
-                {bppPoolSize === 1 ? "" : "s"} marked BPP ·{" "}
+                {bppPoolSize === 1 ? "" : "s"} marcado{bppPoolSize === 1 ? "" : "s"} como BPP ·{" "}
                 {bppPoolSize > 0 ? (
                   <>
-                    each one comes back roughly every{" "}
-                    <span className="data text-ink-soft">{bppPoolSize * bpp}</span> days
+                    cada um volta a cada{" "}
+                    <span className="data text-ink-soft">{bppPoolSize * bpp}</span> dias, aproximadamente
                   </>
                 ) : (
-                  "nothing marked yet, so nothing will be reposted"
+                  "nada marcado ainda, então nada será repostado"
                 )}
               </p>
               {bppPoolSize > 0 && bppPoolSize * bpp < 90 ? (
                 <p className="mt-1 text-status-publishing">
-                  Small pool — the same posts will come round often. Mark more, or
-                  increase the gap.
+                  Pool pequeno — os mesmos posts vão voltar com frequência. Marque mais,
+                  ou aumente o intervalo.
                 </p>
               ) : null}
               {bppPoolSize === 0 ? (
                 <p className="mt-1 text-muted">
-                  Mark posts from <strong>Insights → your account → Top content</strong>.
+                  Marque posts em <strong>Relatório → sua conta → Melhores publicações</strong>.
                 </p>
               ) : null}
             </>
           ) : (
             <p className="text-muted">
-              0 = off. Auto-fill picks unposted content first, so your best posts only
-              come back once the library runs dry.
+              0 = desligado. O preenchimento automático prioriza conteúdo ainda não
+              postado, então seus melhores posts só voltam quando a biblioteca esgotar.
             </p>
           )}
         </div>
@@ -591,17 +593,17 @@ function LaneEditor({
         >
           {/* Names the lane it will write, so Save can never look like it commits both. */}
           {pending
-            ? "Saving…"
+            ? "Salvando…"
             : multi
-              ? `Save ${surfaceLabel(lane.surface)} auto-fill`
-              : "Save auto-fill"}
+              ? `Salvar preenchimento de ${surfaceLabel(lane.surface)}`
+              : "Salvar preenchimento automático"}
         </button>
         {/* An enabled lane with no cadence is skipped by the worker with "no valid
             cadence" — switched on in here and filling nothing. Say so at the button
             rather than accepting the save and letting it look broken later. */}
         {blocked ? <span className="text-xs text-muted">{blocked}</span> : null}
         {saved && !pending ? (
-          <span className="text-xs text-status-posted">Saved</span>
+          <span className="text-xs text-status-posted">Salvo</span>
         ) : null}
       </div>
     </>

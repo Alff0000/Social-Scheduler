@@ -112,10 +112,10 @@ test("coveredBands still covers every window band for an interval that genuinely
 });
 
 test("intervalNote is keyed off the reachable times, not everyMinutes % 1440", () => {
-  assert.match(intervalNote(1440), /always lands at the same time/);
-  assert.match(intervalNote(720), /only 2 times of day, 12h apart/);
-  assert.match(intervalNote(240), /only 6 times of day, 4h apart/);
-  assert.match(intervalNote(585), /sweeps through every hour/);
+  assert.match(intervalNote(1440), /sempre cai no mesmo horário/);
+  assert.match(intervalNote(720), /só 2 horários do dia, com 12h de intervalo/);
+  assert.match(intervalNote(240), /só 6 horários do dia, com 4h de intervalo/);
+  assert.match(intervalNote(585), /percorre cada hora/);
 });
 
 test("uncoveredBandWarning agrees with itself on number, and on which mode it is", () => {
@@ -123,12 +123,12 @@ test("uncoveredBandWarning agrees with itself on number, and on which mode it is
   // owner reads.
   assert.equal(
     uncoveredBandWarning("morning", 1, "times"),
-    "1 ready post is tagged morning — no morning time set, so it will not be auto-filled.",
+    "1 post pronto está marcado como manhã — nenhum horário de manhã definido, então não serão preenchidos automaticamente.",
   );
   assert.match(uncoveredBandWarning("evening", 17, "times"),
-    /^17 ready posts are tagged evening — no evening time set, so they will not be/);
+    /^17 posts prontos estão marcados como noite — nenhum horário de noite definido/);
   assert.match(uncoveredBandWarning("evening", 17, "interval"),
-    /not guaranteed to land in the evening, so they may not be auto-filled\.$/);
+    /então podem não ser preenchidos automaticamente\.$/);
 });
 
 test("summarize says daily rather than listing seven days", () => {
@@ -136,12 +136,12 @@ test("summarize says daily rather than listing seven days", () => {
     `{"mode":"times","slots":[{"time":"12:30","days":${JSON.stringify(ALL)}},`
     + '{"time":"18:00","days":["sat","sun"]}]}',
   );
-  assert.match(summarize(t), /12:30 daily/);
-  assert.match(summarize(t), /18:00 Sat\/Sun/);
+  assert.match(summarize(t), /12:30 todo dia/);
+  assert.match(summarize(t), /18:00 Sáb\/Dom/);
   const i = parseCadence(
     `{"mode":"interval","every_minutes":585,"window":{"from":"08:00","to":"21:00"},`
     + `"days":${JSON.stringify(ALL)}}`,
   );
-  assert.match(summarize(i), /Every 9h 45m/);
+  assert.match(summarize(i), /A cada 9h 45m/);
   assert.match(summarize(i), /08:00–21:00/);
 });

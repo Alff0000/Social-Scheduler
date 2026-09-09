@@ -99,7 +99,7 @@ export function MergeModal({
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       setSubmitting(false);
-      setError(body.error ?? "Could not merge those posts.");
+      setError(body.error ?? "Não foi possível mesclar esses posts.");
       return;
     }
     onMerged();
@@ -116,31 +116,31 @@ export function MergeModal({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Merge into carousel"
+        aria-label="Mesclar em carrossel"
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-card border border-border-strong bg-surface p-5 shadow-lg"
       >
-        <h2 className="font-display text-base font-semibold text-ink">Merge into carousel</h2>
+        <h2 className="font-display text-base font-semibold text-ink">Mesclar em carrossel</h2>
         <p className="mt-1 text-sm text-muted">
-          Keeps post #{survivor.id} and deletes {otherCount} emptied draft
-          {otherCount === 1 ? "" : "s"}. No photos are deleted.
+          Mantém o post #{survivor.id} e exclui {otherCount} rascunho{otherCount === 1 ? "" : "s"}{" "}
+          esvaziado{otherCount === 1 ? "" : "s"}. Nenhuma foto é excluída.
         </p>
         {queuedOthersCount > 0 ? (
           <p className="mt-2 text-sm font-medium text-accent-strong">
-            {queuedOthersCount} of these {queuedOthersCount === 1 ? "has a" : "have"} scheduled
-            send{queuedOthersCount === 1 ? "" : "s"} that will be canceled.
+            {queuedOthersCount} {queuedOthersCount === 1 ? "deles tem um envio" : "destes têm envios"}{" "}
+            agendado{queuedOthersCount === 1 ? "" : "s"} que {queuedOthersCount === 1 ? "será" : "serão"} cancelado{queuedOthersCount === 1 ? "" : "s"}.
           </p>
         ) : null}
 
         <div className="mt-4">
-          <p className="mb-2 text-xs text-muted">Drag to reorder — this is the carousel order.</p>
+          <p className="mb-2 text-xs text-muted">Arraste para reordenar — esta é a ordem do carrossel.</p>
           <SlideReorder slides={slides} onReorder={setSlides} />
         </div>
 
         {showCaptionPicker ? (
           <fieldset className="mt-4">
-            <legend className="mb-2 text-xs text-muted">Caption for the merged post:</legend>
+            <legend className="mb-2 text-xs text-muted">Legenda do post mesclado:</legend>
             <ul className="space-y-1.5">
               {distinctCaptions.map((c) => (
                 <li key={c}>
@@ -165,8 +165,8 @@ export function MergeModal({
                     onChange={() => setSelectedCaption(null)}
                   />
                   <span>
-                    No caption{" "}
-                    <span className="text-xs text-faint">— clears the caption entirely</span>
+                    Sem legenda{" "}
+                    <span className="text-xs text-faint">— apaga a legenda por completo</span>
                   </span>
                 </label>
               </li>
@@ -183,7 +183,7 @@ export function MergeModal({
             disabled={submitting}
             className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-medium text-ink hover:bg-surface-sunken disabled:opacity-50"
           >
-            Cancel
+            Cancelar
           </button>
           <button
             type="button"
@@ -191,7 +191,7 @@ export function MergeModal({
             disabled={submitting}
             className="rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-on-accent hover:bg-accent-ink disabled:opacity-50"
           >
-            {submitting ? "Merging…" : "Merge into carousel"}
+            {submitting ? "Mesclando…" : "Mesclar em carrossel"}
           </button>
         </div>
       </div>

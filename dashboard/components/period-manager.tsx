@@ -10,8 +10,8 @@ const field =
 const label = "block text-xs font-medium text-ink-soft mb-1";
 
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
 type FormState = {
@@ -96,7 +96,7 @@ function PeriodForm({ period, onDone }: { period?: Period; onDone: () => void })
   async function save() {
     setError(null);
     if (!f.name.trim()) {
-      setError("Give the period a name.");
+      setError("Dê um nome ao período.");
       return;
     }
     const body = f.recurs_yearly
@@ -116,7 +116,7 @@ function PeriodForm({ period, onDone }: { period?: Period; onDone: () => void })
     });
     if (!res.ok) {
       const b = await res.json().catch(() => ({}));
-      setError(b.error ?? "Could not save the period.");
+      setError(b.error ?? "Não foi possível salvar o período.");
       return;
     }
     onDone();
@@ -131,10 +131,10 @@ function PeriodForm({ period, onDone }: { period?: Period; onDone: () => void })
   return (
     <div className="space-y-4">
       <div>
-        <label className={label}>Name</label>
+        <label className={label}>Nome</label>
         <input
           className={field}
-          placeholder="Winter, July 4th, Holiday season…"
+          placeholder="Inverno, 7 de setembro, Temporada de festas…"
           value={f.name}
           onChange={(e) => set("name", e.target.value)}
         />
@@ -142,10 +142,10 @@ function PeriodForm({ period, onDone }: { period?: Period; onDone: () => void })
 
       <div className="inline-flex rounded-lg border border-border p-0.5">
         <button type="button" className={segBtn(f.recurs_yearly)} onClick={() => set("recurs_yearly", true)}>
-          Recurring yearly
+          Recorrente todo ano
         </button>
         <button type="button" className={segBtn(!f.recurs_yearly)} onClick={() => set("recurs_yearly", false)}>
-          One-off dates
+          Datas avulsas
         </button>
       </div>
 
@@ -155,13 +155,13 @@ function PeriodForm({ period, onDone }: { period?: Period; onDone: () => void })
           checked={f.single_day}
           onChange={(e) => set("single_day", e.target.checked)}
         />
-        Single day <span className="text-faint">(e.g. July 4th — no range)</span>
+        Um único dia <span className="text-faint">(ex.: 7 de setembro — sem intervalo)</span>
       </label>
 
       {f.recurs_yearly ? (
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className={label}>{f.single_day ? "Day" : "From"}</label>
+            <label className={label}>{f.single_day ? "Dia" : "De"}</label>
             <MonthDay
               monthValue={f.start_month} dayValue={f.start_day}
               onMonth={(v) => set("start_month", v)} onDay={(v) => set("start_day", v)}
@@ -169,7 +169,7 @@ function PeriodForm({ period, onDone }: { period?: Period; onDone: () => void })
           </div>
           {f.single_day ? null : (
             <div>
-              <label className={label}>To</label>
+              <label className={label}>Até</label>
               <MonthDay
                 monthValue={f.end_month} dayValue={f.end_day}
                 onMonth={(v) => set("end_month", v)} onDay={(v) => set("end_day", v)}
@@ -180,13 +180,13 @@ function PeriodForm({ period, onDone }: { period?: Period; onDone: () => void })
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className={label}>{f.single_day ? "Day" : "From"}</label>
+            <label className={label}>{f.single_day ? "Dia" : "De"}</label>
             <input type="date" className={field} value={f.start_date}
               onChange={(e) => set("start_date", e.target.value)} />
           </div>
           {f.single_day ? null : (
             <div>
-              <label className={label}>To</label>
+              <label className={label}>Até</label>
               <input type="date" className={field} value={f.end_date}
                 onChange={(e) => set("end_date", e.target.value)} />
             </div>
@@ -202,14 +202,14 @@ function PeriodForm({ period, onDone }: { period?: Period; onDone: () => void })
 
       <div className="flex justify-end gap-2">
         <button onClick={onDone} className="rounded-lg px-4 py-2 text-sm text-muted hover:text-ink">
-          Cancel
+          Cancelar
         </button>
         <button
           onClick={save}
           disabled={pending}
           className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-ink disabled:opacity-50"
         >
-          {pending ? "Saving…" : period ? "Save changes" : "Save period"}
+          {pending ? "Salvando…" : period ? "Salvar alterações" : "Salvar período"}
         </button>
       </div>
     </div>
@@ -224,13 +224,13 @@ export function PeriodAdd() {
         onClick={() => setOpen(true)}
         className="inline-flex items-center rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-ink"
       >
-        Add period
+        Adicionar período
       </button>
     );
   }
   return (
     <div className="rounded-card border border-border bg-surface p-5">
-      <h3 className="mb-4 font-display text-base font-semibold text-ink">New period</h3>
+      <h3 className="mb-4 font-display text-base font-semibold text-ink">Novo período</h3>
       <PeriodForm onDone={() => setOpen(false)} />
     </div>
   );
@@ -242,7 +242,7 @@ export function PeriodCard({ period }: { period: Period }) {
   const [pending, startTransition] = useTransition();
 
   async function remove() {
-    if (!confirm(`Delete “${period.name}”? Posts using it will lose this window.`)) return;
+    if (!confirm(`Excluir "${period.name}"? Os posts que o usam perderão essa janela.`)) return;
     await fetch(`/api/periods/${period.id}`, { method: "DELETE" });
     startTransition(() => router.refresh());
   }
@@ -250,7 +250,7 @@ export function PeriodCard({ period }: { period: Period }) {
   if (editing) {
     return (
       <div className="rounded-card border border-border bg-surface p-5 md:col-span-2">
-        <h3 className="mb-4 font-display text-base font-semibold text-ink">Edit “{period.name}”</h3>
+        <h3 className="mb-4 font-display text-base font-semibold text-ink">Editar "{period.name}"</h3>
         <PeriodForm period={period} onDone={() => setEditing(false)} />
       </div>
     );
@@ -264,7 +264,7 @@ export function PeriodCard({ period }: { period: Period }) {
           <p className="data mt-1 text-xs text-ink-soft">{describePeriod(period)}</p>
         </div>
         <span className="shrink-0 rounded-full bg-surface-sunken px-2 py-0.5 text-[11px] text-muted">
-          {period.recurs_yearly ? "Yearly" : "One-off"}
+          {period.recurs_yearly ? "Anual" : "Avulso"}
         </span>
       </div>
       <div className="mt-4 flex gap-2">
@@ -272,14 +272,14 @@ export function PeriodCard({ period }: { period: Period }) {
           onClick={() => setEditing(true)}
           className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-surface-sunken"
         >
-          Edit
+          Editar
         </button>
         <button
           onClick={remove}
           disabled={pending}
           className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-status-failed hover:bg-surface-sunken disabled:opacity-50"
         >
-          Delete
+          Excluir
         </button>
       </div>
     </div>

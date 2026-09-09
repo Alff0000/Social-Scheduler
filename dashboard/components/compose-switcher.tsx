@@ -39,8 +39,8 @@ export function ComposeSwitcher({
   return (
     <div className="space-y-6">
       <div className="inline-flex rounded-lg border border-border p-0.5">
-        <button type="button" className={segBtn(mode === "new")} onClick={() => setMode("new")}>New post</button>
-        <button type="button" className={segBtn(mode === "library")} onClick={() => setMode("library")}>From library</button>
+        <button type="button" className={segBtn(mode === "new")} onClick={() => setMode("new")}>Nova publicação</button>
+        <button type="button" className={segBtn(mode === "library")} onClick={() => setMode("library")}>Da biblioteca</button>
       </div>
       {mode === "new" ? (
         <Composer

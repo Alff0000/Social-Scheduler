@@ -50,7 +50,7 @@ test("an image post targeted at tiktok is refused, naming the channel", () => {
     { id: 1, platform: "tiktok", account_name: "Liparoto" },
   ]);
   assert.match(err ?? "", /Liparoto \(TikTok\)/);
-  assert.match(err ?? "", /video only/i);
+  assert.match(err ?? "", /só publica vídeo/i);
 });
 
 test("a carousel targeted at tiktok is refused as images, not as too many images", () => {
@@ -58,8 +58,8 @@ test("a carousel targeted at tiktok is refused as images, not as too many images
   const err = incompatiblePostError("carousel", 3, [
     { id: 1, platform: "tiktok", account_name: "Liparoto" },
   ]);
-  assert.match(err ?? "", /video only/i);
-  assert.doesNotMatch(err ?? "", /at most/i);
+  assert.match(err ?? "", /só publica vídeo/i);
+  assert.doesNotMatch(err ?? "", /no máximo/i);
 });
 
 test("a reel targeted at tiktok is allowed", () => {
@@ -73,7 +73,7 @@ test("a text post targeted at tiktok is still refused as text", () => {
   const err = incompatiblePostError("text", 0, [
     { id: 1, platform: "tiktok", account_name: "L" },
   ]);
-  assert.match(err ?? "", /text post/i);
+  assert.match(err ?? "", /post de texto/i);
 });
 
 test("tiktok reports metrics as a platform capability", () => {

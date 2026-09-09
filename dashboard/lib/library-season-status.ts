@@ -34,6 +34,20 @@ export interface LibrarySeasonBadgeDetails {
   };
 }
 
+/** Display label for a LibrarySeasonStatus value — the value itself stays in English
+ *  because it's a type tested directly (see library-season-status.test.ts). */
+export function seasonStatusLabel(status: LibrarySeasonStatus): string {
+  const labels: Record<LibrarySeasonStatus, string> = {
+    Live: "Ativo",
+    Dormant: "Dormente",
+    Blocked: "Bloqueado",
+    "Invalid period": "Período inválido",
+    Draft: "Rascunho",
+    Retired: "Aposentado",
+  };
+  return labels[status];
+}
+
 /** Accessible explanation shared by the ready badge's hover and focus treatments. */
 export function librarySeasonBadgeDetails(
   postId: number,
@@ -42,12 +56,12 @@ export function librarySeasonBadgeDetails(
   evaluationTimezone: string
 ): LibrarySeasonBadgeDetails {
   const context =
-    `Advisory season status for ${evaluationDate} in ${evaluationTimezone}. ` +
-    "The worker evaluates eligibility using each target channel's timezone.";
+    `Status sazonal informativo para ${evaluationDate} em ${evaluationTimezone}. ` +
+    "O worker avalia a elegibilidade usando o fuso horário de cada conta de destino.";
   const descriptionId = `post-${postId}-season-status-description`;
   const description =
     status === "Invalid period"
-      ? `Invalid period configuration must be fixed. ${context}`
+      ? `A configuração do período é inválida e precisa ser corrigida. ${context}`
       : context;
   return {
     descriptionId,

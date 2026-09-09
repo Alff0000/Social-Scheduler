@@ -78,10 +78,10 @@ export default async function ComposePage({
       />
       <div className="px-8 py-6">
         {channels.length === 0 ? (
-          <EmptyState title="Add a channel first">
-            You need at least one active account before composing. Head to{" "}
+          <EmptyState title="Adicione uma conta primeiro">
+            Você precisa de ao menos uma conta ativa antes de postar. Vá em{" "}
             <Link href="/channels" className="text-brand underline underline-offset-2">
-              Channels
+              Contas
             </Link>
             .
           </EmptyState>

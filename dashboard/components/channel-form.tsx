@@ -88,7 +88,7 @@ export function ChannelForm({
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Could not add the channel.");
+      setError(body.error ?? "Não foi possível adicionar a conta.");
       return;
     }
     setForm((f) => ({
@@ -110,7 +110,7 @@ export function ChannelForm({
         onClick={() => setOpen(true)}
         className="inline-flex items-center rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-ink"
       >
-        Add channel
+        Adicionar conta
       </button>
     );
   }
@@ -118,14 +118,14 @@ export function ChannelForm({
   return (
     <div className="rounded-card border border-border bg-surface p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="font-display text-base font-semibold text-ink">New channel</h3>
+        <h3 className="font-display text-base font-semibold text-ink">Nova conta</h3>
         <button onClick={() => setOpen(false)} className="text-sm text-muted hover:text-ink">
-          Cancel
+          Cancelar
         </button>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className={label}>Platform</label>
+          <label className={label}>Plataforma</label>
           <select
             className={field}
             value={form.platform}
@@ -139,7 +139,7 @@ export function ChannelForm({
           </select>
         </div>
         <div>
-          <label className={label}>Account name</label>
+          <label className={label}>Nome da conta</label>
           <input
             className={field}
             placeholder="Advantage Physical Therapy"
@@ -148,7 +148,7 @@ export function ChannelForm({
           />
         </div>
         <div>
-          <label className={label}>Business label (optional)</label>
+          <label className={label}>Rótulo do negócio (opcional)</label>
           <input
             className={field}
             placeholder="APT"
@@ -157,7 +157,7 @@ export function ChannelForm({
           />
         </div>
         <div>
-          <label className={label}>Timezone</label>
+          <label className={label}>Fuso horário</label>
           <TimezonePicker
             value={form.timezone}
             onChange={(tz) => set("timezone", tz)}
@@ -213,10 +213,10 @@ export function ChannelForm({
         ) : null}
         {usesLinkedPage(form.platform) ? (
           <div>
-            <label className={label}>Linked Facebook Page id (optional)</label>
+            <label className={label}>Id da Página do Facebook vinculada (opcional)</label>
             <input
               className={field}
-              placeholder="For IG-via-Page publishing"
+              placeholder="Para publicar via Página no IG"
               value={form.linked_page_id}
               onChange={(e) => set("linked_page_id", e.target.value)}
             />
@@ -229,8 +229,8 @@ export function ChannelForm({
         {isTikTok ? (
           <div className="sm:col-span-2 rounded-lg border border-border bg-surface-muted p-4">
             <p className="mb-3 text-sm text-ink-soft">
-              TikTok connects through your browser — there is no token to paste. Its access
-              token only lasts 24 hours, so the worker refreshes it for you.
+              O TikTok conecta pelo seu navegador — não tem token pra colar. O access
+              token dele dura só 24 horas, então o worker o renova pra você.
             </p>
             {/* A real <a>, not next/link, and the rule is disabled deliberately: this
                 target is an API route that answers with a 302 to tiktok.com. Link tries a
@@ -241,25 +241,25 @@ export function ChannelForm({
               href="/api/channels/tiktok/authorize"
               className="inline-block rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-ink"
             >
-              Connect TikTok account
+              Conectar conta do TikTok
             </a>
             <p className="mt-3 text-xs text-muted">
-              You&rsquo;ll approve it on TikTok and come straight back here. Set up your own
-              TikTok app first — see <code>docs/tiktok-setup.md</code>.
+              Você vai aprovar no TikTok e voltar direto pra cá. Configure seu próprio
+              app do TikTok primeiro — veja <code>docs/tiktok-setup.md</code>.
             </p>
           </div>
         ) : null}
         <div className={isTikTok ? "hidden" : "sm:col-span-2"}>
           <label className={label}>
-            {usesAccountId(form.platform) ? "Access token" : "Webhook URL"}
+            {usesAccountId(form.platform) ? "Access token" : "URL do webhook"}
           </label>
           <input
             className={field}
             type="password"
             placeholder={
               usesAccountId(form.platform)
-                ? "Long-lived token — stored locally, never logged"
-                : "The full Discord webhook URL — this is the whole credential, stored locally, never logged"
+                ? "Token de longa duração — armazenado localmente, nunca registrado em log"
+                : "A URL completa do webhook do Discord — essa é a credencial inteira, armazenada localmente, nunca registrada em log"
             }
             value={form.access_token}
             onChange={(e) => set("access_token", e.target.value)}
@@ -271,15 +271,15 @@ export function ChannelForm({
             checked={form.requires_approval}
             onChange={(e) => set("requires_approval", e.target.checked)}
           />
-          Require approval before anything publishes to this channel
+          Exigir aprovação antes de qualquer publicação nesta conta
         </label>
         <div className="sm:col-span-2">
-          <label className={label}>Accent colour (optional)</label>
+          <label className={label}>Cor de destaque (opcional)</label>
           <ColorSwatchPicker
             value={form.color_hue}
             onChange={(hue) => set("color_hue", hue)}
             previewChannelId={nextChannelId}
-            previewName={form.account_name || "New channel"}
+            previewName={form.account_name || "Nova conta"}
             previewPlatformLabel={platformLabel(form.platform)}
           />
         </div>
@@ -293,7 +293,7 @@ export function ChannelForm({
           disabled={pending || !tzValid}
           className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-ink disabled:opacity-50"
         >
-          {pending ? "Saving…" : "Save channel"}
+          {pending ? "Salvando…" : "Salvar conta"}
         </button>
       </div>
     </div>

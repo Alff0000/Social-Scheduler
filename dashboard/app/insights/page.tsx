@@ -47,32 +47,32 @@ const CARD_METRICS: Record<
   { key: MetricKey; label: string; kind: "flow" | "level" }[]
 > = {
   instagram: [
-    { key: "reach", label: "Reach", kind: "flow" },
-    { key: "views", label: "Views", kind: "flow" },
-    { key: "accounts_engaged", label: "Engaged", kind: "flow" },
+    { key: "reach", label: "Alcance", kind: "flow" },
+    { key: "views", label: "Visualizações", kind: "flow" },
+    { key: "accounts_engaged", label: "Engajadas", kind: "flow" },
   ],
   threads: [
-    { key: "views", label: "Views", kind: "flow" },
-    { key: "likes", label: "Likes", kind: "flow" },
-    { key: "replies", label: "Replies", kind: "flow" },
+    { key: "views", label: "Visualizações", kind: "flow" },
+    { key: "likes", label: "Curtidas", kind: "flow" },
+    { key: "replies", label: "Respostas", kind: "flow" },
   ],
   // Facebook Pages. No reach and no impressions ROW — page_impressions and
   // page_impressions_unique are retired (probed live 2026-08-23), so unlike Instagram
   // there is nothing to put in that slot and pretending otherwise would show a zero where
   // Meta simply stopped reporting.
   facebook: [
-    { key: "profile_views", label: "Page views", kind: "flow" },
-    { key: "total_interactions", label: "Engagements", kind: "flow" },
-    { key: "views", label: "Video views", kind: "flow" },
+    { key: "profile_views", label: "Visitas à página", kind: "flow" },
+    { key: "total_interactions", label: "Engajamentos", kind: "flow" },
+    { key: "views", label: "Views de vídeo", kind: "flow" },
   ],
   // TikTok's entire account-level API: four counters, no series, no reach, no views, no
   // engagement. Followers are shown separately as the headline, so the card carries the
   // other three. "Total likes" is lifetime and only ever rises — labelled so it cannot be
   // read as likes-this-month.
   tiktok: [
-    { key: "media_count", label: "Videos", kind: "level" },
-    { key: "lifetime_likes", label: "Total likes", kind: "level" },
-    { key: "follows_count", label: "Following", kind: "level" },
+    { key: "media_count", label: "Vídeos", kind: "level" },
+    { key: "lifetime_likes", label: "Curtidas totais", kind: "level" },
+    { key: "follows_count", label: "Seguindo", kind: "level" },
   ],
 };
 
@@ -98,13 +98,13 @@ const FOLLOWER_DELTA: Record<string, { key: MetricKey; kind: "flow" | "level" }>
 };
 
 function sinceLabel(iso: string | null): string {
-  if (!iso) return "never";
+  if (!iso) return "nunca";
   const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1) return "agora mesmo";
+  if (minutes < 60) return `há ${minutes}m`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
+  if (hours < 24) return `há ${hours}h`;
+  return `há ${Math.floor(hours / 24)}d`;
 }
 
 export default function InsightsPage() {
@@ -115,18 +115,18 @@ export default function InsightsPage() {
   return (
     <div>
       <PageHeader
-        title="Estatísticas"
+        title="Relatório"
         subtitle="Como cada conta conectada está realmente indo — todas as publicações, não só as agendadas aqui."
       />
 
       <div className="px-8 py-6 space-y-8">
         {supported.length === 0 ? (
-          <EmptyState title="No accounts with insights yet">
-            Connect an Instagram or Threads account on the{" "}
+          <EmptyState title="Nenhuma conta com estatísticas ainda">
+            Conecte uma conta Instagram ou Threads em{" "}
             <Link href="/channels" className="text-brand-strong underline">
-              Channels
+              Contas
             </Link>{" "}
-            page. Metrics start collecting on the worker&rsquo;s next cycle.
+            . As métricas começam a ser coletadas no próximo ciclo do worker.
           </EmptyState>
         ) : (
           <section>
@@ -186,7 +186,7 @@ export default function InsightsPage() {
                             {compact(followers)}
                           </div>
                           <div className="mt-1 text-[10px] uppercase tracking-wide text-faint">
-                            followers
+                            seguidores
                           </div>
                         </div>
                       </div>
@@ -195,7 +195,7 @@ export default function InsightsPage() {
                         <Sparkline
                           points={spark}
                           color={color.fg}
-                          label={`30-day trend for ${channel.account_name}`}
+                          label={`Tendência de 30 dias de ${channel.account_name}`}
                         />
                       </div>
 
@@ -221,7 +221,7 @@ export default function InsightsPage() {
                                 {partial ? (
                                   <span
                                     className="ml-1.5 text-[10px] font-medium text-status-publishing"
-                                    title={`Only ${kpi.daysWithData} of the last ${kpi.windowDays} days are recorded for this metric`}
+                                    title={`Só ${kpi.daysWithData} dos últimos ${kpi.windowDays} dias estão registrados para esta métrica`}
                                   >
                                     {kpi.daysWithData}d
                                   </span>
@@ -245,20 +245,20 @@ export default function InsightsPage() {
 
                     <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-5 py-2.5 text-[11px] text-muted">
                       <span>
-                        <span className="data">{exact(counts.posts)}</span> posts tracked ·{" "}
-                        <span className="data">{exact(counts.ours)}</span> scheduled here
+                        <span className="data">{exact(counts.posts)}</span> posts acompanhados ·{" "}
+                        <span className="data">{exact(counts.ours)}</span> agendados por aqui
                         {followerDelta.value === null ? (
                           ""
                         ) : (
                           <>
                             {" · "}
-                            <span className="data">+{followerDelta.value}</span> new
-                            followers in 30d
+                            <span className="data">+{followerDelta.value}</span> novos
+                            seguidores em 30d
                           </>
                         )}
                       </span>
                       <span className="flex items-center gap-2">
-                        <span>synced {sinceLabel(channel.insights_synced_at)}</span>
+                        <span>sincronizado {sinceLabel(channel.insights_synced_at)}</span>
                         <InsightsRefresh
                           channelId={channel.id}
                           pending={Boolean(channel.insights_refresh_requested)}
@@ -268,17 +268,17 @@ export default function InsightsPage() {
 
                     {channel.insights_error ? (
                       <p className="border-t border-border px-5 py-2 text-[11px] text-status-failed">
-                        Last sync failed: {channel.insights_error}
+                        Última sincronização falhou: {channel.insights_error}
                       </p>
                     ) : null}
                     {NO_HISTORY.has(channel.platform) ? (
                       <p className="border-t border-border px-5 py-2 text-[11px] text-muted">
-                        History starts the day you connected — {platformLabel(channel.platform)}{" "}
-                        publishes no past data, so this fills in one day at a time.
+                        O histórico começa no dia em que você conectou — {platformLabel(channel.platform)}{" "}
+                        não publica dados passados, então isso vai se preenchendo dia a dia.
                       </p>
                     ) : !channel.media_backfill_complete ? (
                       <p className="border-t border-border px-5 py-2 text-[11px] text-muted">
-                        Still backfilling history — numbers below will keep filling in.
+                        Ainda preenchendo o histórico — os números abaixo vão continuar aparecendo.
                       </p>
                     ) : null}
                   </article>
@@ -291,7 +291,7 @@ export default function InsightsPage() {
         {unsupported.length > 0 ? (
           <section>
             <h2 className="mb-2 font-display text-sm font-semibold uppercase tracking-wide text-muted">
-              No insights available
+              Sem estatísticas disponíveis
             </h2>
             <div className="rounded-card border border-border bg-surface px-5 py-4">
               <ul className="space-y-1.5 text-sm text-ink-soft">
@@ -307,15 +307,15 @@ export default function InsightsPage() {
                     <span className="font-medium">{channel.account_name}</span>
                     <span className="text-muted">
                       — {platformLabel(channel.platform)}{" "}
-                      has no insights endpoint at all
+                      não tem endpoint de estatísticas nenhum
                     </span>
                   </li>
                 ))}
               </ul>
               <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
-                Discord and Telegram publish through a webhook and a bot API. Neither
-                platform exposes analytics, so there is nothing to read — this is a
-                limitation of those services, not a missing feature here.
+                Discord e Telegram publicam via webhook e API de bot. Nenhuma das duas
+                plataformas expõe analytics, então não há nada pra ler aqui — é uma
+                limitação desses serviços, não uma funcionalidade faltando neste app.
               </p>
             </div>
           </section>

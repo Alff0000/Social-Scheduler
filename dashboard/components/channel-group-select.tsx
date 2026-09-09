@@ -26,14 +26,14 @@ export function ChannelGroupSelect({ channelId, groupId, groups }: Props) {
 
   return (
     <label className="mt-4 flex items-center justify-between gap-3 text-xs text-ink-soft">
-      <span>Auto-fill group</span>
+      <span>Grupo de preenchimento automático</span>
       <select
         value={value}
         disabled={pending}
         onChange={(e) => change(e.target.value)}
         className="rounded-md border border-border bg-surface px-2 py-1 text-sm text-ink focus:border-brand disabled:opacity-50"
       >
-        <option value="">On its own</option>
+        <option value="">Sozinha</option>
         {groups.map((g) => (
           <option key={g.id} value={g.id}>
             {g.name}

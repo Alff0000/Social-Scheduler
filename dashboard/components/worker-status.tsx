@@ -11,8 +11,8 @@ export function WorkerStatus({
   lastSeenAt: string | null;
 }) {
   const title = lastSeenAt
-    ? `Worker last seen ${new Date(lastSeenAt).toLocaleString()}`
-    : "Worker has never checked in";
+    ? `Worker visto pela última vez em ${new Date(lastSeenAt).toLocaleString()}`
+    : "O worker nunca deu sinal de vida";
 
   return (
     <span

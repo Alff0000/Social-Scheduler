@@ -140,11 +140,11 @@ test("a too-long video disables the Reel chip and shows the reason inline, not j
   });
   const chip = reelButton(html);
   assert.match(chip, /\bdisabled=""/);
-  assert.match(chip, /title="Too long for Reels/);
+  assert.match(chip, /title="Longo demais para Reels/);
   // Not just the tooltip — the same reason renders as visible text in the row. The exact
   // wording now comes from the shared media-limits.json entry (facebook.reel.video's
   // max_duration_ms), via destinationDisabledReason — not this file's own formatting.
-  assert.match(html, /<p[^>]*>Too long for Reels \(longer than 90s\)<\/p>/);
+  assert.match(html, /<p[^>]*>Longo demais para Reels \(mais longo que 90s\)<\/p>/);
 });
 
 test("a too-short video disables the Reel chip with its own reason", () => {
@@ -154,7 +154,7 @@ test("a too-short video disables the Reel chip with its own reason", () => {
     assets: [{ width: 1080, height: 1920, duration_ms: 1_000 }],
   });
   assert.match(reelButton(html), /\bdisabled=""/);
-  assert.match(html, /Too short for Reels \(shorter than 3s\)/);
+  assert.match(html, /Curto demais para Reels \(mais curto que 3s\)/);
 });
 
 test("an undersized video disables the Reel chip with its own reason", () => {
@@ -164,7 +164,7 @@ test("an undersized video disables the Reel chip with its own reason", () => {
     assets: [{ width: 480, height: 640, duration_ms: 10_000 }],
   });
   assert.match(reelButton(html), /\bdisabled=""/);
-  assert.match(html, /Too small for Reels \(smaller than 540x960\)/);
+  assert.match(html, /Pequeno demais para Reels \(menor que 540x960\)/);
 });
 
 test("an ultrawide video disables the Reel chip as the wrong shape", () => {
@@ -174,7 +174,7 @@ test("an ultrawide video disables the Reel chip as the wrong shape", () => {
     assets: [{ width: 2520, height: 1080, duration_ms: 10_000 }],
   });
   assert.match(reelButton(html), /\bdisabled=""/);
-  assert.match(html, /Wrong shape for Reels \(aspect ratio 2520x1080\)/);
+  assert.match(html, /Formato errado para Reels \(proporção 2520x1080\)/);
 });
 
 test("Feed stays enabled even when Reel is disabled for spec reasons", () => {
@@ -252,7 +252,7 @@ test("an ordinary iPhone portrait photo with NO conformed derivative disables th
     assets: [{ width: 1179, height: 2556 }],
   });
   assert.match(feedButton(html), /\bdisabled=""/);
-  assert.match(html, /Wrong shape for the feed/);
+  assert.match(html, /Formato errado para o feed/);
 });
 
 test("FINDING 1 regression pin: the SAME portrait photo, already conformed, leaves the Instagram Feed chip ENABLED", () => {
@@ -277,7 +277,7 @@ test("an oversized image with NO conformed derivative disables the Instagram Fee
     assets: [{ width: 1000, height: 1000, byte_size: 9_000_000 }],
   });
   assert.match(feedButton(html), /\bdisabled=""/);
-  assert.match(html, /Too large for the feed/);
+  assert.match(html, /Grande demais para o feed/);
 });
 
 test("the same oversized image, already conformed via conform_mode alone, leaves Feed enabled", () => {
@@ -317,7 +317,7 @@ test("an over-long video disables the Instagram Story chip", () => {
     hasVideo: true,
     assets: [{ width: 1080, height: 1920, duration_ms: 600_000 }],
   });
-  assert.match(html, /Too long for Stories/);
+  assert.match(html, /Longo demais para Stories/);
   assert.match(storyButton(html), /\bdisabled=""/);
 });
 

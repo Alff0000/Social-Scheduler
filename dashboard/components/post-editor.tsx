@@ -235,7 +235,7 @@ export function PostEditor({
     const overLimit = overLimitCaptionVariants(captions, post.post_type);
     if (overLimit.length > 0) {
       setError(
-        `Caption is over the limit for: ${overLimit
+        `A legenda ultrapassa o limite para: ${overLimit
           .map((v) => `${platformLabel(v.platform)} (${v.length}/${v.limit})`)
           .join(", ")}.`
       );
@@ -243,7 +243,7 @@ export function PostEditor({
     }
     if (captionLength(firstComment.trim()) > FIRST_COMMENT_MAX_CHARS) {
       setError(
-        `First comment is ${captionLength(firstComment.trim())} / ${FIRST_COMMENT_MAX_CHARS} characters.`
+        `O primeiro comentário tem ${captionLength(firstComment.trim())} / ${FIRST_COMMENT_MAX_CHARS} caracteres.`
       );
       return;
     }
@@ -269,10 +269,10 @@ export function PostEditor({
     });
     if (!res.ok) {
       const b = await res.json().catch(() => ({}));
-      setError(b.error ?? "Could not save changes.");
+      setError(b.error ?? "Não foi possível salvar as alterações.");
       return;
     }
-    setNotice("Changes saved.");
+    setNotice("Alterações salvas.");
     startTransition(() => router.refresh());
   }
 
@@ -302,7 +302,7 @@ export function PostEditor({
     setArchiving(false);
     if (!res.ok) {
       const b = await res.json().catch(() => ({}));
-      setArchiveError(b.error ?? "Could not change this post's archive state.");
+      setArchiveError(b.error ?? "Não foi possível mudar o status de arquivamento deste post.");
       return;
     }
     if (archived) {
@@ -322,7 +322,7 @@ export function PostEditor({
     setDeleting(false);
     if (!res.ok) {
       const b = await res.json().catch(() => ({}));
-      setDeleteError(b.error ?? "Could not delete this post.");
+      setDeleteError(b.error ?? "Não foi possível excluir este post.");
       setConfirmDelete(false);
       return;
     }
@@ -344,10 +344,10 @@ export function PostEditor({
         <section className="rounded-card border border-border bg-surface-sunken p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="font-display text-sm font-semibold text-ink">Archived</h3>
+              <h3 className="font-display text-sm font-semibold text-ink">Arquivado</h3>
               <p className="mt-0.5 text-xs text-muted">
-                Hidden from the Library and from Compose&apos;s reuse picker. Nothing was
-                deleted — its sends, metrics and insights are all still here.
+                Oculto da Agendamento em Massa e do seletor de reaproveitamento do Postar
+                Reel. Nada foi excluído — os envios, métricas e relatórios continuam aqui.
               </p>
             </div>
             <button
@@ -356,7 +356,7 @@ export function PostEditor({
               disabled={archiving}
               className="shrink-0 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-surface-sunken disabled:opacity-50"
             >
-              {archiving ? "Working…" : "Unarchive"}
+              {archiving ? "Processando…" : "Desarquivar"}
             </button>
           </div>
           {archiveError ? (
@@ -371,7 +371,7 @@ export function PostEditor({
         <div className="flex items-start gap-4">
           {post.post_type === "text" ? (
             <div className="flex h-24 w-24 items-center justify-center rounded-lg bg-surface-sunken text-center text-xs text-faint">
-              Text post
+              Post de texto
             </div>
           ) : (
             <div className="space-y-2">
@@ -469,7 +469,7 @@ export function PostEditor({
                       disabled={!slideOrder.isDirty || savingOrder}
                       className="rounded-md border border-border px-2.5 py-1 text-xs text-ink transition-colors hover:bg-surface-sunken disabled:opacity-40"
                     >
-                      {savingOrder ? "Saving…" : "Save order"}
+                      {savingOrder ? "Salvando…" : "Salvar ordem"}
                     </button>
                     <button
                       type="button"
@@ -477,13 +477,13 @@ export function PostEditor({
                       disabled={!slideOrder.isDirty || savingOrder}
                       className="rounded-md px-2 py-1 text-xs text-muted transition-colors hover:text-ink disabled:opacity-40"
                     >
-                      Reset
+                      Redefinir
                     </button>
                   </div>
                   {queuedSendCount > 0 ? (
                     <p className="data text-[11px] text-muted">
-                      {queuedSendCount} queued send{queuedSendCount === 1 ? "" : "s"} will go out
-                      in this order.
+                      {queuedSendCount} envio{queuedSendCount === 1 ? "" : "s"} na fila{" "}
+                      {queuedSendCount === 1 ? "sairá" : "sairão"} nesta ordem.
                     </p>
                   ) : null}
                 </>
@@ -492,8 +492,8 @@ export function PostEditor({
           )}
           <div className="data text-xs text-ink-soft">
             <p>{post.post_type}{assets.length > 1 ? ` · ${assets.length} imgs` : ""}</p>
-            <p className="mt-1 text-muted">Schedule status: {post.status}</p>
-            <p className="mt-0.5 text-faint">Scheduling is managed further down this page.</p>
+            <p className="mt-1 text-muted">Status do agendamento: {post.status}</p>
+            <p className="mt-0.5 text-faint">O agendamento é gerenciado mais abaixo nesta página.</p>
           </div>
         </div>
       </section>
@@ -515,13 +515,13 @@ export function PostEditor({
 
       {/* Kind */}
       <section className={card}>
-        <h3 className="mb-2 font-display text-sm font-semibold text-ink">Kind</h3>
+        <h3 className="mb-2 font-display text-sm font-semibold text-ink">Tipo</h3>
         <div className="inline-flex rounded-lg border border-border p-0.5">
           <button type="button" className={segBtn(kind === "evergreen")} onClick={() => setKind("evergreen")}>
             Evergreen
           </button>
           <button type="button" className={segBtn(kind === "one_time")} onClick={() => setKind("one_time")}>
-            One-time
+            Uma vez
           </button>
         </div>
 
@@ -536,8 +536,8 @@ export function PostEditor({
           <BppMark postId={post.id} initial={Boolean(post.is_bpp)} />
           <span className="text-[11px] text-muted">
             {post.is_bpp
-              ? "In your BPP Pool — auto-fill will bring it back on the cadence you set."
-              : "Mark it if it performed well and is worth running again."}
+              ? "No seu Loop BPP — o preenchimento automático vai trazê-lo de volta na cadência que você definiu."
+              : "Marque se ele teve bom desempenho e vale a pena repetir."}
           </span>
         </div>
       </section>
@@ -550,17 +550,18 @@ export function PostEditor({
       {/* First comment */}
       <section className={card}>
         <div className="mb-1 flex items-center justify-between gap-2">
-          <h3 className="font-display text-sm font-semibold text-ink">First comment</h3>
+          <h3 className="font-display text-sm font-semibold text-ink">Primeiro comentário</h3>
           <EmojiPicker onInsert={insertFirstCommentEmoji} />
         </div>
         <p className="mb-3 text-xs text-muted">
-          Posted automatically once the post is live — the usual home for hashtags. On
-          Threads it goes out as a reply, which shows in your feed like any other post.
+          Postado automaticamente assim que o post fica no ar — o lugar de sempre para as
+          hashtags. No Threads ele sai como uma resposta, que aparece no seu feed como
+          qualquer outro post.
         </p>
         <textarea
           ref={firstCommentRef}
           className="min-h-16 w-full resize-y rounded-md border border-border bg-canvas px-3 py-2 text-sm text-ink placeholder:text-faint focus:border-brand focus:outline-none"
-          placeholder="#hashtags #go #here"
+          placeholder="#hashtags #vai #aqui"
           value={firstComment}
           onChange={(e) => setFirstComment(e.target.value)}
         />
@@ -570,15 +571,15 @@ export function PostEditor({
               captionLength(firstComment.trim()) > FIRST_COMMENT_MAX_CHARS ? "text-danger" : "text-faint"
             }`}
           >
-            {captionLength(firstComment.trim())} / {FIRST_COMMENT_MAX_CHARS} characters
+            {captionLength(firstComment.trim())} / {FIRST_COMMENT_MAX_CHARS} caracteres
           </p>
         ) : null}
       </section>
 
       {/* Targets */}
       <section className={card}>
-        <h3 className="mb-2 font-display text-sm font-semibold text-ink">Target accounts</h3>
-        <p className="mb-3 text-xs text-muted">Which accounts auto-fill can post this to.</p>
+        <h3 className="mb-2 font-display text-sm font-semibold text-ink">Contas de destino</h3>
+        <p className="mb-3 text-xs text-muted">Em quais contas o preenchimento automático pode postar isto.</p>
         <ChannelSurfacePicker
           channels={channels}
           value={effectiveTargets}
@@ -603,7 +604,7 @@ export function PostEditor({
 
       {/* Tags */}
       <section className={card}>
-        <h3 className="mb-2 font-display text-sm font-semibold text-ink">Tags</h3>
+        <h3 className="mb-2 font-display text-sm font-semibold text-ink">Etiquetas</h3>
         <TagEditor timeOfDayTags={timeOfDayTags} topicTags={topicTags} value={tagIds} onChange={setTagIds} />
       </section>
 
@@ -635,17 +636,17 @@ export function PostEditor({
 
       {/* Content status + cooldown + save */}
       <section className={card}>
-        <h3 className="mb-1 font-display text-sm font-semibold text-ink">Content status</h3>
-        <p className="mb-2 text-xs text-muted">Ready content is eligible for auto-fill; drafts and retired are not.</p>
+        <h3 className="mb-1 font-display text-sm font-semibold text-ink">Status do conteúdo</h3>
+        <p className="mb-2 text-xs text-muted">Conteúdo Pronto é elegível para o preenchimento automático; rascunhos e aposentados não.</p>
         <div className="inline-flex rounded-lg border border-border p-0.5">
-          <button type="button" className={segBtn(status === "draft")} onClick={() => setStatus("draft")}>Draft</button>
-          <button type="button" className={segBtn(status === "ready")} onClick={() => setStatus("ready")}>Ready</button>
-          <button type="button" className={segBtn(status === "retired")} onClick={() => setStatus("retired")}>Retired</button>
+          <button type="button" className={segBtn(status === "draft")} onClick={() => setStatus("draft")}>Rascunho</button>
+          <button type="button" className={segBtn(status === "ready")} onClick={() => setStatus("ready")}>Pronto</button>
+          <button type="button" className={segBtn(status === "retired")} onClick={() => setStatus("retired")}>Aposentado</button>
         </div>
 
         <div className="mt-4">
           <label className="block text-xs font-medium text-ink-soft mb-1">
-            Cooldown override (days) <span className="text-faint">— blank = channel default</span>
+            Cooldown personalizado (dias) <span className="text-faint">— em branco = padrão da conta</span>
           </label>
           <input
             type="number"
@@ -665,7 +666,7 @@ export function PostEditor({
             disabled={pending}
             className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-ink disabled:opacity-50"
           >
-            {pending ? "Saving…" : "Save changes"}
+            {pending ? "Salvando…" : "Salvar alterações"}
           </button>
         </div>
       </section>
@@ -676,10 +677,10 @@ export function PostEditor({
           same family of operation: all of it, or just the ones you pick. */}
       {isCarousel ? (
         <section className={card}>
-          <h3 className="mb-1 font-display text-sm font-semibold text-ink">Break this up</h3>
+          <h3 className="mb-1 font-display text-sm font-semibold text-ink">Dividir este post</h3>
           <p className="mb-3 text-sm text-muted">
-            Split all {assets.length} photos into separate posts, or pull out just the ones you
-            pick and keep the rest together. No photos are deleted.
+            Divida todas as {assets.length} fotos em posts separados, ou separe apenas as que
+            você escolher e mantenha o resto junto. Nenhuma foto é excluída.
           </p>
           <div className="flex flex-wrap gap-2">
             <button
@@ -688,7 +689,7 @@ export function PostEditor({
               disabled={isDirty || slideOrder.isDirty}
               className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-medium text-ink hover:bg-surface-sunken disabled:opacity-50"
             >
-              Split into separate posts…
+              Dividir em posts separados…
             </button>
             <button
               type="button"
@@ -696,12 +697,12 @@ export function PostEditor({
               disabled={isDirty || slideOrder.isDirty}
               className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-medium text-ink hover:bg-surface-sunken disabled:opacity-50"
             >
-              Pull slides out…
+              Separar slides…
             </button>
           </div>
           {isDirty || slideOrder.isDirty ? (
             <p className="mt-2 text-xs text-status-failed">
-              Save your changes first — both of these copy what&apos;s saved.
+              Salve suas alterações primeiro — ambas as ações copiam o que está salvo.
             </p>
           ) : null}
         </section>
@@ -737,11 +738,11 @@ export function PostEditor({
           that has already gone out (delete is refused for those, on purpose). */}
       {post.archived_at ? null : (
         <section className={card}>
-          <h3 className="mb-1 font-display text-sm font-semibold text-ink">Archive post</h3>
+          <h3 className="mb-1 font-display text-sm font-semibold text-ink">Arquivar post</h3>
           <p className="mb-3 text-xs text-muted">
-            Hides this post from the Library and from Compose&apos;s reuse picker. Nothing is
-            deleted: the Instagram post stays live, and its sends, metrics and insights are
-            kept. You can unarchive it any time.
+            Oculta este post da Agendamento em Massa e do seletor de reaproveitamento do
+            Postar Reel. Nada é excluído: o post no Instagram continua no ar, e seus envios,
+            métricas e relatórios são mantidos. Você pode desarquivá-lo a qualquer momento.
           </p>
           {archiveError ? (
             <p className="mb-3 text-sm text-status-failed">{archiveError}</p>
@@ -750,32 +751,32 @@ export function PostEditor({
             <div className="space-y-4">
               <div>
                 <p className="mb-1.5 text-xs font-medium text-ink-soft">
-                  Also set content status to
+                  Também definir o status do conteúdo como
                 </p>
                 <div className="inline-flex flex-wrap rounded-lg border border-border p-0.5">
-                  <button type="button" className={segBtn(archiveStatus === "retired")} onClick={() => setArchiveStatus("retired")}>Retired</button>
-                  <button type="button" className={segBtn(archiveStatus === "draft")} onClick={() => setArchiveStatus("draft")}>Draft</button>
-                  <button type="button" className={segBtn(archiveStatus === "keep")} onClick={() => setArchiveStatus("keep")}>Leave as is</button>
+                  <button type="button" className={segBtn(archiveStatus === "retired")} onClick={() => setArchiveStatus("retired")}>Aposentado</button>
+                  <button type="button" className={segBtn(archiveStatus === "draft")} onClick={() => setArchiveStatus("draft")}>Rascunho</button>
+                  <button type="button" className={segBtn(archiveStatus === "keep")} onClick={() => setArchiveStatus("keep")}>Deixar como está</button>
                 </div>
                 <p className="mt-1.5 text-xs text-muted">
                   {archiveStatus === "keep" && status === "ready"
-                    ? "Heads up: this post stays Ready, so auto-fill can still schedule it even though you won't see it in the Library."
-                    : "Retired and Draft content is never picked up by auto-fill. Archiving on its own doesn't change that — this is the switch that does."}
+                    ? "Atenção: este post continua Pronto, então o preenchimento automático ainda pode agendá-lo mesmo que você não o veja na Agendamento em Massa."
+                    : "Conteúdo Aposentado e Rascunho nunca é pego pelo preenchimento automático. Só arquivar não muda isso — esta é a opção que muda."}
                 </p>
               </div>
               <div>
-                <p className="mb-1.5 text-xs font-medium text-ink-soft">Also set content kind to</p>
+                <p className="mb-1.5 text-xs font-medium text-ink-soft">Também definir o tipo do conteúdo como</p>
                 <div className="inline-flex flex-wrap rounded-lg border border-border p-0.5">
-                  <button type="button" className={segBtn(archiveKind === "keep")} onClick={() => setArchiveKind("keep")}>Leave as is</button>
-                  <button type="button" className={segBtn(archiveKind === "one_time")} onClick={() => setArchiveKind("one_time")}>One-time</button>
+                  <button type="button" className={segBtn(archiveKind === "keep")} onClick={() => setArchiveKind("keep")}>Deixar como está</button>
+                  <button type="button" className={segBtn(archiveKind === "one_time")} onClick={() => setArchiveKind("one_time")}>Uma vez</button>
                   <button type="button" className={segBtn(archiveKind === "evergreen")} onClick={() => setArchiveKind("evergreen")}>Evergreen</button>
                 </div>
               </div>
               {queuedSendCount > 0 ? (
                 <p className="text-xs text-status-scheduled">
                   {queuedSendCount === 1
-                    ? "This post has 1 send still scheduled. Archiving does not cancel it — it will still go out. Cancel it in Scheduled sends above first if you don't want that."
-                    : `This post has ${queuedSendCount} sends still scheduled. Archiving does not cancel them — they will still go out. Cancel them in Scheduled sends above first if you don't want that.`}
+                    ? "Este post tem 1 envio ainda agendado. Arquivar não o cancela — ele ainda vai sair. Cancele-o em Envios agendados acima primeiro se não quiser isso."
+                    : `Este post tem ${queuedSendCount} envios ainda agendados. Arquivar não os cancela — eles ainda vão sair. Cancele-os em Envios agendados acima primeiro se não quiser isso.`}
                 </p>
               ) : null}
               <div className="flex items-center gap-2">
@@ -785,7 +786,7 @@ export function PostEditor({
                   disabled={archiving}
                   className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
                 >
-                  {archiving ? "Archiving…" : "Archive post"}
+                  {archiving ? "Arquivando…" : "Arquivar post"}
                 </button>
                 <button
                   type="button"
@@ -793,7 +794,7 @@ export function PostEditor({
                   disabled={archiving}
                   className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted hover:text-ink disabled:opacity-50"
                 >
-                  Cancel
+                  Cancelar
                 </button>
               </div>
             </div>
@@ -803,29 +804,30 @@ export function PostEditor({
               onClick={() => setArchiveOpen(true)}
               className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-ink hover:bg-surface-sunken"
             >
-              Archive post…
+              Arquivar post…
             </button>
           )}
         </section>
       )}
       {/* Delete post — guarded, irreversible */}
       <section className="rounded-card border border-status-failed/30 bg-surface p-5">
-        <h3 className="mb-1 font-display text-sm font-semibold text-status-failed">Delete post</h3>
+        <h3 className="mb-1 font-display text-sm font-semibold text-status-failed">Excluir post</h3>
         <p className="mb-3 text-xs text-muted">
-          This deletes the post and all its scheduled/failed sends (shared images are kept).
+          Isso exclui o post e todos os seus envios agendados/com falha (imagens
+          compartilhadas são mantidas).
         </p>
         {/* The pointer to Archive only makes sense while that card is on the page — it is
             replaced by the Unarchive strip once the post is archived. */}
         {hasLiveSend ? (
           <p className="mb-3 text-xs text-muted">
-            Delete is blocked on this post — it has sends that already went out, and erasing
-            it would erase the record of something that is live.{" "}
+            A exclusão está bloqueada neste post — ele tem envios que já foram ao ar, e
+            apagá-lo apagaria o registro de algo que está no ar.{" "}
             {post.archived_at ? (
-              <>It is already archived, so it is out of the Library.</>
+              <>Ele já está arquivado, então já está fora da Agendamento em Massa.</>
             ) : (
               <>
-                Use <span className="font-medium text-ink">Archive post</span> above to take it
-                out of the Library instead.
+                Use <span className="font-medium text-ink">Arquivar post</span> acima para
+                tirá-lo da Agendamento em Massa em vez disso.
               </>
             )}
           </p>
@@ -838,14 +840,14 @@ export function PostEditor({
               disabled={deleting}
               className="rounded-lg bg-status-failed px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
             >
-              {deleting ? "Deleting…" : "Confirm delete post"}
+              {deleting ? "Excluindo…" : "Confirmar exclusão do post"}
             </button>
             <button
               onClick={() => setConfirmDelete(false)}
               disabled={deleting}
               className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted hover:text-ink disabled:opacity-50"
             >
-              Keep post
+              Manter post
             </button>
           </div>
         ) : (
@@ -853,7 +855,7 @@ export function PostEditor({
             onClick={() => setConfirmDelete(true)}
             className="rounded-lg border border-status-failed px-4 py-2 text-sm font-medium text-status-failed hover:bg-status-failed/10"
           >
-            Delete post…
+            Excluir post…
           </button>
         )}
       </section>

@@ -55,7 +55,7 @@ export function AssetPickerModal({
     fetch(`/api/assets?exclude=${excludeKey}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error())))
       .then((body: { assets: PickableAsset[] }) => live && setAssets(body.assets))
-      .catch(() => live && setError("Couldn't load the library."));
+      .catch(() => live && setError("Não foi possível carregar a biblioteca."));
     return () => {
       live = false;
     };
@@ -74,25 +74,25 @@ export function AssetPickerModal({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Choose from the library"
+        aria-label="Escolher da biblioteca"
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className="flex max-h-[80vh] w-full max-w-3xl flex-col rounded-card border border-border bg-surface p-5"
       >
-        <h2 className="text-base font-medium text-ink">Choose from the library</h2>
+        <h2 className="text-base font-medium text-ink">Escolher da biblioteca</h2>
         <p className="mt-1 text-sm text-faint">
-          Files already on this post aren&rsquo;t shown.
+          Arquivos já usados neste post não são exibidos.
         </p>
 
         {error ? <p className="mt-4 text-sm text-status-failed">{error}</p> : null}
 
         <div className="mt-4 grid flex-1 grid-cols-3 gap-3 overflow-y-auto sm:grid-cols-4">
           {assets === null && !error ? (
-            <p className="col-span-full text-sm text-faint">Loading…</p>
+            <p className="col-span-full text-sm text-faint">Carregando…</p>
           ) : null}
           {assets?.length === 0 ? (
             <p className="col-span-full text-sm text-faint">
-              Nothing else in the library yet.
+              Nada mais na biblioteca ainda.
             </p>
           ) : null}
           {assets?.map((a) => {
@@ -103,7 +103,7 @@ export function AssetPickerModal({
                 type="button"
                 onClick={() => toggle(a.id)}
                 aria-pressed={on}
-                title={a.original_filename ?? `Asset ${a.id}`}
+                title={a.original_filename ?? `Arquivo ${a.id}`}
                 className={`relative aspect-square overflow-hidden rounded-lg border-2 bg-surface-sunken ${
                   on ? "border-accent" : "border-transparent"
                 }`}
@@ -144,7 +144,7 @@ export function AssetPickerModal({
             onClick={onClose}
             className="rounded-lg border border-border px-3 py-1.5 text-sm text-ink"
           >
-            Cancel
+            Cancelar
           </button>
           <button
             type="button"
@@ -152,7 +152,7 @@ export function AssetPickerModal({
             onClick={() => onPick(chosen)}
             className="rounded-lg bg-accent px-3 py-1.5 text-sm text-on-accent disabled:opacity-50"
           >
-            Add {chosen.length || ""}
+            Adicionar {chosen.length || ""}
           </button>
         </div>
       </div>

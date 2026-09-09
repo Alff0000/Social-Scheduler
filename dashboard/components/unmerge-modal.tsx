@@ -12,8 +12,8 @@ import { useModalFocusTrap } from "./use-modal-focus-trap";
  */
 export function splitSummary(slideCount: number): string {
   return (
-    `This carousel will become ${slideCount} separate posts, one per photo. ` +
-    `This post keeps the first photo along with its history. No photos are deleted.`
+    `Este carrossel vai virar ${slideCount} posts separados, um por foto. ` +
+    `Este post mantém a primeira foto junto com o histórico dele. Nenhuma foto é excluída.`
   );
 }
 
@@ -52,7 +52,7 @@ export function UnmergeModal({
       setSubmitting(false);
       // The server's message is the specific one (already published / send queued), so it is
       // shown verbatim rather than replaced with a generic failure.
-      setError(body.error ?? "Could not split this carousel.");
+      setError(body.error ?? "Não foi possível dividir este carrossel.");
       return;
     }
     onUnmerged();
@@ -67,18 +67,18 @@ export function UnmergeModal({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Split into separate posts"
+        aria-label="Dividir em posts separados"
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-card border border-border-strong bg-surface p-5 shadow-lg"
       >
         <h2 className="font-display text-base font-semibold text-ink">
-          Split into separate posts
+          Dividir em posts separados
         </h2>
         <p className="mt-1 text-sm text-muted">{splitSummary(slideCount)}</p>
         <p className="mt-2 text-sm text-muted">
-          Each new post keeps this one&rsquo;s caption, channels, tags and seasons — as its own
-          copy, so editing one later won&rsquo;t change the others.
+          Cada novo post mantém a legenda, contas, etiquetas e temporadas deste — como sua
+          própria cópia, então editar um depois não muda os outros.
         </p>
 
         {error ? <p className="mt-4 text-sm text-status-failed">{error}</p> : null}
@@ -90,7 +90,7 @@ export function UnmergeModal({
             disabled={submitting}
             className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-medium text-ink hover:bg-surface-sunken disabled:opacity-50"
           >
-            Cancel
+            Cancelar
           </button>
           <button
             type="button"
@@ -98,7 +98,7 @@ export function UnmergeModal({
             disabled={submitting}
             className="rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-on-accent hover:bg-accent-ink disabled:opacity-50"
           >
-            {submitting ? "Splitting…" : "Split into separate posts"}
+            {submitting ? "Dividindo…" : "Dividir em posts separados"}
           </button>
         </div>
       </div>

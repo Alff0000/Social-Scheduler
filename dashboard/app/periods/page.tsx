@@ -18,9 +18,10 @@ export default function PeriodsPage() {
         <PeriodAdd />
 
         {periods.length === 0 ? (
-          <EmptyState title="No periods yet">
-            Create windows like <em>Winter</em>, <em>July 4th</em>, or a one-off event range.
-            Then a post tagged for that window only auto-posts while it&rsquo;s in season.
+          <EmptyState title="Nenhum período ainda">
+            Crie janelas como <em>Verão</em>, <em>Black Friday</em>, ou um intervalo pra
+            um evento único. Aí um post marcado com essa janela só posta automaticamente
+            enquanto estiver na temporada.
           </EmptyState>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">

@@ -67,21 +67,21 @@ function CurrentValueRow({
 export function CurrentSelectionSummary({ context }: { context: BulkEditContext }) {
   const total = context.post_count;
   return (
-    <div className="mb-4 space-y-2 rounded-lg border border-border bg-surface-sunken p-4" aria-label="Current values on selected posts">
-      <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Current selection</p>
+    <div className="mb-4 space-y-2 rounded-lg border border-border bg-surface-sunken p-4" aria-label="Valores atuais dos posts selecionados">
+      <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Seleção atual</p>
       <CurrentValueRow
         label="Status"
         total={total}
         values={context.content_statuses.map((row) => ({
-          label: { ready: "Ready", draft: "Draft", retired: "Retired" }[row.value],
+          label: { ready: "Pronto", draft: "Rascunho", retired: "Aposentado" }[row.value],
           count: row.count,
         }))}
       />
       <CurrentValueRow
-        label="Kind"
+        label="Tipo"
         total={total}
         values={context.content_kinds.map((row) => ({
-          label: row.value === "one_time" ? "One-time" : "Evergreen",
+          label: row.value === "one_time" ? "Uma vez" : "Evergreen",
           count: row.count,
         }))}
       />
@@ -89,7 +89,7 @@ export function CurrentSelectionSummary({ context }: { context: BulkEditContext 
         label="Cooldown"
         total={total}
         values={context.cooldowns.map((row) => ({
-          label: row.value === null ? "Channel default" : `${row.value} day${row.value === 1 ? "" : "s"}`,
+          label: row.value === null ? "Padrão da conta" : `${row.value} dia${row.value === 1 ? "" : "s"}`,
           count: row.count,
         }))}
       />
@@ -149,7 +149,7 @@ export function BulkEditModal({
         });
         const body = await response.json().catch(() => ({}));
         if (!response.ok) {
-          throw new Error(body.error ?? "Could not load existing metadata.");
+          throw new Error(body.error ?? "Não foi possível carregar os metadados existentes.");
         }
         if (
           typeof body.post_count !== "number" ||
@@ -159,14 +159,14 @@ export function BulkEditModal({
           !Array.isArray(body.content_kinds) ||
           !Array.isArray(body.cooldowns)
         ) {
-          throw new Error("The existing metadata response was incomplete.");
+          throw new Error("A resposta dos metadados existentes veio incompleta.");
         }
         dispatchContext({ type: "success", context: body as BulkEditContext });
       } catch (loadError) {
         if (controller.signal.aborted) return;
         dispatchContext({
           type: "error",
-          error: loadError instanceof Error ? loadError.message : "Could not load existing metadata.",
+          error: loadError instanceof Error ? loadError.message : "Não foi possível carregar os metadados existentes.",
         });
       }
     }
@@ -236,12 +236,12 @@ export function BulkEditModal({
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setApplyError(body.error ?? "Could not apply the bulk edit.");
+        setApplyError(body.error ?? "Não foi possível aplicar a edição em massa.");
         return;
       }
       onSaved(labels);
     } catch {
-      setApplyError("Could not confirm whether the edit completed. Refresh the Library before retrying.");
+      setApplyError("Não foi possível confirmar se a edição foi concluída. Atualize a Biblioteca antes de tentar de novo.");
     } finally {
       setBusy(false);
     }
@@ -258,11 +258,11 @@ export function BulkEditModal({
         {reviewing ? (
           <>
             <h2 id="bulk-edit-title" className="font-display text-xl font-semibold text-ink">
-              Apply {labels.length === 1 ? labels[0] : `${labels.length} changes`} to {postIds.length}{" "}
+              Aplicar {labels.length === 1 ? labels[0] : `${labels.length} mudanças`} em {postIds.length}{" "}
               post{postIds.length === 1 ? "" : "s"}?
             </h2>
             <p className="mt-2 text-sm text-muted">
-              This updates every selected post in one atomic operation.
+              Isso atualiza cada post selecionado numa única operação atômica.
             </p>
             <ul className="mt-4 space-y-2 rounded-lg border border-border bg-surface-sunken p-4 text-sm text-ink">
               {labels.map((label) => (
@@ -277,7 +277,7 @@ export function BulkEditModal({
                 disabled={busy}
                 className="rounded-lg border border-border px-4 py-2 text-sm text-ink hover:bg-surface-sunken disabled:opacity-50"
               >
-                Back
+                Voltar
               </button>
               <button
                 type="button"
@@ -285,7 +285,7 @@ export function BulkEditModal({
                 disabled={busy}
                 className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-ink disabled:opacity-50"
               >
-                {busy ? "Applying…" : "Confirm bulk edit"}
+                {busy ? "Aplicando…" : "Confirmar edição em massa"}
               </button>
             </div>
           </>
@@ -294,17 +294,17 @@ export function BulkEditModal({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 id="bulk-edit-title" className="font-display text-xl font-semibold text-ink">
-                  Bulk edit {postIds.length} post{postIds.length === 1 ? "" : "s"}
+                  Editar {postIds.length} post{postIds.length === 1 ? "" : "s"} em massa
                 </h2>
                 <p className="mt-1 text-sm text-muted">
-                  Only fields you choose below will change. Existing unrelated tags and periods stay attached.
+                  Só os campos que você escolher abaixo vão mudar. Tags e períodos existentes não relacionados continuam anexados.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={onClose}
                 className="rounded-lg px-2 py-1 text-sm text-muted hover:bg-surface-sunken hover:text-ink"
-                aria-label="Close bulk edit"
+                aria-label="Fechar edição em massa"
               >
                 ✕
               </button>
@@ -312,21 +312,21 @@ export function BulkEditModal({
 
             {contextLoading ? (
               <div className="mt-6 rounded-lg border border-border bg-surface-sunken p-4 text-sm text-muted" role="status">
-                Loading existing metadata…
+                Carregando metadados existentes…
               </div>
             ) : null}
             {contextError ? (
               <div className="mt-6 rounded-lg border border-status-failed/40 p-4" role="alert">
                 <p className="text-sm text-status-failed">{contextError}</p>
                 <p className="mt-1 text-xs text-muted">
-                  This read-only check did not change any posts.
+                  Essa checagem só de leitura não alterou nenhum post.
                 </p>
                 <button
                   type="button"
                   onClick={retryContext}
                   className="mt-3 rounded-lg border border-border px-3 py-1.5 text-sm text-ink hover:bg-surface-sunken"
                 >
-                  Retry
+                  Tentar de novo
                 </button>
               </div>
             ) : null}
@@ -334,20 +334,20 @@ export function BulkEditModal({
             {context ? (
               <>
                 <div className="mt-5 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface-sunken px-4 py-3 text-xs text-muted">
-                  <span className="font-medium text-ink-soft">Coverage</span>
+                  <span className="font-medium text-ink-soft">Cobertura</span>
                   <span className="inline-flex items-center gap-1.5">
                     <CoverageBadge count={selectedPostCount} total={selectedPostCount} />
-                    on every selected post
+                    em todos os posts selecionados
                   </span>
                   <span className="inline-flex items-center gap-1.5">
                     <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${coverageBadgeClass.some}`}>
-                      Some (X of {selectedPostCount})
+                      Alguns (X de {selectedPostCount})
                     </span>
-                    means only that many selected posts
+                    significa só aquela quantidade de posts selecionados
                   </span>
                   <span className="inline-flex items-center gap-1.5">
                     <CoverageBadge count={0} total={selectedPostCount} />
-                    on no selected posts
+                    em nenhum post selecionado
                   </span>
                 </div>
 
@@ -355,12 +355,12 @@ export function BulkEditModal({
               <div className="mb-4">
                 <h3 className="text-sm font-semibold text-ink">Tags</h3>
                 <p className="text-xs text-muted">
-                  Add and remove lists are separate. Choosing a tag in one list removes the same tag from the other.
+                  As listas de adicionar e remover são separadas. Escolher uma tag numa lista a remove da outra.
                 </p>
               </div>
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="rounded-card border border-status-posted/40 p-4">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-status-posted">Add tags</p>
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-status-posted">Adicionar tags</p>
                   <TagEditor
                     timeOfDayTags={timeOfDayTags}
                     topicTags={topicTags}
@@ -373,7 +373,7 @@ export function BulkEditModal({
                   />
                 </div>
                 <div className="rounded-card border border-border p-4">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Remove tags</p>
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-soft">Remover tags</p>
                   <TagEditor
                     timeOfDayTags={timeOfDayTags}
                     topicTags={topicTags}
@@ -383,7 +383,7 @@ export function BulkEditModal({
                     coverage={tagCoverage}
                     selectedPostCount={selectedPostCount}
                     hideZeroCoverage
-                    emptyCoverageMessage="None of the selected posts have removable tags."
+                    emptyCoverageMessage="Nenhum dos posts selecionados tem tags removíveis."
                   />
                 </div>
               </div>
@@ -391,12 +391,12 @@ export function BulkEditModal({
 
             <section className="mt-6 border-t border-border pt-5">
               <div className="mb-3">
-                <h3 className="text-sm font-semibold text-ink">Periods</h3>
-                <p className="text-xs text-muted">Choose exact green or blackout links independently for attach and detach.</p>
+                <h3 className="text-sm font-semibold text-ink">Períodos</h3>
+                <p className="text-xs text-muted">Escolha vínculos de verde ou bloqueio de forma independente para anexar e desanexar.</p>
               </div>
               <div className="grid gap-4 lg:grid-cols-2">
                 <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-status-posted">Attach periods</p>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-status-posted">Anexar períodos</p>
                   <PeriodAttach
                     periods={periods}
                     exactValue={periodAdds}
@@ -407,7 +407,7 @@ export function BulkEditModal({
                   />
                 </div>
                 <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Detach periods</p>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Desanexar períodos</p>
                   <PeriodAttach
                     periods={periods}
                     exactValue={periodRemoves}
@@ -421,43 +421,43 @@ export function BulkEditModal({
             </section>
 
             <section className="mt-6 border-t border-border pt-5">
-              <h3 className="text-sm font-semibold text-ink">Set shared values</h3>
-              <p className="mb-3 text-xs text-muted">Leave a field unchanged to preserve each post&apos;s current value.</p>
+              <h3 className="text-sm font-semibold text-ink">Definir valores compartilhados</h3>
+              <p className="mb-3 text-xs text-muted">Deixe um campo sem alterar para preservar o valor atual de cada post.</p>
               <CurrentSelectionSummary context={context} />
               <div className="grid gap-3 sm:grid-cols-3">
                 <label className="text-xs text-ink-soft">
                   <span className="mb-1 block">Status</span>
                   <select className={`${field} w-full`} value={contentStatus} onChange={(e) => setContentStatus(e.target.value as ContentStatus | "unchanged")}>
-                    <option value="unchanged">Leave unchanged</option>
-                    <option value="draft">Draft</option>
-                    <option value="ready">Ready</option>
-                    <option value="retired">Retired</option>
+                    <option value="unchanged">Deixar sem alterar</option>
+                    <option value="draft">Rascunho</option>
+                    <option value="ready">Pronto</option>
+                    <option value="retired">Aposentado</option>
                   </select>
                 </label>
                 <label className="text-xs text-ink-soft">
-                  <span className="mb-1 block">Kind</span>
+                  <span className="mb-1 block">Tipo</span>
                   <select className={`${field} w-full`} value={contentKind} onChange={(e) => setContentKind(e.target.value as ContentKind | "unchanged")}>
-                    <option value="unchanged">Leave unchanged</option>
+                    <option value="unchanged">Deixar sem alterar</option>
                     <option value="evergreen">Evergreen</option>
-                    <option value="one_time">One-time</option>
+                    <option value="one_time">Uma vez</option>
                   </select>
                 </label>
                 <label className="text-xs text-ink-soft">
                   <span className="mb-1 block">Cooldown</span>
                   <select className={`${field} w-full`} value={cooldownMode} onChange={(e) => setCooldownMode(e.target.value as typeof cooldownMode)}>
-                    <option value="unchanged">Leave unchanged</option>
-                    <option value="default">Use channel default</option>
-                    <option value="custom">Set custom days</option>
+                    <option value="unchanged">Deixar sem alterar</option>
+                    <option value="default">Usar padrão da conta</option>
+                    <option value="custom">Definir dias customizados</option>
                   </select>
                 </label>
               </div>
               {cooldownMode === "custom" ? (
                 <label className="mt-3 block max-w-48 text-xs text-ink-soft">
-                  <span className="mb-1 block">Cooldown days</span>
+                  <span className="mb-1 block">Dias de cooldown</span>
                   <input type="number" min={0} step={1} className={`${field} w-full`} value={cooldownDays} onChange={(e) => setCooldownDays(Number(e.target.value))} />
                 </label>
               ) : null}
-              {cooldownInvalid ? <p className="mt-2 text-xs text-status-failed">Cooldown must be zero or a positive whole number.</p> : null}
+              {cooldownInvalid ? <p className="mt-2 text-xs text-status-failed">O cooldown deve ser zero ou um número inteiro positivo.</p> : null}
             </section>
 
               </>
@@ -466,17 +466,17 @@ export function BulkEditModal({
             {applyError ? <p className="mt-3 text-sm text-status-failed">{applyError}</p> : null}
             <div className="mt-6 flex items-center justify-between gap-4">
               <p className="text-xs text-muted">
-                {labels.length === 0 ? "Choose at least one change." : `${labels.length} change${labels.length === 1 ? "" : "s"} ready to review.`}
+                {labels.length === 0 ? "Escolha ao menos uma mudança." : `${labels.length} mudança${labels.length === 1 ? "" : "s"} pronta${labels.length === 1 ? "" : "s"} pra revisar.`}
               </p>
               <div className="flex gap-2">
-                <button type="button" onClick={onClose} className="rounded-lg border border-border px-4 py-2 text-sm text-ink hover:bg-surface-sunken">Cancel</button>
+                <button type="button" onClick={onClose} className="rounded-lg border border-border px-4 py-2 text-sm text-ink hover:bg-surface-sunken">Cancelar</button>
                 <button
                   type="button"
                   onClick={() => setReviewing(true)}
                   disabled={!reviewReady}
                   className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-ink disabled:opacity-50"
                 >
-                  Review changes
+                  Revisar mudanças
                 </button>
               </div>
             </div>

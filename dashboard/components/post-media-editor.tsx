@@ -87,12 +87,12 @@ function DeleteConfirmDialog({
       });
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(body.error ?? "Couldn't remove that.");
+        setError(body.error ?? "Não foi possível remover isso.");
         return;
       }
       onRemoved();
     } catch {
-      setError("Couldn't reach the server. Is the dashboard still running?");
+      setError("Não foi possível conectar ao servidor. O dashboard ainda está rodando?");
     } finally {
       setBusy(false);
     }
@@ -109,15 +109,15 @@ function DeleteConfirmDialog({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Remove this photo?"
+        aria-label="Remover esta foto?"
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md rounded-card border border-border bg-surface p-5"
       >
-        <h2 className="text-base font-medium text-ink">Remove this photo?</h2>
+        <h2 className="text-base font-medium text-ink">Remover esta foto?</h2>
         <p className="mt-2 text-sm text-muted">
-          You can take it off this post and keep it in your library, or delete the file from
-          your computer for good.
+          Você pode tirá-la deste post e mantê-la na sua biblioteca, ou excluir o arquivo do
+          seu computador definitivamente.
         </p>
         {blockedMessage ? <p className="mt-2 text-sm text-faint">{blockedMessage}</p> : null}
         {error ? <p className="mt-2 text-sm text-status-failed">{error}</p> : null}
@@ -129,7 +129,7 @@ function DeleteConfirmDialog({
             onClick={onClose}
             className="rounded-lg border border-border px-3 py-1.5 text-sm text-ink"
           >
-            Cancel
+            Cancelar
           </button>
           <button
             type="button"
@@ -137,7 +137,7 @@ function DeleteConfirmDialog({
             onClick={() => remove("post")}
             className="rounded-lg border border-border px-3 py-1.5 text-sm text-ink"
           >
-            Remove from this post
+            Remover deste post
           </button>
           <button
             type="button"
@@ -146,7 +146,7 @@ function DeleteConfirmDialog({
             onClick={() => remove("everywhere")}
             className="rounded-lg bg-status-failed px-3 py-1.5 text-sm text-white disabled:opacity-50"
           >
-            Delete the file entirely
+            Excluir o arquivo por completo
           </button>
         </div>
       </div>
@@ -274,12 +274,12 @@ export function PostMediaEditor({
       });
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(body.error ?? "Couldn't add that to the post.");
+        setError(body.error ?? "Não foi possível adicionar isso ao post.");
         return;
       }
       onChanged();
     } catch {
-      setError("Couldn't reach the server. Is the dashboard still running?");
+      setError("Não foi possível conectar ao servidor. O dashboard ainda está rodando?");
     } finally {
       setBusy(false);
     }
@@ -303,8 +303,8 @@ export function PostMediaEditor({
     try {
       const res = await fetch(`/api/posts/${postId}/assets/can-add`);
       const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-      if (!res.ok) return body.error ?? "Couldn't add anything to this post.";
-      return body.ok === false ? (body.error ?? "Couldn't add anything to this post.") : null;
+      if (!res.ok) return body.error ?? "Não foi possível adicionar nada a este post.";
+      return body.ok === false ? (body.error ?? "Não foi possível adicionar nada a este post.") : null;
     } catch {
       return null;
     }
@@ -331,13 +331,13 @@ export function PostMediaEditor({
           asset?: { id: number };
         };
         if (!res.ok || !body.asset) {
-          setError(body.error ?? `Couldn't upload ${file.name}.`);
+          setError(body.error ?? `Não foi possível enviar ${file.name}.`);
           break;
         }
         uploaded.push(body.asset.id);
       }
     } catch {
-      setError("Couldn't reach the server. Is the dashboard still running?");
+      setError("Não foi possível conectar ao servidor. O dashboard ainda está rodando?");
     } finally {
       setBusy(false);
     }
@@ -403,10 +403,10 @@ export function PostMediaEditor({
                   hasLiveSend
                     ? LIVE_SEND_MESSAGE
                     : ordered.length === 1
-                      ? "A post needs at least one photo"
-                      : "Remove this from the post"
+                      ? "Um post precisa de pelo menos uma foto"
+                      : "Remover isto do post"
                 }
-                aria-label={`Remove slide ${s.id}`}
+                aria-label={`Remover slide ${s.id}`}
                 className="absolute right-1 top-1 z-10 rounded-full bg-black/60 px-1.5 text-xs text-white disabled:opacity-40"
               >
                 ✕
@@ -420,7 +420,7 @@ export function PostMediaEditor({
                   onClick={() => move(i, i - 1)}
                   disabled={i === 0}
                   className="rounded px-1 text-xs text-muted hover:text-ink disabled:opacity-30"
-                  aria-label="Move left"
+                  aria-label="Mover para a esquerda"
                 >
                   ←
                 </button>
@@ -429,7 +429,7 @@ export function PostMediaEditor({
                   onClick={() => move(i, i + 1)}
                   disabled={i === ordered.length - 1}
                   className="rounded px-1 text-xs text-muted hover:text-ink disabled:opacity-30"
-                  aria-label="Move right"
+                  aria-label="Mover para a direita"
                 >
                   →
                 </button>
@@ -452,7 +452,7 @@ export function PostMediaEditor({
                 : "cursor-pointer text-ink-soft hover:underline"
             }
           >
-            {busy ? "Working…" : "Upload"}
+            {busy ? "Processando…" : "Enviar"}
             {/* Accept both the MIME types and the extensions: a Windows machine with
                 nothing registered for .webp sends an empty type. See lib/upload-mime.ts. */}
             <input
@@ -474,7 +474,7 @@ export function PostMediaEditor({
             onClick={() => guarded(() => setPicking(true))}
             className="text-ink-soft hover:underline disabled:text-faint disabled:no-underline"
           >
-            Library
+            Biblioteca
           </button>
         </li>
       </ul>
@@ -492,12 +492,12 @@ export function PostMediaEditor({
           aria-labelledby="post-media-order-warning"
         >
           <p id="post-media-order-warning" className="text-sm font-semibold text-ink">
-            Your unsaved slide order will be lost
+            A ordem dos slides não salva será perdida
           </p>
           <p className="mt-1 text-xs text-muted">
-            Adding or removing a slide reloads this post&rsquo;s slides, which throws away the
-            order you dragged but haven&rsquo;t saved. Cancel and save the order first, or
-            continue and set it again afterwards.
+            Adicionar ou remover um slide recarrega os slides deste post, o que descarta a
+            ordem que você arrastou mas não salvou. Cancele e salve a ordem primeiro, ou
+            continue e defina-a novamente depois.
           </p>
           <div className="mt-3 flex gap-2">
             <button
@@ -506,7 +506,7 @@ export function PostMediaEditor({
               onClick={() => setPendingChange(null)}
               className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-ink hover:bg-surface-sunken"
             >
-              Cancel
+              Cancelar
             </button>
             <button
               type="button"
@@ -517,7 +517,7 @@ export function PostMediaEditor({
               }}
               className="rounded-lg border border-status-failed/50 px-3 py-1.5 text-sm font-medium text-status-failed hover:bg-status-failed/10"
             >
-              Discard order and continue
+              Descartar ordem e continuar
             </button>
           </div>
         </div>

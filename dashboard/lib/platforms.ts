@@ -306,17 +306,17 @@ export function deliveryLabel(row: DeliveryLike): string | null {
   if (row.status !== "posted" || !row.delivery_state) return null;
   switch (row.delivery_state) {
     case "inbox":
-      return "In your TikTok inbox — open TikTok to publish";
+      return "Na caixa de entrada do TikTok — abra o TikTok para publicar";
     case "published":
-      return "Live on TikTok";
+      return "No ar no TikTok";
     case "gave_up":
       // Deliberately neither "failed" nor "live": the video was delivered and we never saw
       // it go public. Claiming either would be a guess.
-      return "Delivered — publication unconfirmed";
+      return "Entregue — publicação não confirmada";
     default:
       // An unrecognised state must look wrong on screen rather than quietly read as
       // published — the same reasoning as platformLabel's conspicuous fallback.
-      return `Unknown delivery state: ${row.delivery_state}`;
+      return `Estado de entrega desconhecido: ${row.delivery_state}`;
   }
 }
 
@@ -426,14 +426,14 @@ export function incompatiblePostError<T extends ChannelLikeForCompat>(
   return issues
     .map((issue) =>
       issue.reason === "text"
-        ? `${describeChannel(issue.channel)} can't publish a text post.`
+        ? `${describeChannel(issue.channel)} não pode publicar um post de texto.`
         : issue.reason === "video"
-          ? `${describeChannel(issue.channel)} can't publish a video/Reel.`
+          ? `${describeChannel(issue.channel)} não pode publicar um vídeo/Reel.`
           : issue.reason === "images"
-            ? `${describeChannel(issue.channel)} publishes video only — it can't take an image post.`
-          : `${describeChannel(issue.channel)} allows at most ${maxCarousel(
+            ? `${describeChannel(issue.channel)} só publica vídeo — não pode receber um post de imagem.`
+          : `${describeChannel(issue.channel)} permite no máximo ${maxCarousel(
               issue.channel.platform
-            )} images per carousel (this post has ${assetCount}).`
+            )} imagens por carrossel (este post tem ${assetCount}).`
     )
     .join(" ");
 }

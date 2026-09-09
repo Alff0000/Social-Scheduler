@@ -20,16 +20,16 @@ import { platformBadge } from "@/lib/platforms";
 export type BadgeState = PublicationStatus | "blocked" | "delivered";
 
 const STATUS_META: Record<BadgeState, { label: string; varName: string }> = {
-  scheduled: { label: "Scheduled", varName: "--color-status-scheduled" },
-  blocked: { label: "Blocked", varName: "--color-status-blocked" },
-  pending_approval: { label: "Needs approval", varName: "--color-status-draft" },
-  publishing: { label: "Publishing", varName: "--color-status-publishing" },
-  posted: { label: "Posted", varName: "--color-status-posted" },
+  scheduled: { label: "Agendado", varName: "--color-status-scheduled" },
+  blocked: { label: "Bloqueado", varName: "--color-status-blocked" },
+  pending_approval: { label: "Precisa de aprovação", varName: "--color-status-draft" },
+  publishing: { label: "Publicando", varName: "--color-status-publishing" },
+  posted: { label: "Postado", varName: "--color-status-posted" },
   // Deliberately NOT the green "posted" colour: a video waiting in someone's inbox has
   // not been published, and green is the one signal people read without reading.
-  delivered: { label: "Delivered", varName: "--color-status-blocked" },
-  failed: { label: "Failed", varName: "--color-status-failed" },
-  canceled: { label: "Canceled", varName: "--color-status-draft" },
+  delivered: { label: "Entregue", varName: "--color-status-blocked" },
+  failed: { label: "Falhou", varName: "--color-status-failed" },
+  canceled: { label: "Cancelado", varName: "--color-status-draft" },
 };
 
 export function StatusBadge({

@@ -40,7 +40,7 @@ export default async function EditPostPage({
     // on a destructive control, which reads better with room under it than pinned to the edge.
     <div className="mx-auto max-w-3xl space-y-6 pb-12">
       <Link href="/library" className="inline-block text-sm text-brand underline underline-offset-2">
-        ← Back to Library
+        ← Voltar para Agendamento em Massa
       </Link>
       <PostEditor
         post={post}

@@ -10,7 +10,7 @@ test("Windows gets the Windows shortcut and never the Mac one", () => {
 
 test("macOS gets the Mac shortcut and never the Windows one", () => {
   const hint = emojiShortcutHint("darwin") ?? "";
-  assert.match(hint, /Ctrl \+ Cmd \+ Space/);
+  assert.match(hint, /Ctrl \+ Cmd \+ Espaço/);
   assert.doesNotMatch(hint, /Win \+/);
 });
 

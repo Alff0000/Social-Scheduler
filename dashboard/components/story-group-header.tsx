@@ -50,7 +50,7 @@ export function StoryGroupHeader({
     const failed = results.filter((ok) => !ok).length;
     // Partial failure is reported, never swallowed — the same rule the publish path follows.
     if (failed > 0) {
-      setError(`${failed} of ${results.length} could not be canceled.`);
+      setError(`${failed} de ${results.length} não puderam ser cancelados.`);
     }
     startTransition(() => router.refresh());
   }
@@ -63,7 +63,7 @@ export function StoryGroupHeader({
             Story
           </span>
           <span className="text-xs font-medium text-ink">
-            {slideCount} slides, back to back
+            {slideCount} slides, um após o outro
           </span>
           <span className="data text-[11px] text-faint">
             → {channelName}
@@ -84,14 +84,14 @@ export function StoryGroupHeader({
               disabled={busy}
               className="rounded-md bg-status-failed px-2.5 py-1 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
             >
-              {busy ? "Canceling…" : `Cancel all ${cancelableIds.length}`}
+              {busy ? "Cancelando…" : `Cancelar todos os ${cancelableIds.length}`}
             </button>
             <button
               onClick={() => setConfirming(false)}
               disabled={busy}
               className="rounded-md px-2 py-1 text-xs font-medium text-muted hover:text-ink disabled:opacity-50"
             >
-              Keep
+              Manter
             </button>
           </span>
         ) : (
@@ -101,12 +101,12 @@ export function StoryGroupHeader({
             // canceled on a stray click, and this one cancels several at once.
             title={
               workerOnline
-                ? `Cancel all ${cancelableIds.length} slides of this Story`
-                : "Worker is offline — these are queued, not sending"
+                ? `Cancelar todos os ${cancelableIds.length} slides deste Story`
+                : "O worker está offline — estes estão na fila, não sendo enviados"
             }
             className="rounded-md border border-border px-2 py-1 text-xs font-medium text-muted hover:text-ink"
           >
-            Cancel all
+            Cancelar todos
           </button>
         )}
       </td>

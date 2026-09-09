@@ -56,7 +56,7 @@ export function Sparkline({
   if (values.length < 2) {
     return (
       <div className="flex h-9 items-center text-[11px] text-faint">
-        Not enough history yet
+        Histórico insuficiente ainda
       </div>
     );
   }
@@ -135,7 +135,7 @@ export function YearRibbon({
   if (!values.length) {
     return (
       <div className="rounded-card border border-dashed border-border px-4 py-6 text-center text-xs text-muted">
-        No daily history recorded yet.
+        Nenhum histórico diário registrado ainda.
       </div>
     );
   }
@@ -171,7 +171,7 @@ export function YearRibbon({
                 height={1}
                 fill="var(--color-border-strong)"
               >
-                <title>{`${shortDay(p.day)} — not recorded`}</title>
+                <title>{`${shortDay(p.day)} — não registrado`}</title>
               </rect>
             );
           }
@@ -195,7 +195,7 @@ export function YearRibbon({
         <span className="data">{points[0] ? shortDay(points[0].day) : ""}</span>
         {peak?.value ? (
           <span className="data text-muted">
-            peak {peak.value.toLocaleString()} · {shortDay(peak.day)}
+            pico {peak.value.toLocaleString()} · {shortDay(peak.day)}
           </span>
         ) : null}
         <span className="data">{points.at(-1) ? shortDay(points.at(-1)!.day) : ""}</span>
@@ -227,7 +227,7 @@ export function TrendChart({
   if (values.length < 2) {
     return (
       <div className="rounded-card border border-dashed border-border px-4 py-10 text-center text-sm text-muted">
-        Not enough history yet — this fills in as the worker collects each day.
+        Histórico insuficiente ainda — isso se preenche conforme o worker coleta cada dia.
       </div>
     );
   }
@@ -345,7 +345,7 @@ export function HBarList({
   rows,
   color,
   formatValue,
-  emptyLabel = "No data yet",
+  emptyLabel = "Sem dados ainda",
 }: {
   rows: { dimension: string; value: number; share: number }[];
   color: string;
@@ -456,7 +456,7 @@ export function FunnelChart({
 
 /* -------------------------------------------------------------------- HeatGrid ---- */
 
-const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAY_LABELS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 
 /**
  * Weekday × hour engagement, computed from this account's own posts.
@@ -478,8 +478,8 @@ export function HeatGrid({
   if (!scored.length) {
     return (
       <p className="text-xs text-muted">
-        Not enough posts yet to see a pattern. This needs at least two posts in the same
-        weekday-and-hour slot.
+        Ainda não há posts suficientes para ver um padrão. É preciso pelo menos dois posts
+        no mesmo horário de dia da semana.
       </p>
     );
   }
@@ -493,7 +493,7 @@ export function HeatGrid({
       <div className="overflow-x-auto">
         <table className="border-separate border-spacing-[2px]">
           <caption className="sr-only">
-            Average engagement by weekday and hour, in {timeZoneLabel}
+            Engajamento médio por dia da semana e hora, em {timeZoneLabel}
           </caption>
           <tbody>
             {WEEKDAY_LABELS.map((weekdayLabel, weekday) => (
@@ -519,8 +519,8 @@ export function HeatGrid({
                         }}
                         title={
                           score === null
-                            ? `${weekdayLabel} ${hour}:00 — no posts`
-                            : `${weekdayLabel} ${hour}:00 — ${Math.round(score)} avg engagement across ${cell?.posts} posts`
+                            ? `${weekdayLabel} ${hour}:00 — sem posts`
+                            : `${weekdayLabel} ${hour}:00 — ${Math.round(score)} engajamento médio em ${cell?.posts} posts`
                         }
                       />
                     </td>
@@ -542,12 +542,12 @@ export function HeatGrid({
         </table>
       </div>
       <p className="mt-3 text-xs text-muted">
-        Strongest slot:{" "}
+        Melhor horário:{" "}
         <span className="data font-medium text-ink">
           {WEEKDAY_LABELS[best.weekday]} {String(best.hour).padStart(2, "0")}:00
         </span>{" "}
-        · {Math.round(best.avgEngagement as number)} avg engagement across{" "}
-        <span className="data">{best.posts}</span> posts · times in {timeZoneLabel}
+        · {Math.round(best.avgEngagement as number)} engajamento médio em{" "}
+        <span className="data">{best.posts}</span> posts · horários em {timeZoneLabel}
       </p>
     </div>
   );

@@ -7,13 +7,11 @@ import {
   removableIds,
   type CoverageState,
 } from "@/lib/bulk-edit-context";
+import { bandLabel } from "@/lib/cadence";
 import type { Tag } from "@/lib/types";
 
 const BAND_LABEL: Record<string, string> = {
-  morning: "Morning",
-  afternoon: "Afternoon",
-  evening: "Evening",
-  anytime: "Anytime",
+  anytime: "Qualquer hora",
 };
 
 const chip = (active: boolean) =>
@@ -39,7 +37,7 @@ export function TagEditor({
   selectedPostCount = 0,
   hideZeroCoverage = false,
   disableFullCoverage = false,
-  emptyCoverageMessage = "No matching tags.",
+  emptyCoverageMessage = "Nenhuma etiqueta correspondente.",
 }: {
   timeOfDayTags: Tag[];
   topicTags: Tag[];
@@ -122,22 +120,22 @@ export function TagEditor({
   return (
     <div className="space-y-4">
       <div>
-        <p className="mb-2 text-xs font-medium text-ink-soft">Time of day</p>
+        <p className="mb-2 text-xs font-medium text-ink-soft">Horário do dia</p>
         <div className="flex flex-wrap gap-2">
           {visibleBands.map((t) => (
             <button key={t.id} type="button" className={`${chip(has(t.id))} disabled:cursor-not-allowed disabled:opacity-60`} onClick={() => toggle(t.id)} disabled={isDisabled(t.id)}>
-              {BAND_LABEL[t.name] ?? t.name}
+              {BAND_LABEL[t.name] ?? bandLabel(t.name)}
               {coverageBadge(t.id)}
             </button>
           ))}
         </div>
         <p className="mt-1 text-xs text-faint">
-          Sets when auto-fill posts this. Anytime (or none) uses the channel&apos;s default time.
+          Define quando o preenchimento automático posta isto. Qualquer hora (ou nenhuma) usa o horário padrão da conta.
         </p>
       </div>
 
       <div>
-        <p className="mb-2 text-xs font-medium text-ink-soft">Topics</p>
+        <p className="mb-2 text-xs font-medium text-ink-soft">Tópicos</p>
         <div className="flex flex-wrap gap-2">
           {visibleTopics.map((t) => (
             <button key={t.id} type="button" className={`${chip(has(t.id))} disabled:cursor-not-allowed disabled:opacity-60`} onClick={() => toggle(t.id)} disabled={isDisabled(t.id)}>
@@ -150,7 +148,7 @@ export function TagEditor({
           <div className="mt-2 flex gap-2">
             <input
               className="w-48 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-ink placeholder:text-faint focus:border-brand"
-              placeholder="Add a topic…"
+              placeholder="Adicionar um tópico…"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
@@ -166,7 +164,7 @@ export function TagEditor({
               disabled={busy || !draft.trim()}
               className="rounded-lg border border-border px-3 py-1.5 text-sm text-ink-soft hover:bg-surface-sunken disabled:opacity-50"
             >
-              Add
+              Adicionar
             </button>
           </div>
         ) : null}

@@ -52,7 +52,7 @@ export function BppTolerance({
   return (
     <div className="flex flex-wrap items-end gap-3 text-[11px]">
       <label className="text-muted">
-        <span className="mb-1 block">Outstanding on one metric</span>
+        <span className="mb-1 block">Excepcional em uma métrica</span>
         <span className="flex items-center gap-1">
           top
           <input
@@ -64,7 +64,7 @@ export function BppTolerance({
         </span>
       </label>
       <label className="text-muted">
-        <span className="mb-1 block">Good across two or more</span>
+        <span className="mb-1 block">Bom em duas ou mais</span>
         <span className="flex items-center gap-1">
           top
           <input
@@ -83,11 +83,11 @@ export function BppTolerance({
           disabled={busy}
           className="rounded-md bg-brand px-3 py-1.5 text-xs font-semibold text-on-brand hover:bg-brand-ink disabled:opacity-50"
         >
-          {busy ? "Saving…" : "Apply"}
+          {busy ? "Salvando…" : "Aplicar"}
         </button>
       ) : (
         <span className="pb-1.5 text-muted">
-          suggests <span className="data text-ink-soft">{matched}</span> of{" "}
+          sugere <span className="data text-ink-soft">{matched}</span> de{" "}
           <span className="data text-ink-soft">{total}</span> posts
         </span>
       )}

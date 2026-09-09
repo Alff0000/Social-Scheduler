@@ -15,6 +15,19 @@
       "port": 3939
     },
     {
+      "name": "dashboard-prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "start",
+        "--",
+        "-p",
+        "3941"
+      ],
+      "cwd": "dashboard",
+      "port": 3941
+    },
+    {
       "name": "dashboard-scratch",
       "runtimeExecutable": "sh",
       "runtimeArgs": [

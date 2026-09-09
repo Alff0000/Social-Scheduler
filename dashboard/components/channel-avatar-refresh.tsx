@@ -29,7 +29,7 @@ export function ChannelAvatarRefresh({
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Could not queue a refresh.");
+      setError(body.error ?? "Não foi possível enfileirar uma atualização.");
       return;
     }
     setQueued(true);
@@ -43,18 +43,18 @@ export function ChannelAvatarRefresh({
         disabled={pending}
         className="text-xs text-muted underline-offset-2 hover:text-ink hover:underline disabled:opacity-50"
       >
-        Refresh photo
+        Atualizar foto
       </button>
       {queued ? (
         <p className="mt-1 text-xs text-muted">
-          Queued — the worker picks this up on its next cycle. Nothing happens while the
-          worker isn&rsquo;t running.
+          Enfileirado — o worker pega isso no próximo ciclo dele. Nada acontece enquanto
+          o worker não estiver rodando.
         </p>
       ) : null}
       {error ? <p className="mt-1 text-xs text-status-failed">{error}</p> : null}
       {avatarError ? (
         <p className="mt-1 text-xs text-status-failed">
-          Last fetch failed: {avatarError}
+          Última busca falhou: {avatarError}
         </p>
       ) : null}
     </div>

@@ -31,19 +31,19 @@ export const dynamic = "force-dynamic";
 
 const METRICS: Record<string, { key: MetricKey; label: string; kind: "flow" | "level" }[]> = {
   instagram: [
-    { key: "reach", label: "Reach", kind: "flow" },
-    { key: "views", label: "Views", kind: "flow" },
-    { key: "profile_views", label: "Profile views", kind: "flow" },
-    { key: "accounts_engaged", label: "Accounts engaged", kind: "flow" },
-    { key: "total_interactions", label: "Interactions", kind: "flow" },
-    { key: "follows_gained", label: "New followers", kind: "flow" },
+    { key: "reach", label: "Alcance", kind: "flow" },
+    { key: "views", label: "Visualizações", kind: "flow" },
+    { key: "profile_views", label: "Visitas ao perfil", kind: "flow" },
+    { key: "accounts_engaged", label: "Contas engajadas", kind: "flow" },
+    { key: "total_interactions", label: "Interações", kind: "flow" },
+    { key: "follows_gained", label: "Novos seguidores", kind: "flow" },
   ],
   threads: [
-    { key: "views", label: "Views", kind: "flow" },
-    { key: "likes", label: "Likes", kind: "flow" },
-    { key: "replies", label: "Replies", kind: "flow" },
-    { key: "shares", label: "Reposts", kind: "flow" },
-    { key: "followers_count", label: "Followers", kind: "level" },
+    { key: "views", label: "Visualizações", kind: "flow" },
+    { key: "likes", label: "Curtidas", kind: "flow" },
+    { key: "replies", label: "Respostas", kind: "flow" },
+    { key: "shares", label: "Republicações", kind: "flow" },
+    { key: "followers_count", label: "Seguidores", kind: "level" },
   ],
 };
 
@@ -51,7 +51,7 @@ const METRICS: Record<string, { key: MetricKey; label: string; kind: "flow" | "l
 // platform limit rather than a broken sync.
 const GAPS: Record<string, string> = {
   threads:
-    "Threads reports no reach and no saves, and its account history starts the day this install first synced — there is no backfill endpoint.",
+    "O Threads não reporta alcance nem salvamentos, e o histórico da conta começa no dia em que esta instalação sincronizou pela primeira vez — não existe endpoint de backfill.",
   instagram: "",
 };
 
@@ -66,13 +66,13 @@ const POST_COLUMNS: Record<
   }[]
 > = {
   instagram: [
-    { key: "reach", label: "Reach" },
+    { key: "reach", label: "Alcance" },
     // The impressions column holds Instagram's `views` — the name that replaced the
     // retired impressions/plays/video_views, and the headline number on a Reel.
-    { key: "impressions", label: "Views" },
-    { key: "likes", label: "Likes" },
-    { key: "comments", label: "Comments" },
-    { key: "saves", label: "Saves" },
+    { key: "impressions", label: "Visualizações" },
+    { key: "likes", label: "Curtidas" },
+    { key: "comments", label: "Comentários" },
+    { key: "saves", label: "Salvamentos" },
     // Instagram's `shares` — a send to DMs or a story, NOT a repost.
     //
     // There is no Reposts column here, but NOT because Instagram lacks the data. Meta
@@ -88,12 +88,12 @@ const POST_COLUMNS: Record<
     // (IG Business account linked to a Facebook Page + Page token), not adding a metric
     // name. clients._BASE_URLS already supports it via config.graph_base.
     // Probed live 2026-08-07 — re-probe before treating any of this as still true.
-    { key: "shares", label: "Shares" },
+    { key: "shares", label: "Compartilhamentos" },
   ],
   threads: [
-    { key: "likes", label: "Likes" },
-    { key: "comments", label: "Replies" },
-    { key: "shares", label: "Reposts" },
+    { key: "likes", label: "Curtidas" },
+    { key: "comments", label: "Respostas" },
+    { key: "shares", label: "Republicações" },
   ],
 };
 
@@ -197,6 +197,7 @@ export default async function ChannelInsightsPage({
   // Threads reports no reach at all, so the ribbon falls back to views there — and says
   // so in its own title rather than labelling views as reach.
   const ribbonMetric = channel.platform === "threads" ? "views" : "reach";
+  const ribbonMetricLabel = ribbonMetric === "views" ? "visualizações" : "alcance";
   const ribbon = densify(windowRows(allDays, 365), 365).map((d) => ({
     day: d.day,
     value: ribbonMetric === "views" ? d.views : d.reach,
@@ -233,7 +234,7 @@ export default async function ChannelInsightsPage({
     <div>
       <header className="border-b border-border px-8 py-6">
         <Link href="/insights" className="text-xs text-muted hover:text-ink-soft">
-          ← All accounts
+          ← Todas as contas
         </Link>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -250,8 +251,8 @@ export default async function ChannelInsightsPage({
               </h1>
               <p className="mt-0.5 text-sm text-muted">
                 {platformLabel(channel.platform)} ·{" "}
-                <span className="data">{exact(followers)}</span> followers ·{" "}
-                <span className="data">{exact(counts.posts)}</span> posts tracked
+                <span className="data">{exact(followers)}</span> seguidores ·{" "}
+                <span className="data">{exact(counts.posts)}</span> posts acompanhados
               </p>
             </div>
           </div>
@@ -271,7 +272,7 @@ export default async function ChannelInsightsPage({
         </div>
         {channel.insights_error ? (
           <p className="mt-3 rounded-lg bg-surface-sunken px-3 py-2 text-xs text-status-failed">
-            Last sync failed: {channel.insights_error}
+            Última sincronização falhou: {channel.insights_error}
           </p>
         ) : null}
       </header>
@@ -298,8 +299,8 @@ export default async function ChannelInsightsPage({
                     {partial ? (
                       // Say so rather than letting a 2-day sum sit under a 30-day heading.
                       <span className="text-status-publishing">
-                        <span className="data">{kpi.daysWithData}</span> of{" "}
-                        <span className="data">{kpi.windowDays}</span> days recorded
+                        <span className="data">{kpi.daysWithData}</span> de{" "}
+                        <span className="data">{kpi.windowDays}</span> dias registrados
                       </span>
                     ) : delta ? (
                       <span
@@ -308,10 +309,10 @@ export default async function ChannelInsightsPage({
                         }
                       >
                         {delta}{" "}
-                        <span className="text-faint">vs previous {days}d</span>
+                        <span className="text-faint">vs. {days}d anteriores</span>
                       </span>
                     ) : (
-                      <span className="text-faint">no prior period</span>
+                      <span className="text-faint">sem período anterior</span>
                     )}
                   </dd>
                 </div>
@@ -322,24 +323,24 @@ export default async function ChannelInsightsPage({
 
         {/* Signature: every day of the last year, one bar each */}
         <Section
-          title={`Daily ${ribbonMetric} · past year`}
-          hint={`One bar per day. Gaps are days the worker did not record, not days with no ${ribbonMetric}.`}
+          title={`${ribbonMetricLabel[0].toUpperCase()}${ribbonMetricLabel.slice(1)} diário · último ano`}
+          hint={`Uma barra por dia. Lacunas são dias que o worker não registrou, não dias sem ${ribbonMetricLabel}.`}
         >
           <YearRibbon
             points={ribbon}
             color={color.fg}
-            label={`Daily ${ribbonMetric} for ${channel.account_name} over the past year`}
+            label={`${ribbonMetricLabel} diário de ${channel.account_name} no último ano`}
           />
         </Section>
 
         <Section
-          title={`${activeMetric.label} · past ${days} days`}
+          title={`${activeMetric.label} · últimos ${days} dias`}
           hint={
             // A metric with two days of data inside a 90-day window draws as a lone
             // spike, which reads as a broken chart rather than a reporting limit. Say
             // which it is.
             activeKpi && activeKpi.daysWithData < activeKpi.windowDays
-              ? `${platformLabel(channel.platform)} only reports this metric for the most recent day or two, so the rest of this window has no data to draw.`
+              ? `${platformLabel(channel.platform)} só reporta essa métrica para o dia mais recente ou os últimos dois, então o resto desta janela não tem dado pra desenhar.`
               : undefined
           }
           action={
@@ -355,18 +356,18 @@ export default async function ChannelInsightsPage({
           <TrendChart
             points={seriesPoints}
             color={color.fg}
-            label={`${activeMetric.label} over the past ${days} days`}
+            label={`${activeMetric.label} nos últimos ${days} dias`}
           />
         </Section>
 
         {/* Leaderboard */}
         <Section
-          title="Top content"
+          title="Melhores publicações"
           hint={
-            `${counts.withMetrics} of ${counts.posts} posts have metrics · ${counts.ours} scheduled here · ` +
-            `${pool.usable} marked BPP for this account` +
+            `${counts.withMetrics} de ${counts.posts} posts têm métricas · ${counts.ours} agendados por aqui · ` +
+            `${pool.usable} marcados como BPP para esta conta` +
             (standoutsOnly
-              ? " — showing posts in the top 5% of one metric, or the top 10% of two or more"
+              ? " — mostrando posts no top 5% de uma métrica, ou top 10% de duas ou mais"
               : "")
           }
           action={
@@ -380,13 +381,13 @@ export default async function ChannelInsightsPage({
               </nav>
               <nav className="flex items-center gap-0.5 border-l border-border pl-3">
                 <Pill href={withParam("standouts", standoutsOnly ? "" : "1")} active={standoutsOnly}>
-                  ★ Standouts ({standoutCount})
+                  ★ Destaques ({standoutCount})
                 </Pill>
               </nav>
               {kinds.length > 1 ? (
                 <nav className="flex flex-wrap items-center gap-0.5 border-l border-border pl-3">
                   <Pill href={withParam("kind", "all")} active={kindFilter === "all"}>
-                    All
+                    Todos
                   </Pill>
                   {kinds.map((k) => (
                     <Pill key={k} href={withParam("kind", k)} active={k === kindFilter}>
@@ -400,7 +401,7 @@ export default async function ChannelInsightsPage({
         >
           <div className="mb-4 rounded-lg border border-border bg-surface-sunken/40 px-3 py-2.5">
             <p className="mb-2 text-[11px] font-medium text-ink-soft">
-              How selective the ★ suggestions are — for this account
+              Quão seletivas são as sugestões ★ — para esta conta
             </p>
             <BppTolerance
               channelId={channel.id}
@@ -413,15 +414,15 @@ export default async function ChannelInsightsPage({
 
           {ranked.length === 0 ? (
             <p className="text-sm text-muted">
-              No posts synced yet. The worker mirrors the account&rsquo;s posts on its next
-              cycle.
+              Nenhum post sincronizado ainda. O worker espelha os posts da conta no
+              próximo ciclo.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-faint">
-                    <th className="pb-2 font-medium">Post</th>
+                    <th className="pb-2 font-medium">Publicação</th>
                     {/* The headers ARE the sort control. The pills above do the same job,
                         but clicking a column is where people look for it first. */}
                     {columns.map((c) => (
@@ -448,7 +449,7 @@ export default async function ChannelInsightsPage({
                         }`}
                         aria-sort={sortKey === "engagement" ? "descending" : "none"}
                       >
-                        Engagement
+                        Engajamento
                         <span aria-hidden className={sortKey === "engagement" ? "" : "opacity-0"}>
                           ↓
                         </span>
@@ -488,7 +489,7 @@ export default async function ChannelInsightsPage({
                               </span>
                               {post.publication_id ? (
                                 <span className="rounded bg-brand-weak px-1.5 py-0.5 text-[10px] font-medium text-brand-strong">
-                                  scheduled here
+                                  agendado por aqui
                                 </span>
                               ) : null}
                               <span className="data text-[11px] text-faint">
@@ -499,7 +500,7 @@ export default async function ChannelInsightsPage({
                               {standouts.get(post.id)?.isCandidate ? (
                                 <span
                                   className="rounded bg-accent-weak px-1.5 py-0.5 text-[10px] font-medium text-accent-strong"
-                                  title="Stands out against this account's own baseline"
+                                  title="Se destaca em relação à própria média desta conta"
                                 >
                                   {standouts.get(post.id)!.reason}
                                 </span>
@@ -518,10 +519,10 @@ export default async function ChannelInsightsPage({
                                   rel="noreferrer noopener"
                                   className="hover:underline"
                                 >
-                                  {post.caption?.trim().split("\n")[0] || "No caption"}
+                                  {post.caption?.trim().split("\n")[0] || "Sem legenda"}
                                 </a>
                               ) : (
-                                post.caption?.trim().split("\n")[0] || "No caption"
+                                post.caption?.trim().split("\n")[0] || "Sem legenda"
                               )}
                             </p>
                           </div>
@@ -551,24 +552,25 @@ export default async function ChannelInsightsPage({
         {/* Audience */}
         <div className="grid gap-6 lg:grid-cols-2">
           <Section
-            title="Audience"
+            title="Público"
             hint={
               age.length || gender.length
-                ? "Who follows this account, as the platform reports it"
+                ? "Quem segue esta conta, como a plataforma reporta"
                 : undefined
             }
           >
             {age.length === 0 && gender.length === 0 ? (
               <p className="text-sm text-muted">
-                No demographics yet. Platforms withhold these entirely until an account
-                passes about 100 followers, and they refresh once a day.
+                Nenhum dado demográfico ainda. As plataformas só liberam esses dados
+                quando a conta passa de cerca de 100 seguidores, e atualizam uma vez por
+                dia.
               </p>
             ) : (
               <div className="space-y-5">
                 {gender.length > 0 ? (
                   <div>
                     <h3 className="mb-2 text-[11px] uppercase tracking-wide text-faint">
-                      Gender
+                      Gênero
                     </h3>
                     <div className="flex h-2 overflow-hidden rounded-full bg-surface-sunken">
                       {gender.map((g, i) => (
@@ -604,7 +606,7 @@ export default async function ChannelInsightsPage({
                 {age.length > 0 ? (
                   <div>
                     <h3 className="mb-2 text-[11px] uppercase tracking-wide text-faint">
-                      Age
+                      Idade
                     </h3>
                     <HBarList
                       rows={topBuckets(age, 10).buckets.sort(
@@ -618,23 +620,23 @@ export default async function ChannelInsightsPage({
 
                 {reachedAge.length > 0 ? (
                   <p className="border-t border-border pt-3 text-[11px] text-muted">
-                    The people this account <em>reached</em> skew differently from its
-                    followers — compare with the reached-audience split the worker also
-                    stores.
+                    Quem esta conta <em>alcançou</em> tem um perfil diferente de quem a
+                    segue — compare com a divisão do público alcançado que o worker
+                    também guarda.
                   </p>
                 ) : null}
               </div>
             )}
           </Section>
 
-          <Section title="Where they are">
+          <Section title="Onde estão">
             {countries.buckets.length === 0 ? (
-              <p className="text-sm text-muted">No location data yet.</p>
+              <p className="text-sm text-muted">Nenhum dado de localização ainda.</p>
             ) : (
               <div className="space-y-5">
                 <div>
                   <h3 className="mb-2 text-[11px] uppercase tracking-wide text-faint">
-                    Countries
+                    Países
                   </h3>
                   <HBarList
                     rows={countries.buckets}
@@ -643,14 +645,14 @@ export default async function ChannelInsightsPage({
                   />
                   {countries.remainder > 0 ? (
                     <p className="mt-2 text-[11px] text-faint">
-                      <span className="data">{compact(countries.remainder)}</span> more
-                      across other countries
+                      <span className="data">{compact(countries.remainder)}</span> a mais
+                      em outros países
                     </p>
                   ) : null}
                 </div>
                 <div>
                   <h3 className="mb-2 text-[11px] uppercase tracking-wide text-faint">
-                    Cities
+                    Cidades
                   </h3>
                   <HBarList
                     rows={cities.buckets}
@@ -664,8 +666,8 @@ export default async function ChannelInsightsPage({
         </div>
 
         <Section
-          title="When this account does best"
-          hint="Average engagement by slot, computed from this account's own posts — not a platform recommendation"
+          title="Quando esta conta performa melhor"
+          hint="Engajamento médio por horário, calculado a partir dos próprios posts desta conta — não é uma recomendação da plataforma"
         >
           <HeatGrid
             cells={bestTimeGrid(posts, channel.timezone)}
@@ -676,7 +678,7 @@ export default async function ChannelInsightsPage({
 
         {gap ? (
           <p className="rounded-card border border-dashed border-border px-5 py-3 text-xs text-muted">
-            <span className="font-medium text-ink-soft">What {platformLabel(channel.platform)} does not report:</span>{" "}
+            <span className="font-medium text-ink-soft">O que {platformLabel(channel.platform)} não reporta:</span>{" "}
             {gap}
           </p>
         ) : null}

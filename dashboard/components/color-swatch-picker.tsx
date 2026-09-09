@@ -26,11 +26,11 @@ export function ColorSwatchPicker({
 
   return (
     <div>
-      <div role="group" aria-label="Accent colour" className="flex flex-wrap items-center gap-2">
+      <div role="group" aria-label="Cor de destaque" className="flex flex-wrap items-center gap-2">
         <SwatchButton
           selected={value === null}
           onClick={() => onChange(null)}
-          label="Automatic (default colour for this channel)"
+          label="Automática (cor padrão para esta conta)"
         >
           <span className="text-[10px] font-semibold text-ink-soft">A</span>
         </SwatchButton>
@@ -46,13 +46,13 @@ export function ColorSwatchPicker({
       </div>
 
       <div className="mt-3 flex items-center gap-2 text-xs text-muted">
-        <span>Preview:</span>
+        <span>Prévia:</span>
         <span
           className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium"
           style={{ color: preview.fg, backgroundColor: preview.bg }}
         >
           <span className="h-2 w-2 rounded-full" style={{ backgroundColor: preview.dot }} aria-hidden />
-          {previewName || "Preview"}
+          {previewName || "Prévia"}
           <span className="text-[10px] uppercase tracking-wide opacity-60">
             {previewPlatformLabel}
           </span>
@@ -79,7 +79,7 @@ function SwatchButton({
     <button
       type="button"
       aria-pressed={selected}
-      aria-label={selected ? `${label}, selected` : label}
+      aria-label={selected ? `${label}, selecionado` : label}
       title={label}
       onClick={onClick}
       className={`relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${

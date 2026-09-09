@@ -38,5 +38,5 @@ function subscribe(): () => void {
 export function EmojiHint() {
   const hint = useSyncExternalStore(subscribe, getSnapshot, () => null);
   if (!hint) return null;
-  return <p className="mt-1 text-xs text-faint">Tip: {hint}.</p>;
+  return <p className="mt-1 text-xs text-faint">Dica: {hint}.</p>;
 }

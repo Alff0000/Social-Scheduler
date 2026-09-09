@@ -50,8 +50,8 @@ export function MediaManager({ assets }: { assets: AssetWithUsage[] }) {
     const name = a.original_filename ?? `Asset ${a.id}`;
     if (
       !confirm(
-        `Delete "${name}" (${humanBytes(a.byte_size)})?\n\n` +
-          `The file is removed from disk permanently. This cannot be undone.`
+        `Excluir "${name}" (${humanBytes(a.byte_size)})?\n\n` +
+          `O arquivo é removido do disco permanentemente. Isso não pode ser desfeito.`
       )
     )
       return;
@@ -61,12 +61,12 @@ export function MediaManager({ assets }: { assets: AssetWithUsage[] }) {
       const res = await fetch(`/api/assets/${a.id}`, { method: "DELETE" });
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(body.error ?? "Could not delete that file.");
+        setError(body.error ?? "Não foi possível excluir esse arquivo.");
         return;
       }
       startT(() => router.refresh());
     } catch {
-      setError("Could not reach the server. Is the dashboard still running?");
+      setError("Não foi possível conectar ao servidor. O dashboard ainda está rodando?");
     } finally {
       setBusyId(null);
     }
@@ -91,11 +91,11 @@ export function MediaManager({ assets }: { assets: AssetWithUsage[] }) {
   return (
     <div>
       <p className="mb-6 text-sm text-faint">
-        {summary.count} {summary.count === 1 ? "item" : "items"} · {humanBytes(summary.total)}
+        {summary.count} {summary.count === 1 ? "item" : "itens"} · {humanBytes(summary.total)}
         {summary.unusedCount > 0 ? (
           <>
             {" "}
-            · {summary.unusedCount} unused ({humanBytes(summary.unusedBytes)})
+            · {summary.unusedCount} sem uso ({humanBytes(summary.unusedBytes)})
           </>
         ) : null}
       </p>
@@ -118,9 +118,9 @@ export function MediaManager({ assets }: { assets: AssetWithUsage[] }) {
           //
           // Two spellings rather than one lowercased at the call site: "Reels" is a proper
           // noun and .toLowerCase() rendered it as "a reels cover".
-          const coverTail = a.cover_use_count > 1 ? ` (${a.cover_use_count} videos)` : "";
-          const coverLabel = `Used as a Reels cover${coverTail}`;
-          const coverAlso = `also used as a Reels cover${coverTail}`;
+          const coverTail = a.cover_use_count > 1 ? ` (${a.cover_use_count} vídeos)` : "";
+          const coverLabel = `Usado como capa de Reels${coverTail}`;
+          const coverAlso = `também usado como capa de Reels${coverTail}`;
           return (
             <li
               key={a.id}
@@ -176,13 +176,13 @@ export function MediaManager({ assets }: { assets: AssetWithUsage[] }) {
                 </p>
                 {inPost ? (
                   <div className="space-y-0.5 text-xs text-faint">
-                    {a.posts.length > 1 ? <p>In {a.posts.length} posts:</p> : null}
+                    {a.posts.length > 1 ? <p>Em {a.posts.length} posts:</p> : null}
                     {(isExpanded ? a.posts : a.posts.slice(0, INLINE_POSTS)).map((linked) => (
                       // EVERY post gets its own link. The old card linked one — whichever had
                       // the lowest id — and rendered the rest as the dead text "+N more", so
                       // most posts using a reused asset could not be reached from here at all.
                       <p key={linked.post_id} className="truncate">
-                        {a.posts.length > 1 ? "" : "In "}
+                        {a.posts.length > 1 ? "" : "Em "}
                         <Link
                           href={`/library/${linked.post_id}`}
                           className="text-brand underline underline-offset-2"
@@ -201,7 +201,7 @@ export function MediaManager({ assets }: { assets: AssetWithUsage[] }) {
                         }
                         className="text-brand underline underline-offset-2"
                       >
-                        +{a.posts.length - INLINE_POSTS} more
+                        +{a.posts.length - INLINE_POSTS} mais
                       </button>
                     ) : null}
                     {isCover ? <p>{coverAlso}</p> : null}
@@ -212,15 +212,15 @@ export function MediaManager({ assets }: { assets: AssetWithUsage[] }) {
                   <p className="text-xs text-faint">{coverLabel}</p>
                 ) : (
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-faint">Unused</span>
+                    <span className="text-xs text-faint">Sem uso</span>
                     <button
                       type="button"
                       onClick={() => remove(a)}
                       disabled={busyId === a.id || pending}
-                      aria-label={`Delete ${name}`}
+                      aria-label={`Excluir ${name}`}
                       className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-status-failed hover:bg-surface-sunken disabled:opacity-50"
                     >
-                      {busyId === a.id ? "Deleting…" : "Delete"}
+                      {busyId === a.id ? "Excluindo…" : "Excluir"}
                     </button>
                   </div>
                 )}

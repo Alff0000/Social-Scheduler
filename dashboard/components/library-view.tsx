@@ -15,6 +15,7 @@ import {
 import {
   librarySeasonBadgeDetails,
   librarySeasonStatus,
+  seasonStatusLabel,
   type LibrarySeasonPeriod,
   type LibrarySeasonStatus,
 } from "@/lib/library-season-status";
@@ -76,13 +77,13 @@ interface ChannelLite {
 // the way they're offered in the Format dropdown and counted in the summary line.
 type PostFormat = "carousel" | "single" | "video" | "text";
 const POST_FORMATS: { value: PostFormat; label: string }[] = [
-  { value: "carousel", label: "Carousel" },
-  { value: "single", label: "Single image" },
+  { value: "carousel", label: "Carrossel" },
+  { value: "single", label: "Imagem única" },
   // Label is "Video", not "Reel": Facebook feed video (Task 11) means a `video` post can
   // now land as an ordinary feed video rather than a Reel, so "Reel" would misdescribe
   // what this filter selects for every non-Instagram target.
-  { value: "video", label: "Video" },
-  { value: "text", label: "Text-only" },
+  { value: "video", label: "Vídeo" },
+  { value: "text", label: "Só texto" },
 ];
 
 function tomorrow(): string {
@@ -178,8 +179,8 @@ export function LibraryView({
   async function schedule() {
     setError(null);
     setNotice(null);
-    if (selected.length === 0) return setError("Select at least one post.");
-    if (effectiveChans.size === 0) return setError("Select at least one channel.");
+    if (selected.length === 0) return setError("Selecione ao menos um post.");
+    if (effectiveChans.size === 0) return setError("Selecione ao menos uma conta.");
     const res = await fetch("/api/posts/bulk", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -193,10 +194,10 @@ export function LibraryView({
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setError(body.error ?? "Could not bulk-schedule.");
+      setError(body.error ?? "Não foi possível agendar em massa.");
       return;
     }
-    setNotice(`Scheduled ${body.created} publication${body.created === 1 ? "" : "s"}.`);
+    setNotice(`${body.created} publicação${body.created === 1 ? "" : "ões"} agendada${body.created === 1 ? "" : "s"}.`);
     setSelected([]);
     setChans(new Set());
     startT(() => router.refresh());
@@ -205,8 +206,8 @@ export function LibraryView({
   async function retarget(action: "add" | "remove") {
     setError(null);
     setNotice(null);
-    if (selected.length === 0) return setError("Select at least one post.");
-    if (effectiveChans.size === 0) return setError("Select at least one channel.");
+    if (selected.length === 0) return setError("Selecione ao menos um post.");
+    if (effectiveChans.size === 0) return setError("Selecione ao menos uma conta.");
     const res = await fetch("/api/posts/targets/bulk", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -218,17 +219,17 @@ export function LibraryView({
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setError(body.error ?? "Could not update targets.");
+      setError(body.error ?? "Não foi possível atualizar os destinos.");
       return;
     }
-    const verb = action === "add" ? "Added" : "Removed";
-    const prep = action === "add" ? "to" : "from";
+    const verb = action === "add" ? "Adicionada(s)" : "Removida(s)";
+    const prep = action === "add" ? "em" : "de";
     // The server's count, never selected.length. A post whose caption is too long for a
     // channel being added is skipped rather than queued to fail at publish, so the two
     // numbers genuinely differ — and claiming the selected count would be a false receipt.
     const updated: number = body.updated ?? 0;
     setNotice(
-      `${verb} ${effectiveChans.size} account${effectiveChans.size === 1 ? "" : "s"} ${prep} ${
+      `${verb} ${effectiveChans.size} conta${effectiveChans.size === 1 ? "" : "s"} ${prep} ${
         updated
       } post${updated === 1 ? "" : "s"}.`
     );
@@ -240,10 +241,10 @@ export function LibraryView({
         .slice(0, 3)
         .map((s) => `#${s.post_id}: ${s.reason}`)
         .join(" ");
-      const more = skipped.length > 3 ? ` (+${skipped.length - 3} more)` : "";
+      const more = skipped.length > 3 ? ` (+${skipped.length - 3} mais)` : "";
       setError(
-        `${skipped.length} post${skipped.length === 1 ? " was" : "s were"} skipped — ` +
-          `the caption is too long for a channel you're adding. ${named}${more}`
+        `${skipped.length} post${skipped.length === 1 ? "" : "s"} ${skipped.length === 1 ? "foi ignorado" : "foram ignorados"} — ` +
+          `a legenda é longa demais para uma conta que você está adicionando. ${named}${more}`
       );
     }
     setSelected([]);
@@ -363,7 +364,7 @@ export function LibraryView({
     setUnarchiving(null);
     if (!res.ok) {
       const b = await res.json().catch(() => ({}));
-      setArchiveError(b.error ?? "Could not unarchive that post.");
+      setArchiveError(b.error ?? "Não foi possível desarquivar esse post.");
       return;
     }
     startT(() => router.refresh());
@@ -435,7 +436,7 @@ export function LibraryView({
   function onMerged() {
     setMergeOpen(false);
     setSelected([]);
-    setNotice("Merged into one carousel.");
+    setNotice("Mesclado em um carrossel.");
     startT(() => router.refresh());
   }
 
@@ -445,7 +446,7 @@ export function LibraryView({
   // already use; a full reload would defeat the point of not leaving the page.
   function onQuickEdited() {
     setQuickEditId(null);
-    setNotice("Post updated.");
+    setNotice("Post atualizado.");
     startT(() => router.refresh());
   }
 
@@ -454,7 +455,7 @@ export function LibraryView({
     setBulkEditOpen(false);
     setSelected([]);
     setNotice(
-      `Updated ${postCount} post${postCount === 1 ? "" : "s"}: ${labels.join("; ")}.`
+      `${postCount} post${postCount === 1 ? "" : "s"} atualizado${postCount === 1 ? "" : "s"}: ${labels.join("; ")}.`
     );
     startT(() => router.refresh());
   }
@@ -483,12 +484,12 @@ export function LibraryView({
     <div className="space-y-5">
       {/* Summary: whole-library makeup */}
       <div className="data flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted">
-        <span><span className="text-status-posted">{inView.filter((p) => p.content_status === "ready").length}</span> Ready</span>
-        <span><span className="text-ink-soft">{inView.filter((p) => p.content_status === "draft").length}</span> Draft</span>
-        <span><span className="text-faint">{inView.filter((p) => p.content_status === "retired").length}</span> Retired</span>
+        <span><span className="text-status-posted">{inView.filter((p) => p.content_status === "ready").length}</span> Pronto</span>
+        <span><span className="text-ink-soft">{inView.filter((p) => p.content_status === "draft").length}</span> Rascunho</span>
+        <span><span className="text-faint">{inView.filter((p) => p.content_status === "retired").length}</span> Aposentado</span>
         <span className="mx-1 h-4 w-px bg-border" aria-hidden />
         <span>{inView.filter((p) => p.content_kind === "evergreen").length} Evergreen</span>
-        <span>{inView.filter((p) => p.content_kind === "one_time").length} One-time</span>
+        <span>{inView.filter((p) => p.content_kind === "one_time").length} Uma vez</span>
         {/* Format counts double as one-click filters — the fastest way to pull up every
             carousel. A format with nothing in it is omitted rather than shown as a dead 0. */}
         {formatCounts.length > 0 ? (
@@ -509,7 +510,7 @@ export function LibraryView({
             </button>
           );
         })}
-        <span className="ml-auto">{inView.length} total</span>
+        <span className="ml-auto">{inView.length} no total</span>
       </div>
 
       {archiveError ? (
@@ -522,15 +523,17 @@ export function LibraryView({
           can bite: hidden here, but still eligible for auto-fill to schedule. */}
       {view !== "active" ? (
         <div className="rounded-card border border-border bg-surface-sunken px-4 py-3 text-xs text-muted">
-          Archived posts are hidden from the Library. Nothing was deleted — their sends,
-          metrics and insights are all intact, and anything already live stayed live.
+          Posts arquivados ficam ocultos da Agendamento em Massa. Nada foi excluído — os envios,
+          métricas e relatórios continuam intactos, e o que já estava no ar continua no ar.
           {archivedStillReady > 0 ? (
             <span className="mt-1 block text-status-publishing">
-              {archivedStillReady} archived post{archivedStillReady === 1 ? " is" : "s are"}{" "}
-              still set to Ready, so auto-fill can still schedule{" "}
-              {archivedStillReady === 1 ? "it" : "them"}. Open{" "}
-              {archivedStillReady === 1 ? "it" : "them"} and set Content status to Retired to
-              stop that.
+              {archivedStillReady} post{archivedStillReady === 1 ? "" : "s"} arquivado
+              {archivedStillReady === 1 ? "" : "s"} ainda{" "}
+              {archivedStillReady === 1 ? "está" : "estão"} marcado
+              {archivedStillReady === 1 ? "" : "s"} como Pronto, então o preenchimento
+              automático ainda pode agendá-{archivedStillReady === 1 ? "lo" : "los"}. Abra-
+              {archivedStillReady === 1 ? "o" : "os"} e mude o status para Aposentado para
+              evitar isso.
             </span>
           ) : null}
         </div>
@@ -543,7 +546,7 @@ export function LibraryView({
         {archivedCount > 0 ? (
           <select
             className={field}
-            aria-label="Library or archive"
+            aria-label="Agendamento em Massa ou arquivo"
             value={view}
             onChange={(e) => {
               setArchiveView(e.target.value as typeof archiveView);
@@ -555,39 +558,39 @@ export function LibraryView({
               setSelected([]);
             }}
           >
-            <option value="active">Library</option>
-            <option value="archived">Archived ({archivedCount})</option>
-            <option value="all">Library + archived</option>
+            <option value="active">Agendamento em Massa</option>
+            <option value="archived">Arquivados ({archivedCount})</option>
+            <option value="all">Agendamento em Massa + arquivados</option>
           </select>
         ) : null}
         <select className={field} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}>
-          <option value="all">All statuses</option>
-          <option value="draft">Draft</option>
-          <option value="ready">Ready</option>
-          <option value="retired">Retired</option>
+          <option value="all">Todos os status</option>
+          <option value="draft">Rascunho</option>
+          <option value="ready">Pronto</option>
+          <option value="retired">Aposentado</option>
         </select>
         <select
           className={field}
-          aria-label="Filter by publication history"
+          aria-label="Filtrar por histórico de publicação"
           value={sendFilter}
           onChange={(e) => setSendFilter(e.target.value as typeof sendFilter)}
         >
-          <option value="all">Posted &amp; not</option>
-          <option value="posted">Posted</option>
-          <option value="never">Never posted</option>
+          <option value="all">Postados e não postados</option>
+          <option value="posted">Postados</option>
+          <option value="never">Nunca postados</option>
         </select>
         <select className={field} value={kindFilter} onChange={(e) => setKindFilter(e.target.value as typeof kindFilter)}>
-          <option value="all">All kinds</option>
+          <option value="all">Todos os tipos</option>
           <option value="evergreen">Evergreen</option>
-          <option value="one_time">One-time</option>
+          <option value="one_time">Uma vez</option>
         </select>
         <select
           className={field}
-          aria-label="Filter by format"
+          aria-label="Filtrar por formato"
           value={formatFilter}
           onChange={(e) => setFormatFilter(e.target.value as typeof formatFilter)}
         >
-          <option value="all">All formats</option>
+          <option value="all">Todos os formatos</option>
           {POST_FORMATS.map((f) => (
             <option key={f.value} value={f.value}>
               {f.label}
@@ -596,33 +599,33 @@ export function LibraryView({
         </select>
         <select
           className={field}
-          aria-label="Filter by destination"
+          aria-label="Filtrar por destino"
           value={destFilter}
           onChange={(e) => setDestFilter(e.target.value as typeof destFilter)}
         >
-          <option value="all">All destinations</option>
+          <option value="all">Todos os destinos</option>
           <option value="story">Stories</option>
-          <option value="feed">Feed only</option>
+          <option value="feed">Só feed</option>
         </select>
         <input
           className={`${field} min-w-48 flex-1`}
-          placeholder="Search captions…"
+          placeholder="Buscar legendas…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <select className={field} value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
-          <option value="newest">Newest</option>
-          <option value="recent">Recently posted</option>
-          <option value="stale">Least recently posted</option>
+          <option value="newest">Mais recentes</option>
+          <option value="recent">Postados recentemente</option>
+          <option value="stale">Postados há mais tempo</option>
         </select>
-        <span className="data text-[11px] text-muted">showing {shown.length} of {inView.length}</span>
+        <span className="data text-[11px] text-muted">mostrando {shown.length} de {inView.length}</span>
         <button
           type="button"
           onClick={() => setSelected(shown.map((post) => post.id))}
           disabled={shown.length === 0}
           className="rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-ink hover:bg-surface-sunken disabled:opacity-50"
         >
-          Select all {shown.length} shown
+          Selecionar {shown.length} exibidos
         </button>
         {selected.length > 0 ? (
           <button
@@ -630,15 +633,15 @@ export function LibraryView({
             onClick={() => setSelected([])}
             className="rounded-lg px-2 py-2 text-xs text-muted underline underline-offset-2 hover:text-ink"
           >
-            Clear selection
+            Limpar seleção
           </button>
         ) : null}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-ink-soft">Filter:</span>
+        <span className="text-xs text-ink-soft">Filtro:</span>
         <CheckboxFilterDropdown
-          label="Periods"
+          label="Períodos"
           options={periodOptions}
           selected={checkboxFilters.applied.periods}
           onApply={(values) =>
@@ -654,7 +657,7 @@ export function LibraryView({
           }
         />
         <CheckboxFilterDropdown
-          label="Platforms"
+          label="Plataformas"
           options={platformOptions}
           selected={checkboxFilters.applied.platforms}
           onApply={(values) =>
@@ -741,7 +744,7 @@ export function LibraryView({
                     )
                   ) : p.post_type === "text" ? (
                     <div className="flex h-full w-full items-center justify-center text-center text-[10px] text-faint">
-                      Text post
+                      Post de texto
                     </div>
                   ) : null}
                 </Link>
@@ -804,10 +807,10 @@ export function LibraryView({
                       e.stopPropagation();
                       setQuickEditId(p.id);
                     }}
-                    aria-label={`Quick edit ${p.caption ? truncateChars(p.caption, 40) : `post ${p.id}`}`}
+                    aria-label={`Editar rapidamente ${p.caption ? truncateChars(p.caption, 40) : `post ${p.id}`}`}
                     className="shrink-0 rounded-md border border-border px-2 py-0.5 text-[11px] text-muted transition-colors hover:bg-surface-sunken hover:text-ink"
                   >
-                    Edit
+                    Editar
                   </button>
                   {/* Same stopPropagation reasoning as Edit above: the card is a
                       role=button that toggles bulk-selection. */}
@@ -819,10 +822,10 @@ export function LibraryView({
                         unarchive(p.id);
                       }}
                       disabled={unarchiving === p.id}
-                      aria-label={`Unarchive ${p.caption ? truncateChars(p.caption, 40) : `post ${p.id}`}`}
+                      aria-label={`Desarquivar ${p.caption ? truncateChars(p.caption, 40) : `post ${p.id}`}`}
                       className="shrink-0 rounded-md border border-border px-2 py-0.5 text-[11px] text-muted transition-colors hover:bg-surface-sunken hover:text-ink disabled:opacity-50"
                     >
-                      {unarchiving === p.id ? "…" : "Unarchive"}
+                      {unarchiving === p.id ? "…" : "Desarquivar"}
                     </button>
                   ) : null}
                 </div>
@@ -832,26 +835,26 @@ export function LibraryView({
                       carries it, which is noise rather than information. */}
                   {p.archived_at && view === "all" ? (
                     <span className="rounded-full border border-border-strong px-1.5 py-px text-ink-soft">
-                      archived
+                      arquivado
                     </span>
                   ) : null}
                   {p.posted_count > 0 ? (
-                    <span className="text-status-posted">posted×{p.posted_count}</span>
+                    <span className="text-status-posted">postado×{p.posted_count}</span>
                   ) : (
-                    <span>never posted</span>
+                    <span>nunca postado</span>
                   )}
                   {p.scheduled_count > 0 ? (
-                    <span className="text-status-scheduled">queued×{p.scheduled_count}</span>
+                    <span className="text-status-scheduled">na fila×{p.scheduled_count}</span>
                   ) : null}
                 </div>
                 <div className="data mt-1 flex flex-wrap gap-x-2 text-[10px] text-faint">
-                  <span>{p.content_kind === "evergreen" ? "Evergreen" : "One-time"}</span>
+                  <span>{p.content_kind === "evergreen" ? "Evergreen" : "Uma vez"}</span>
                   {/* A keeper is a property of the post, so it belongs everywhere the post
                       appears — not only on the page where it happened to be marked. */}
                   {p.is_bpp ? (
                     <span
                       className="rounded-full border border-brand px-1.5 py-px text-brand-strong"
-                      title="Marked as a best-performing post — auto-fill reposts these on your BPP cadence"
+                      title="Marcado como post de melhor desempenho — o preenchimento automático republica estes na sua cadência BPP"
                     >
                       ★ BPP
                     </span>
@@ -863,7 +866,7 @@ export function LibraryView({
                         onClick={(event) => event.stopPropagation()}
                         className={`cursor-help rounded-full border px-1.5 py-px ${readySeasonStatusClass[seasonStatus]}`}
                       >
-                        {seasonStatus}
+                        {seasonStatusLabel(seasonStatus)}
                       </button>
                       <span
                         {...badgeDetails.tooltipProps}
@@ -874,15 +877,15 @@ export function LibraryView({
                     </span>
                   ) : (
                     <span className={p.content_status === "draft" ? "text-muted" : "text-faint"}>
-                      {seasonStatus}
+                      {seasonStatusLabel(seasonStatus)}
                     </span>
                   )}
                   <span>
-                    {p.target_count > 0 ? `→ ${p.target_count} account(s)` : "no targets"}
+                    {p.target_count > 0 ? `→ ${p.target_count} conta(s)` : "sem destinos"}
                     {p.story_target_count > 0 ? (
                       <span
                         className="ml-1.5 rounded-full border border-border-strong px-1.5 py-px text-[10px] font-medium text-ink-soft"
-                        title="Designated for an Instagram Story"
+                        title="Destinado a um Story do Instagram"
                       >
                         Story
                       </span>
@@ -894,7 +897,7 @@ export function LibraryView({
                     {p.periods.map((period) => (
                       <span
                         key={`${period.id}-${period.mode}`}
-                        title={period.mode === "green" ? "In-season period" : "Blackout period"}
+                        title={period.mode === "green" ? "Período de temporada" : "Período de bloqueio"}
                         className={`data rounded-full border px-2 py-0.5 text-[11px] ${
                           period.mode === "green"
                             ? "border-status-posted/30 bg-status-posted/10 text-status-posted"
@@ -939,9 +942,9 @@ export function LibraryView({
           aria-controls="bulk-bar-panel"
           className="flex w-full items-center gap-3 rounded-card px-4 py-3 text-left hover:bg-surface-sunken"
         >
-          <span className="text-sm font-semibold text-ink">Scheduler &amp; bulk edits</span>
+          <span className="text-sm font-semibold text-ink">Agendador e edições em massa</span>
           <span className="text-xs text-muted">
-            <span className="data font-semibold text-ink">{selected.length}</span> selected
+            <span className="data font-semibold text-ink">{selected.length}</span> selecionado(s)
           </span>
           <svg
             viewBox="0 0 20 20"
@@ -959,12 +962,12 @@ export function LibraryView({
         <div className="flex flex-wrap items-end gap-4">
           <div className="text-sm">
             <span className="data text-lg font-semibold text-ink">{selected.length}</span>
-            <span className="text-muted"> post{selected.length === 1 ? "" : "s"} selected</span>
+            <span className="text-muted"> post{selected.length === 1 ? "" : "s"} selecionado{selected.length === 1 ? "" : "s"}</span>
           </div>
           <div className="h-8 w-px bg-border" />
           <div className="flex flex-wrap items-end gap-3">
             <label className="text-xs text-ink-soft">
-              <span className="mb-1 block">Every</span>
+              <span className="mb-1 block">A cada</span>
               <input
                 type="number"
                 min={1}
@@ -973,9 +976,9 @@ export function LibraryView({
                 className={`${field} w-16`}
               />
             </label>
-            <span className="pb-2 text-sm text-muted">days at</span>
+            <span className="pb-2 text-sm text-muted">dias às</span>
             <label className="text-xs text-ink-soft">
-              <span className="mb-1 block">Time</span>
+              <span className="mb-1 block">Horário</span>
               <input
                 type="time"
                 value={time}
@@ -984,7 +987,7 @@ export function LibraryView({
               />
             </label>
             <label className="text-xs text-ink-soft">
-              <span className="mb-1 block">Starting</span>
+              <span className="mb-1 block">Início</span>
               <input
                 type="date"
                 value={startDate}
@@ -996,7 +999,7 @@ export function LibraryView({
         </div>
 
         <div className="mt-3">
-          <p className="mb-1.5 text-xs text-ink-soft">To channels:</p>
+          <p className="mb-1.5 text-xs text-ink-soft">Para as contas:</p>
           <div className="flex flex-wrap gap-2">
             {channels.map((c) => {
               const on = effectiveChans.has(c.id);
@@ -1007,7 +1010,7 @@ export function LibraryView({
                   key={c.id}
                   onClick={() => !disabled && toggleChan(c.id)}
                   disabled={disabled}
-                  title={disabled ? `${platformLabel(c.platform)} can't publish one or more selected posts` : undefined}
+                  title={disabled ? `${platformLabel(c.platform)} não pode publicar um ou mais posts selecionados` : undefined}
                   className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
                     disabled ? "cursor-not-allowed opacity-40" : ""
                   }`}
@@ -1025,7 +1028,7 @@ export function LibraryView({
                     size={14}
                   />
                   {c.account_name}
-                  {disabled ? " — can't post this type" : ""}
+                  {disabled ? " — não pode postar esse tipo" : ""}
                 </button>
               );
             })}
@@ -1038,25 +1041,26 @@ export function LibraryView({
         <div className="mt-3 flex items-center justify-between gap-4">
           <p className="text-[11px] text-faint">
             {selected.length > 0 && effectiveChans.size > 0
-              ? `${selected.length} post(s) × ${effectiveChans.size} channel(s), one every ${everyDays} day(s) from ${formatInTz(
+              ? `${selected.length} post(s) × ${effectiveChans.size} conta(s), um a cada ${everyDays} dia(s) a partir de ${formatInTz(
                   `${startDate}T${time}:00Z`,
                   "UTC",
                   { month: "short", day: "numeric" }
                 )}.`
-              : "Select posts and channels to bulk-schedule."}
+              : "Selecione posts e contas para agendar em massa."}
           </p>
           <button
             onClick={schedule}
             disabled={pending}
             className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-ink disabled:opacity-50"
           >
-            {pending ? "Scheduling…" : "Bulk schedule"}
+            {pending ? "Agendando…" : "Agendar em massa"}
           </button>
         </div>
 
         <div className="mt-3 border-t border-border pt-3">
           <p className="mb-1.5 text-[11px] text-faint">
-            Targeting controls which accounts auto-fill can post a piece of content to.
+            O destino controla em quais contas o preenchimento automático pode postar um
+            conteúdo.
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -1064,44 +1068,45 @@ export function LibraryView({
               disabled={pending || selected.length === 0 || effectiveChans.size === 0}
               className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-medium text-ink hover:bg-surface-sunken disabled:opacity-50"
             >
-              Add as target
+              Adicionar como destino
             </button>
             <button
               onClick={() => retarget("remove")}
               disabled={pending || selected.length === 0 || effectiveChans.size === 0}
               className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-medium text-ink hover:bg-surface-sunken disabled:opacity-50"
             >
-              Remove target
+              Remover destino
             </button>
           </div>
         </div>
 
         <div className="mt-3 border-t border-border pt-3">
           <p className="mb-1.5 text-[11px] text-faint">
-            Add or remove metadata, or set shared values, across every selected post.
+            Adicione ou remova metadados, ou defina valores compartilhados, em todos os
+            posts selecionados.
           </p>
           <button
             onClick={() => setBulkEditOpen(true)}
             disabled={pending || selected.length === 0}
-            title={selected.length === 0 ? "Select at least one post to edit." : undefined}
+            title={selected.length === 0 ? "Selecione ao menos um post para editar." : undefined}
             className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-medium text-ink hover:bg-surface-sunken disabled:opacity-50"
           >
-            Edit metadata
+            Editar metadados
           </button>
         </div>
 
         <div className="mt-3 border-t border-border pt-3">
           <p className="mb-1.5 text-[11px] text-faint">
-            Fold several single-image drafts into one carousel, in review before anything is
-            deleted.
+            Junte vários rascunhos de imagem única em um carrossel, com revisão antes de
+            qualquer exclusão.
           </p>
           <button
             onClick={() => setMergeOpen(true)}
             disabled={pending || selected.length < 2}
-            title={selected.length < 2 ? "Select at least two posts to merge." : undefined}
+            title={selected.length < 2 ? "Selecione ao menos dois posts para mesclar." : undefined}
             className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-medium text-ink hover:bg-surface-sunken disabled:opacity-50"
           >
-            Merge into carousel
+            Mesclar em carrossel
           </button>
         </div>
         </div>

@@ -19,12 +19,12 @@ export const dynamic = "force-dynamic";
 */
 
 function sinceLabel(iso: string | null): string {
-  if (!iso) return "not since marking";
+  if (!iso) return "nunca desde a marcação";
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  if (days <= 0) return "today";
-  if (days === 1) return "yesterday";
-  if (days < 60) return `${days} days ago`;
-  return `${Math.floor(days / 30)} months ago`;
+  if (days <= 0) return "hoje";
+  if (days === 1) return "ontem";
+  if (days < 60) return `há ${days} dias`;
+  return `há ${Math.floor(days / 30)} meses`;
 }
 
 export default function BppPoolPage() {
@@ -34,7 +34,7 @@ export default function BppPoolPage() {
   return (
     <div>
       <PageHeader
-        title="Pool BPP"
+        title="Loop"
         subtitle="As publicações que você marcou como boas para repetir — na ordem em que serão usadas."
       />
 
@@ -46,7 +46,7 @@ export default function BppPoolPage() {
         <section className="rounded-card border border-border bg-surface">
           <div className="border-b border-border px-5 py-3">
             <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-muted">
-              Rotation
+              Rotação
             </h2>
           </div>
           <ul className="divide-y divide-border">
@@ -58,22 +58,22 @@ export default function BppPoolPage() {
                   <span className="text-[11px] text-muted">
                     {unit.everyDays === 0 ? (
                       <>
-                        rotation off —{" "}
+                        rotação desligada —{" "}
                         <Link href="/channels" className="text-brand-strong underline">
-                          set a cadence
+                          defina uma cadência
                         </Link>
                       </>
                     ) : unit.usable === 0 ? (
                       <span className="text-status-publishing">
-                        every <span className="data">{unit.everyDays}</span> days, but
-                        nothing in the pool can go out here
+                        a cada <span className="data">{unit.everyDays}</span> dias, mas
+                        nada no pool pode sair por aqui
                       </span>
                     ) : (
                       <>
-                        <span className="data">{unit.usable}</span> usable · one every{" "}
-                        <span className="data">{unit.everyDays}</span> days ·{" "}
+                        <span className="data">{unit.usable}</span> utilizáveis · um a cada{" "}
+                        <span className="data">{unit.everyDays}</span> dias ·{" "}
                         <span className={period !== null && period < 90 ? "text-status-publishing" : ""}>
-                          each returns about every <span className="data">{period}</span> days
+                          cada um repete a cada <span className="data">{period}</span> dias
                         </span>
                       </>
                     )}
@@ -85,19 +85,20 @@ export default function BppPoolPage() {
         </section>
 
         {entries.length === 0 ? (
-          <EmptyState title="Nothing marked yet">
-            Mark posts from{" "}
+          <EmptyState title="Nada marcado ainda">
+            Marque posts em{" "}
             <Link href="/insights" className="text-brand-strong underline">
-              Insights
+              Relatório
             </Link>{" "}
-            → an account → Top content. The ★ Standouts filter narrows it to posts that
-            beat their contemporaries, which is the short list worth reviewing.
+            → uma conta → Melhores publicações. O filtro ★ Destaques restringe a lista
+            aos posts que superaram seus contemporâneos, que é a lista curta que vale a
+            pena revisar.
           </EmptyState>
         ) : (
           <section className="rounded-card border border-border bg-surface">
             <div className="flex items-center justify-between border-b border-border px-5 py-3">
               <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-muted">
-                {exact(entries.length)} marked · next up first
+                {exact(entries.length)} marcados · próximo primeiro
               </h2>
             </div>
             <ul className="divide-y divide-border">
@@ -107,7 +108,7 @@ export default function BppPoolPage() {
                     className={`data w-6 shrink-0 text-center text-[11px] ${
                       index === 0 ? "font-semibold text-brand-strong" : "text-faint"
                     }`}
-                    title={index === 0 ? "Next in the rotation" : undefined}
+                    title={index === 0 ? "Próximo na rotação" : undefined}
                   >
                     {index + 1}
                   </span>
@@ -127,14 +128,14 @@ export default function BppPoolPage() {
                       href={`/library/${entry.post_id}`}
                       className="block truncate text-[13px] text-ink-soft hover:underline"
                     >
-                      {entry.caption?.trim().split("\n")[0] || "No caption"}
+                      {entry.caption?.trim().split("\n")[0] || "Sem legenda"}
                     </Link>
                     <p className="mt-0.5 text-[11px] text-faint">
-                      last posted {sinceLabel(entry.last_posted)}
-                      {entry.targets ? ` · ${entry.targets}` : " · no channels targeted"}
+                      última publicação {sinceLabel(entry.last_posted)}
+                      {entry.targets ? ` · ${entry.targets}` : " · nenhuma conta alvo"}
                       {entry.content_status !== "ready" ? (
                         <span className="text-status-publishing">
-                          {" "}· not ready, so it will be skipped
+                          {" "}· não está pronto, então será pulado
                         </span>
                       ) : null}
                     </p>

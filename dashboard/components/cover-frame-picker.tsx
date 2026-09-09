@@ -71,7 +71,7 @@ export function CoverFramePicker({
     });
     setBusy(false);
     if (!res.ok) {
-      setError((await res.json().catch(() => ({})))?.error ?? "Could not save the cover frame.");
+      setError((await res.json().catch(() => ({})))?.error ?? "Não foi possível salvar o frame de capa.");
       return;
     }
     setSaved(ms);
@@ -89,7 +89,7 @@ export function CoverFramePicker({
     setCoverBusy(false);
     if (!res.ok) {
       setCoverError(
-        (await res.json().catch(() => ({})))?.error ?? "Could not upload the cover image."
+        (await res.json().catch(() => ({})))?.error ?? "Não foi possível enviar a imagem de capa."
       );
       return;
     }
@@ -105,7 +105,7 @@ export function CoverFramePicker({
     setCoverBusy(false);
     if (!res.ok) {
       setCoverError(
-        (await res.json().catch(() => ({})))?.error ?? "Could not remove the cover image."
+        (await res.json().catch(() => ({})))?.error ?? "Não foi possível remover a imagem de capa."
       );
       return;
     }
@@ -123,7 +123,7 @@ export function CoverFramePicker({
           className={segBtn(!overridden)}
           onClick={() => overridden && removeCover()}
         >
-          Frame from the video
+          Frame do vídeo
         </button>
         <button
           type="button"
@@ -132,7 +132,7 @@ export function CoverFramePicker({
           className={segBtn(overridden)}
           onClick={() => fileInputRef.current?.click()}
         >
-          Uploaded image
+          Imagem enviada
         </button>
       </div>
       <input
@@ -152,7 +152,7 @@ export function CoverFramePicker({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`/api/media/${coverAssetId}`}
-            alt="Uploaded cover"
+            alt="Capa enviada"
             className="h-16 w-9 rounded border border-border object-cover"
           />
           <button
@@ -161,7 +161,7 @@ export function CoverFramePicker({
             disabled={coverBusy}
             className="rounded-md border border-border px-2 py-1 text-sm disabled:opacity-50"
           >
-            {coverBusy ? "Removing…" : "Remove"}
+            {coverBusy ? "Removendo…" : "Remover"}
           </button>
         </div>
       ) : null}
@@ -175,7 +175,7 @@ export function CoverFramePicker({
       <div className={overridden ? "space-y-2 opacity-60" : "space-y-2"}>
         {overridden ? (
           <span className="inline-block rounded bg-accent-weak px-1.5 py-0.5 text-[10px] font-medium text-accent-strong">
-            Overridden by the uploaded image
+            Sobrescrito pela imagem enviada
           </span>
         ) : null}
         <div className="relative w-full max-w-xs">
@@ -196,7 +196,7 @@ export function CoverFramePicker({
           />
         </div>
         <label className="block text-sm font-medium">
-          Cover frame
+          Frame de capa
           <input
             type="range"
             min={0}
@@ -205,12 +205,12 @@ export function CoverFramePicker({
             value={ms}
             onChange={(e) => scrub(Number(e.target.value))}
             className="mt-1 w-full max-w-xs"
-            aria-label="Cover frame position in the video"
+            aria-label="Posição do frame de capa no vídeo"
           />
         </label>
         <p className="text-xs text-muted">
-          {(ms / 1000).toFixed(1)}s of {(duration / 1000).toFixed(1)}s
-          {saved === null && " — not chosen yet, Instagram would use the first frame"}
+          {(ms / 1000).toFixed(1)}s de {(duration / 1000).toFixed(1)}s
+          {saved === null && " — ainda não escolhido, o Instagram usaria o primeiro frame"}
         </p>
         {error && <p className="text-xs text-status-failed">{error}</p>}
         <button
@@ -219,7 +219,7 @@ export function CoverFramePicker({
           disabled={busy || !dirty}
           className="rounded-md border border-border px-2 py-1 text-sm disabled:opacity-50"
         >
-          {busy ? "Saving…" : dirty ? "Save cover frame" : "Saved"}
+          {busy ? "Salvando…" : dirty ? "Salvar frame de capa" : "Salvo"}
         </button>
       </div>
     </div>

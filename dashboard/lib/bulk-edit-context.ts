@@ -63,10 +63,10 @@ export function coverageLabel(count: number, total: number): string {
   const safeTotal = normalizedCount(total);
   const state = coverageState(safeCount, safeTotal);
 
-  if (state === "none") return "None";
-  if (safeTotal === 0) return "Some";
-  if (state === "all") return `All ${safeTotal}`;
-  return `${safeCount} of ${safeTotal}`;
+  if (state === "none") return "Nenhum";
+  if (safeTotal === 0) return "Alguns";
+  if (state === "all") return `Todos os ${safeTotal}`;
+  return `${safeCount} de ${safeTotal}`;
 }
 
 export function removableIds(

@@ -4,22 +4,24 @@
 // picker) and by server route handlers (validation) alike.
 
 /**
- * The four continental US zones, in west-to-east reading order that matches how
- * people say them. These are shortcuts, not a whitelist: any valid IANA name can
- * still be typed in via the picker's "Custom" option, which is what makes the
- * repo usable by a clone outside the US.
+ * Brasília first — this fork's actual audience — then the four continental US zones
+ * from the original project, in west-to-east reading order that matches how people say
+ * them. These are shortcuts, not a whitelist: any valid IANA name can still be typed in
+ * via the picker's "Custom" option, which is what keeps the repo usable by a clone
+ * anywhere else.
  */
-export const US_TIMEZONES: { value: string; label: string }[] = [
+export const TIMEZONE_PRESETS: { value: string; label: string }[] = [
+  { value: "America/Sao_Paulo", label: "Brasília" },
   { value: "America/New_York", label: "Eastern" },
   { value: "America/Chicago", label: "Central" },
   { value: "America/Denver", label: "Mountain" },
   { value: "America/Los_Angeles", label: "Pacific" },
 ];
 
-const US_TIMEZONE_VALUES = new Set(US_TIMEZONES.map((t) => t.value));
+const TIMEZONE_PRESET_VALUES = new Set(TIMEZONE_PRESETS.map((t) => t.value));
 
 export function isPresetTimezone(tz: string): boolean {
-  return US_TIMEZONE_VALUES.has(tz);
+  return TIMEZONE_PRESET_VALUES.has(tz);
 }
 
 /**

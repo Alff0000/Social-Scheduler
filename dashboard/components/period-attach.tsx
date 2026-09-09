@@ -113,20 +113,20 @@ export function PeriodAttach({
 
   return (
     <section className="rounded-card border border-border bg-surface p-5">
-      <h3 className="font-display text-sm font-semibold text-ink">In-season windows</h3>
+      <h3 className="font-display text-sm font-semibold text-ink">Janelas de temporada</h3>
       <p className="mb-3 text-xs text-muted">
-        Green = only auto-posts during the window. Blackout = never during it. Blackout
-        wins.
+        Verde = só posta automaticamente durante a janela. Bloqueio = nunca durante ela.
+        Bloqueio prevalece.
       </p>
       {visiblePeriods.length === 0 ? (
         <p className="text-xs text-faint">
           {coverage && hideZeroCoverage ? (
-            "None of the selected posts have removable period links."
+            "Nenhum dos posts selecionados tem vínculos de período removíveis."
           ) : (
             <>
-              No periods yet — create in-season windows in{" "}
+              Nenhum período ainda — crie janelas de temporada em{" "}
               <Link href="/periods" className="text-brand underline underline-offset-2">
-                Periods
+                Períodos
               </Link>
               .
             </>
@@ -171,7 +171,7 @@ export function PeriodAttach({
                     )}
                     onClick={() => setMode(p.id, null)}
                   >
-                    Off
+                    Desligado
                   </button>
                   {!coverage || !hideZeroCoverage || greenCount > 0 ? (
                     <button
@@ -180,7 +180,7 @@ export function PeriodAttach({
                       onClick={() => setMode(p.id, "green")}
                       disabled={modeDisabled(p.id, "green")}
                     >
-                      Green{modeBadge(p.id, "green")}
+                      Verde{modeBadge(p.id, "green")}
                     </button>
                   ) : null}
                   {!coverage || !hideZeroCoverage || blackoutCount > 0 ? (
@@ -190,7 +190,7 @@ export function PeriodAttach({
                       onClick={() => setMode(p.id, "blackout")}
                       disabled={modeDisabled(p.id, "blackout")}
                     >
-                      Blackout{modeBadge(p.id, "blackout")}
+                      Bloqueio{modeBadge(p.id, "blackout")}
                     </button>
                   ) : null}
                 </div>

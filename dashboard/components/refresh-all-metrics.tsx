@@ -13,13 +13,13 @@ export function RefreshAllMetrics({ workerOnline = true }: { workerOnline?: bool
     const res = await fetch("/api/metrics/refresh-all", { method: "POST" });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setMsg(body.error ?? "Something went wrong.");
+      setMsg(body.error ?? "Algo deu errado.");
       return;
     }
     setMsg(
       workerOnline
-        ? `Queued ${body.requested} — updates after the next worker run.`
-        : `Queued ${body.requested}, but the worker looks offline — start it to apply.`
+        ? `${body.requested} enfileirado${body.requested === 1 ? "" : "s"} — atualiza após a próxima execução do worker.`
+        : `${body.requested} enfileirado${body.requested === 1 ? "" : "s"}, mas o worker parece offline — inicie-o para aplicar.`
     );
     startTransition(() => router.refresh());
   }
@@ -38,7 +38,7 @@ export function RefreshAllMetrics({ workerOnline = true }: { workerOnline?: bool
         disabled={pending}
         className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-ink-soft hover:bg-surface-sunken disabled:opacity-50"
       >
-        {pending ? "Queuing…" : "Refresh all metrics"}
+        {pending ? "Enfileirando…" : "Atualizar todas as métricas"}
       </button>
     </div>
   );

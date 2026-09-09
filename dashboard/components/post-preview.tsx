@@ -111,11 +111,11 @@ export function PostPreview({
   const captionBlock = (
     <div className="p-3">
       <p className="whitespace-pre-wrap text-sm text-ink">
-        {caption || <span className="text-faint">Your caption…</span>}
+        {caption || <span className="text-faint">Sua legenda…</span>}
       </p>
       {firstComment ? (
         <p className="mt-2 border-t border-border pt-2 text-xs text-muted">
-          <span className="text-faint">First comment: </span>
+          <span className="text-faint">Primeiro comentário: </span>
           {firstComment}
         </p>
       ) : null}
@@ -131,14 +131,14 @@ export function PostPreview({
         <div className="overflow-hidden rounded-lg border border-border">
           <div className="flex items-center gap-2 border-b border-border bg-surface-sunken px-3 py-2">
             <span className="data text-xs font-medium uppercase tracking-wide text-muted">
-              {textOnly ? "Text post" : "No media yet"}
+              {textOnly ? "Post de texto" : "Ainda sem mídia"}
             </span>
           </div>
           {captionBlock}
         </div>
         {!textOnly ? (
           <p className="mt-2 text-center text-[11px] text-faint">
-            Add an image to see how it is framed for the feed and for a Story.
+            Adicione uma imagem para ver como ela é enquadrada no feed e em um Story.
           </p>
         ) : null}
       </div>
@@ -209,7 +209,7 @@ export function PostPreview({
             onClick={() => setFraming(asset)}
             className="shrink-0 rounded-md border border-border px-2.5 py-1 text-xs text-ink transition-colors hover:bg-surface-sunken"
           >
-            Fix framing
+            Corrigir enquadramento
           </button>
         ) : null}
       </div>
@@ -220,19 +220,19 @@ export function PostPreview({
             type="button"
             className={arrowBtn}
             disabled={safeIndex === 0}
-            aria-label="Previous slide"
+            aria-label="Slide anterior"
             onClick={() => setIndex(stepIndex(safeIndex, -1, assets.length))}
           >
             ←
           </button>
           <span className="data text-[11px] text-muted">
-            Slide {safeIndex + 1} of {assets.length}
+            Slide {safeIndex + 1} de {assets.length}
           </span>
           <button
             type="button"
             className={arrowBtn}
             disabled={safeIndex === assets.length - 1}
-            aria-label="Next slide"
+            aria-label="Próximo slide"
             onClick={() => setIndex(stepIndex(safeIndex, 1, assets.length))}
           >
             →
@@ -249,7 +249,7 @@ export function PostPreview({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={`/api/media/${asset.id}?variant=publish&v=${bust}`}
-                alt={`Slide ${safeIndex + 1} as it will appear in the feed`}
+                alt={`Slide ${safeIndex + 1} como vai aparecer no feed`}
                 className={FRAME_MEDIA}
                 ref={measureImage(asset.id)}
                 onLoad={(e) =>
@@ -286,7 +286,7 @@ export function PostPreview({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={`/api/media/${asset.id}?variant=story&mode=${storyMode}&v=${bust}`}
-                alt={`Slide ${safeIndex + 1} as it will appear as a Story`}
+                alt={`Slide ${safeIndex + 1} como vai aparecer em um Story`}
                 className={FRAME_MEDIA}
               />
             ) : (
@@ -303,21 +303,21 @@ export function PostPreview({
               // sharp cannot reframe video, and the story-framing endpoint refuses it, so
               // there is no 9:16 canvas to show. Say so rather than imply this frame is
               // what Instagram will produce.
-              <>Video goes to a Story as-is — Instagram applies its own fit.</>
+              <>O vídeo vai para um Story como está — o Instagram aplica seu próprio ajuste.</>
             ) : !storyDimsKnown ? (
-              <>Framing shown as rendered — this image&apos;s dimensions were not recorded.</>
+              <>Enquadramento mostrado como renderizado — as dimensões desta imagem não foram registradas.</>
             ) : storyIsNative ? (
-              <>Already 9:16 — published untouched.</>
+              <>Já está em 9:16 — publicado sem alterações.</>
             ) : storyMode === "blurred" ? (
-              <>Blurred fill — the whole photo, over a blurred copy of itself.</>
+              <>Preenchimento desfocado — a foto inteira, sobre uma cópia desfocada dela mesma.</>
             ) : (
-              <>Crop to fill — trimmed to 9:16.</>
+              <>Cortar para preencher — recortado para 9:16.</>
             )}
           </p>
           {isCarousel ? (
             <p className="mt-1 text-[11px] text-faint">
-              A carousel sent to Stories goes out as {assets.length} separate Stories, one
-              per slide.
+              Um carrossel enviado para Stories sai como {assets.length} Stories separados,
+              um por slide.
             </p>
           ) : null}
         </section>
@@ -333,8 +333,8 @@ export function PostPreview({
           shapes is the part the owner can actually act on, by choosing different photos.
         */
         <p className="mt-3 rounded-lg bg-accent-weak px-3 py-2 text-[11px] text-accent-strong">
-          These slides are not all the same shape ({distinctShapes.join(":1, ")}:1). Each
-          photo is framed on its own, so a carousel can end up mixed.
+          Esses slides não têm todos o mesmo formato ({distinctShapes.join(":1, ")}:1). Cada
+          foto é enquadrada por conta própria, então um carrossel pode acabar misturado.
         </p>
       ) : null}
 
@@ -401,7 +401,7 @@ function predictRatio(asset: Asset): number | null {
 function PreviewHeading() {
   return (
     <h3 className="font-display text-xs font-semibold uppercase tracking-wide text-muted">
-      How this posts
+      Como isto será postado
     </h3>
   );
 }

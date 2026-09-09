@@ -71,13 +71,13 @@ test("confirmation labels name the exact actions", () => {
   );
 
   assert.deepEqual(labels, [
-    "add tag Summer",
-    "remove tag Football",
-    "attach Football Season as green",
-    "detach Holiday Blackout as blackout",
-    "set status to ready",
-    "set kind to one-time",
-    "set cooldown to 45 days",
+    "adicionar tag Summer",
+    "remover tag Football",
+    "anexar Football Season como ativo",
+    "desanexar Holiday Blackout como bloqueio",
+    "definir status como pronto",
+    "definir tipo como uma vez",
+    "definir cooldown para 45 dias",
   ]);
 });
 
@@ -97,9 +97,9 @@ test("both exact modes for one period survive into payload and confirmation", ()
     remove: dualModes,
   });
   assert.deepEqual(bulkEditChangeLabels(draft, [], [{ id: 6, name: "Season" }]), [
-    "attach Season as green",
-    "attach Season as blackout",
-    "detach Season as green",
-    "detach Season as blackout",
+    "anexar Season como ativo",
+    "anexar Season como bloqueio",
+    "desanexar Season como ativo",
+    "desanexar Season como bloqueio",
   ]);
 });

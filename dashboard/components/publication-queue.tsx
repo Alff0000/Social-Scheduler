@@ -57,9 +57,9 @@ function isVideoRow(p: PublicationRow): boolean {
 }
 
 function viewerLabel(p: PublicationRow): string {
-  const what = isVideoRow(p) ? "Play video" : "View image";
-  if (p.story_slide_no) return `${what} — story slide ${p.story_slide_no}`;
-  if (p.asset_count > 1) return `${what} — carousel, ${p.asset_count} slides`;
+  const what = isVideoRow(p) ? "Reproduzir vídeo" : "Ver imagem";
+  if (p.story_slide_no) return `${what} — slide ${p.story_slide_no} do story`;
+  if (p.asset_count > 1) return `${what} — carrossel, ${p.asset_count} slides`;
   return what;
 }
 
@@ -90,11 +90,11 @@ function ExpandGlyph() {
 }
 
 const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
-  { value: "all", label: "All statuses" },
-  { value: "scheduled", label: "Scheduled" },
-  { value: "pending_approval", label: "Pending approval" },
-  { value: "posted", label: "Posted" },
-  { value: "failed", label: "Failed" },
+  { value: "all", label: "Todos os status" },
+  { value: "scheduled", label: "Agendado" },
+  { value: "pending_approval", label: "Aguardando aprovação" },
+  { value: "posted", label: "Postado" },
+  { value: "failed", label: "Falhou" },
 ];
 
 const selectCls =
@@ -233,7 +233,7 @@ export function PublicationQueue({
             multi-channel selection the rail above can, and a single-select could only
             ever disagree with the cards. */}
         <CheckboxFilterDropdown
-          label="Accounts"
+          label="Contas"
           options={channels.map((c) => ({ value: c.id, label: c.account_name }))}
           selected={accounts}
           onApply={(values) => setAccounts(values)}
@@ -243,7 +243,7 @@ export function PublicationQueue({
           value={platform}
           onChange={(e) => setPlatform(e.target.value as "all" | Platform)}
         >
-          <option value="all">All platforms</option>
+          <option value="all">Todas as plataformas</option>
           {PLATFORMS.map((p) => (
             <option key={p.value} value={p.value}>
               {p.label}
@@ -263,23 +263,23 @@ export function PublicationQueue({
         </select>
         <select
           className={selectCls}
-          aria-label="Filter by destination"
+          aria-label="Filtrar por destino"
           value={destination}
           onChange={(e) => setDestination(e.target.value as typeof destination)}
         >
-          <option value="all">All destinations</option>
+          <option value="all">Todos os destinos</option>
           <option value="story">Stories</option>
           <option value="reel">Reels</option>
-          <option value="feed">Feed only</option>
+          <option value="feed">Só feed</option>
         </select>
         <span className="data ml-auto text-[11px] text-muted">
-          showing {shown.length} of {pubs.length}
+          mostrando {shown.length} de {pubs.length}
         </span>
       </div>
 
       {shown.length === 0 ? (
         <div className="rounded-card border border-border bg-surface px-4 py-6 text-center text-sm text-muted">
-          No sends match these filters.
+          Nenhum envio corresponde a esses filtros.
         </div>
       ) : (
         <div className="overflow-hidden rounded-card border border-border bg-surface">
@@ -287,10 +287,10 @@ export function PublicationQueue({
             <thead>
               <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-faint">
                 <th className="px-4 py-2.5 font-medium">Post</th>
-                <th className="px-4 py-2.5 font-medium">Channel</th>
-                <th className="px-4 py-2.5 font-medium">When</th>
+                <th className="px-4 py-2.5 font-medium">Conta</th>
+                <th className="px-4 py-2.5 font-medium">Quando</th>
                 <th className="px-4 py-2.5 font-medium">Status</th>
-                <th className="px-4 py-2.5 font-medium text-right">Action</th>
+                <th className="px-4 py-2.5 font-medium text-right">Ação</th>
               </tr>
             </thead>
             <tbody>
@@ -399,7 +399,7 @@ export function PublicationQueue({
                           {p.surface === "story" ? (
                             <span
                               className="mr-1.5 rounded-full border border-border-strong px-1.5 py-px align-middle text-[10px] font-medium text-ink-soft"
-                              title="Publishes to the Instagram Story, not the feed"
+                              title="Publica no Story do Instagram, não no feed"
                             >
                               Story
                             </span>
@@ -407,14 +407,14 @@ export function PublicationQueue({
                           {p.surface === "reel" ? (
                             <span
                               className="mr-1.5 rounded-full border border-border-strong px-1.5 py-px align-middle text-[10px] font-medium text-ink-soft"
-                              title="Publishes to Facebook Reels, not the feed"
+                              title="Publica nos Reels do Facebook, não no feed"
                             >
                               Reel
                             </span>
                           ) : null}
                           {p.post_caption || (
                             <span className="text-faint italic">
-                              {p.surface === "story" ? "Stories carry no caption" : "No caption"}
+                              {p.surface === "story" ? "Stories não têm legenda" : "Sem legenda"}
                             </span>
                           )}
                         </p>
@@ -426,7 +426,7 @@ export function PublicationQueue({
                               which doesn't say WHICH Facebook surface it's headed to. */}
                           {p.surface === "story"
                             ? p.story_slide_no && p.asset_count > 1
-                              ? `Story · slide ${p.story_slide_no} of ${p.asset_count}`
+                              ? `Story · slide ${p.story_slide_no} de ${p.asset_count}`
                               : "Story"
                             : p.surface === "reel"
                               ? "Reel"
@@ -459,7 +459,7 @@ export function PublicationQueue({
                             className="data text-xs text-ink-soft"
                             title={
                               when.actual
-                                ? `Actually posted ${formatInTz(p.published_at, p.channel_timezone)} · scheduled for ${formatInTz(p.scheduled_at, p.channel_timezone)}`
+                                ? `Postado de fato em ${formatInTz(p.published_at, p.channel_timezone)} · agendado para ${formatInTz(p.scheduled_at, p.channel_timezone)}`
                                 : undefined
                             }
                           >
@@ -502,9 +502,9 @@ export function PublicationQueue({
                       {p.is_recycled === 1 ? (
                         <span
                           className="inline-flex items-center rounded-full bg-brand-weak px-2 py-0.5 text-[10px] font-medium text-brand-strong"
-                          title="Auto-fill picked this again because it performed well"
+                          title="O preenchimento automático escolheu este de novo porque teve bom desempenho"
                         >
-                          top performer
+                          melhor desempenho
                         </span>
                       ) : null}
                       {p.is_held === 1 ? (
@@ -516,7 +516,7 @@ export function PublicationQueue({
                               "color-mix(in srgb, var(--color-status-draft) 12%, white)",
                           }}
                         >
-                          Held
+                          Em espera
                         </span>
                       ) : null}
                     </span>
@@ -547,14 +547,14 @@ export function PublicationQueue({
                     ) : p.status === "posted" && p.m_fetched_at ? (
                       p.channel_platform === "facebook" ? (
                         <p className="data mt-1 flex gap-2.5 text-[11px] text-ink-soft">
-                          <span title="Reactions">♥ {p.m_likes ?? "—"}</span>
-                          <span title="Comments">💬 {p.m_comments ?? "—"}</span>
-                          <span title="Shares">↪ {p.m_shares ?? "—"}</span>
+                          <span title="Reações">♥ {p.m_likes ?? "—"}</span>
+                          <span title="Comentários">💬 {p.m_comments ?? "—"}</span>
+                          <span title="Compartilhamentos">↪ {p.m_shares ?? "—"}</span>
                           {/* Reach is best-effort on Facebook (Meta keeps retiring the metric
                               names), so show it only when we actually got a number — an empty
                               slot would read as "broken" on every normal row. */}
                           {p.m_reach != null ? (
-                            <span title="Reach">◎ {p.m_reach}</span>
+                            <span title="Alcance">◎ {p.m_reach}</span>
                           ) : null}
                         </p>
                       ) : p.channel_platform === "threads" ? (
@@ -562,32 +562,32 @@ export function PublicationQueue({
                         // them entirely (rather than showing an always-empty slot) is the
                         // same call already made for Facebook's reach above.
                         <p className="data mt-1 flex gap-2.5 text-[11px] text-ink-soft">
-                          <span title="Views">👁 {p.m_impressions ?? "—"}</span>
-                          <span title="Likes">♥ {p.m_likes ?? "—"}</span>
-                          <span title="Replies">💬 {p.m_comments ?? "—"}</span>
+                          <span title="Visualizações">👁 {p.m_impressions ?? "—"}</span>
+                          <span title="Curtidas">♥ {p.m_likes ?? "—"}</span>
+                          <span title="Respostas">💬 {p.m_comments ?? "—"}</span>
                           <span title="Reposts">↻ {p.m_shares ?? "—"}</span>
                         </p>
                       ) : p.channel_platform === "instagram" ? (
                         <p className="data mt-1 flex gap-2.5 text-[11px] text-ink-soft">
-                          <span title="Reach">◎ {p.m_reach ?? "—"}</span>
-                          <span title="Saves">⤓ {p.m_saves ?? "—"}</span>
-                          <span title="Likes">♥ {p.m_likes ?? "—"}</span>
+                          <span title="Alcance">◎ {p.m_reach ?? "—"}</span>
+                          <span title="Salvamentos">⤓ {p.m_saves ?? "—"}</span>
+                          <span title="Curtidas">♥ {p.m_likes ?? "—"}</span>
                         </p>
                       ) : p.channel_platform === "tiktok" ? (
                         // TikTok has no reach and no saves — omitted rather than shown
                         // empty, same as Threads above. view_count lands in the
                         // impressions column (worker/metrics.py COLUMN_MAP).
                         <p className="data mt-1 flex gap-2.5 text-[11px] text-ink-soft">
-                          <span title="Views">👁 {p.m_impressions ?? "—"}</span>
-                          <span title="Likes">♥ {p.m_likes ?? "—"}</span>
-                          <span title="Comments">💬 {p.m_comments ?? "—"}</span>
-                          <span title="Shares">↪ {p.m_shares ?? "—"}</span>
+                          <span title="Visualizações">👁 {p.m_impressions ?? "—"}</span>
+                          <span title="Curtidas">♥ {p.m_likes ?? "—"}</span>
+                          <span title="Comentários">💬 {p.m_comments ?? "—"}</span>
+                          <span title="Compartilhamentos">↪ {p.m_shares ?? "—"}</span>
                         </p>
                       ) : (
                         // An unrecognised platform should look wrong, not quietly inherit
                         // Instagram's metric set — matches lib/platforms.ts's fallback style.
                         <p className="data mt-1 text-[11px] text-status-failed">
-                          Unknown platform &quot;{p.channel_platform}&quot; — no metrics display for it.
+                          Plataforma desconhecida &quot;{p.channel_platform}&quot; — sem exibição de métricas para ela.
                         </p>
                       )
                     ) : p.status === "posted" &&
@@ -596,7 +596,7 @@ export function PublicationQueue({
                       // one we never saw go live: there is no published post to measure.
                       // "metrics pending…" there would promise numbers that cannot come.
                       !isAwaitingPublication(p.delivery_state) ? (
-                      <p className="data mt-1 text-[10px] text-faint">metrics pending…</p>
+                      <p className="data mt-1 text-[10px] text-faint">métricas pendentes…</p>
                     ) : null}
                     {p.last_error ? (
                       // Three weights, matching the badge. Red = dead, needs you. Amber =
@@ -621,7 +621,7 @@ export function PublicationQueue({
                     ) : null}
                     {p.attempt_count > 0 && p.status !== "failed" ? (
                       <p className="data mt-0.5 text-[10px] text-faint">
-                        attempt {p.attempt_count}
+                        tentativa {p.attempt_count}
                       </p>
                     ) : null}
                   </td>
@@ -633,9 +633,9 @@ export function PublicationQueue({
                         type="button"
                         onClick={() => setEditing({ postId: p.post_id, status: p.status })}
                         className="mb-1 rounded-md border border-border px-2.5 py-1 text-xs font-medium text-ink-soft hover:border-brand hover:text-brand"
-                        title="Edit this post's caption, tags and status before it goes out"
+                        title="Edite a legenda, as etiquetas e o status deste post antes de ele sair"
                       >
-                        Edit
+                        Editar
                       </button>
                     ) : null}
                     <PublicationActions

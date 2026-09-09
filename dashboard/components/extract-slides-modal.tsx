@@ -17,14 +17,14 @@ export interface ExtractSlide {
  * getting either side wrong misdescribes a destructive-looking operation.
  */
 export function extractSummary(totalSlides: number, selectedCount: number): string {
-  if (selectedCount === 0) return "Tick the photos you want to pull out.";
+  if (selectedCount === 0) return "Marque as fotos que você quer separar.";
   const left = totalSlides - selectedCount;
-  const posts = selectedCount === 1 ? "1 new post" : `${selectedCount} new posts`;
+  const posts = selectedCount === 1 ? "1 novo post" : `${selectedCount} novos posts`;
   const rest =
     left === 1
-      ? "This post keeps the remaining photo and becomes a single."
-      : `This post keeps the other ${left} photos and stays a carousel.`;
-  return `Pulling ${selectedCount === 1 ? "1 photo" : `${selectedCount} photos`} out into ${posts}. ${rest}`;
+      ? "Este post mantém a foto restante e vira um post único."
+      : `Este post mantém as outras ${left} fotos e continua um carrossel.`;
+  return `Separando ${selectedCount === 1 ? "1 foto" : `${selectedCount} fotos`} em ${posts}. ${rest}`;
 }
 
 /**
@@ -78,7 +78,7 @@ export function ExtractSlidesModal({
       setSubmitting(false);
       // The server's message is the specific one (already published / send queued / that's
       // every photo), so it is shown verbatim rather than replaced with a generic failure.
-      setError(body.error ?? "Could not pull those photos out.");
+      setError(body.error ?? "Não foi possível separar essas fotos.");
       return;
     }
     onExtracted();
@@ -93,16 +93,16 @@ export function ExtractSlidesModal({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Pull slides out"
+        aria-label="Separar slides"
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-card border border-border-strong bg-surface p-5 shadow-lg"
       >
-        <h2 className="font-display text-base font-semibold text-ink">Pull slides out</h2>
+        <h2 className="font-display text-base font-semibold text-ink">Separar slides</h2>
         <p className="mt-1 text-sm text-muted">{extractSummary(slides.length, picked.length)}</p>
         <p className="mt-2 text-sm text-muted">
-          Each one becomes its own post with a copy of this one&rsquo;s caption, channels, tags
-          and seasons. No photos are deleted.
+          Cada uma vira seu próprio post com uma cópia da legenda, contas, tags e
+          períodos deste. Nenhuma foto é excluída.
         </p>
 
         <ul className="mt-4 flex flex-wrap gap-3">
@@ -116,7 +116,7 @@ export function ExtractSlidesModal({
                     className="absolute left-1 top-1 z-10"
                     checked={on}
                     onChange={() => toggle(slide.assetId)}
-                    aria-label={`Pull out photo ${i + 1}`}
+                    aria-label={`Separar foto ${i + 1}`}
                   />
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -139,8 +139,8 @@ export function ExtractSlidesModal({
 
         {takesEverything ? (
           <p className="mt-4 text-sm text-status-failed">
-            That&rsquo;s every photo. Use Split into separate posts instead — it does exactly
-            this.
+            Isso é todas as fotos. Use Dividir em posts separados em vez disso — é exatamente
+            o que isso faz.
           </p>
         ) : null}
         {error ? <p className="mt-4 text-sm text-status-failed">{error}</p> : null}
@@ -152,7 +152,7 @@ export function ExtractSlidesModal({
             disabled={submitting}
             className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-medium text-ink hover:bg-surface-sunken disabled:opacity-50"
           >
-            Cancel
+            Cancelar
           </button>
           <button
             type="button"
@@ -160,7 +160,7 @@ export function ExtractSlidesModal({
             disabled={!canSubmit}
             className="rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-on-accent hover:bg-accent-ink disabled:opacity-50"
           >
-            {submitting ? "Pulling out…" : "Pull out"}
+            {submitting ? "Separando…" : "Separar"}
           </button>
         </div>
       </div>

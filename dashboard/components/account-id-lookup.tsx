@@ -7,7 +7,7 @@ type FoundAccount = { id: string; name: string | null; isHandle: boolean };
 
 /** "@liparoto" for a handle, "LFK Events" for a Page's display name — never "@LFK Events". */
 function displayName(account: FoundAccount): string {
-  if (!account.name) return "Account";
+  if (!account.name) return "Conta";
   return account.isHandle ? `@${account.name}` : account.name;
 }
 
@@ -85,7 +85,7 @@ export function AccountIdLookup({
       setState({
         status: "error",
         for: context,
-        message: "Paste your access token in the field below first — that is what identifies the account.",
+        message: "Cole seu access token no campo abaixo primeiro — é isso que identifica a conta.",
       });
       return;
     }
@@ -103,13 +103,13 @@ export function AccountIdLookup({
       setState({
         status: "error",
         for: context,
-        message: "Could not reach the dashboard's own server. Is it still running?",
+        message: "Não foi possível alcançar o servidor do dashboard. Ele ainda está rodando?",
       });
       return;
     }
 
     if (!body.ok || !body.accounts?.length) {
-      setState({ status: "error", for: context, message: body.error ?? "The lookup failed." });
+      setState({ status: "error", for: context, message: body.error ?? "A busca falhou." });
       return;
     }
 
@@ -139,8 +139,8 @@ export function AccountIdLookup({
         className="text-xs font-medium text-brand hover:text-brand-ink disabled:text-muted"
       >
         {shown.status === "loading"
-          ? `Asking ${platformLabel(platform)}…`
-          : `Don't know it? Look it up from your access token`}
+          ? `Perguntando ao ${platformLabel(platform)}…`
+          : `Não sabe qual é? Busque a partir do seu access token`}
       </button>
 
       {shown.status === "error" ? (
@@ -152,7 +152,7 @@ export function AccountIdLookup({
       {shown.status === "choose" ? (
         <div className="mt-2 rounded-lg border border-border bg-surface-muted p-2.5">
           <p className="mb-2 text-xs text-ink-soft">
-            That token administers {shown.accounts.length} Pages. Which one is this channel?
+            Esse token administra {shown.accounts.length} páginas. Qual delas é esta conta?
           </p>
           <div className="flex flex-col gap-1">
             {shown.accounts.map((a) => (
@@ -162,7 +162,7 @@ export function AccountIdLookup({
                 onClick={() => choose(a)}
                 className="rounded border border-border bg-surface px-2.5 py-1.5 text-left text-xs text-ink hover:border-brand"
               >
-                <span className="font-medium">{a.name ?? "Unnamed Page"}</span>
+                <span className="font-medium">{a.name ?? "Página sem nome"}</span>
                 <span className="ml-2 text-muted">{a.id}</span>
               </button>
             ))}
@@ -172,10 +172,10 @@ export function AccountIdLookup({
 
       {shown.status === "done" ? (
         <p className="mt-2 rounded-lg border border-border bg-surface-muted p-2.5 text-xs text-ink-soft">
-          <span className="font-medium text-ink">{displayName(shown.account)} found.</span>{" "}
-          {accountIdLabel(platform)} filled in{shown.filledName ? ", along with the account name" : ""}. Check
-          the name matches the account you meant to connect — that is what confirms the
-          token and the id in one go.
+          <span className="font-medium text-ink">{displayName(shown.account)} encontrado.</span>{" "}
+          {accountIdLabel(platform)} preenchido{shown.filledName ? ", junto com o nome da conta" : ""}. Confira
+          se o nome bate com a conta que você queria conectar — é isso que confirma o
+          token e o id de uma vez só.
         </p>
       ) : null}
     </div>

@@ -11,15 +11,15 @@ export default function MediaPage() {
   return (
     <div>
       <PageHeader
-        title="Mídia"
+        title="Biblioteca"
         subtitle="Todos os arquivos no seu banco de mídia. Qualquer coisa que não está mais em uso pode ser excluída para liberar espaço."
       />
       <div className="px-8 py-6">
         {assets.length === 0 ? (
-          <EmptyState title="No media yet">
-            Upload something on{" "}
+          <EmptyState title="Nenhuma mídia ainda">
+            Envie algo em{" "}
             <Link href="/compose" className="text-brand underline underline-offset-2">
-              Compose
+              Postar Reel
             </Link>
             .
           </EmptyState>

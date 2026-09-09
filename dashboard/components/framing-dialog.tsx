@@ -125,7 +125,7 @@ export function FramingDialog({
   function attemptClose() {
     // A discarded choice is cheap to redo; a silently discarded one is confusing. Only
     // asks when there is genuinely something to lose.
-    if (dirty && !window.confirm("Discard the framing changes you haven't saved?")) return;
+    if (dirty && !window.confirm("Descartar as mudanças de enquadramento não salvas?")) return;
     onClose();
   }
 
@@ -136,7 +136,7 @@ export function FramingDialog({
       body: JSON.stringify({ mode }),
     });
     if (res.ok) return true;
-    setError((await res.json().catch(() => ({}))).error ?? "Could not update framing.");
+    setError((await res.json().catch(() => ({}))).error ?? "Não foi possível atualizar o enquadramento.");
     return false;
   }
 
@@ -162,7 +162,7 @@ export function FramingDialog({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       role="dialog"
       aria-modal="true"
-      aria-label="Framing"
+      aria-label="Enquadramento"
       onClick={(e) => {
         if (e.target === e.currentTarget) attemptClose();
       }}
@@ -170,33 +170,33 @@ export function FramingDialog({
       <div className="max-h-full w-full max-w-3xl overflow-auto rounded-card border border-border bg-surface p-5">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h2 className="font-display text-sm font-semibold text-ink">Framing</h2>
+            <h2 className="font-display text-sm font-semibold text-ink">Enquadramento</h2>
             <p className="data text-[11px] text-faint">
-              Source {w} × {h}
+              Origem {w} × {h}
             </p>
           </div>
           <button onClick={attemptClose} className="text-sm text-muted hover:text-ink">
-            Close
+            Fechar
           </button>
         </div>
 
         {!isImage ? (
           <p className="rounded-lg border border-dashed border-border-strong px-3 py-6 text-center text-xs text-muted">
-            Video isn&apos;t reframed here — a video needs a transcode, not a crop.
+            Vídeo não é reenquadrado aqui — um vídeo precisa de transcodificação, não de corte.
           </p>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2">
             {/* ---- Feed ---------------------------------------------------------- */}
             <section>
               <h3 className="mb-0.5 text-xs font-medium text-ink">Feed</h3>
-              <p className="mb-2 text-[11px] text-muted">4:5 to 1.91:1</p>
+              <p className="mb-2 text-[11px] text-muted">4:5 a 1.91:1</p>
               <div style={{ height: FEED_PREVIEW_HEIGHT, aspectRatio: feedShape }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={`/api/media/${asset.id}?variant=publish&mode=${
                     feedMode === "pad" ? "pad" : "crop"
                   }&v=${bust}`}
-                  alt="Feed framing preview"
+                  alt="Prévia do enquadramento do feed"
                   className={PREVIEW_IMG}
                 />
               </div>
@@ -205,8 +205,8 @@ export function FramingDialog({
                 // for an in-range source and leaves the shape alone. Offering two buttons
                 // that cannot differ is the same lie the 40x40 object-cover preview told.
                 <p className="mt-2 text-[11px] text-muted">
-                  Already within 4:5 – 1.91:1 — published with this shape untouched, so
-                  there is nothing to crop or pad.
+                  Já dentro de 4:5 – 1.91:1 — publicado com essa forma intacta, então
+                  não há nada para cortar ou preencher.
                 </p>
               ) : (
                 <>
@@ -218,7 +218,7 @@ export function FramingDialog({
                       className={optionBtn(feedMode === "crop")}
                       onClick={() => setFeedMode("crop")}
                     >
-                      Crop
+                      Cortar
                     </button>
                     <button
                       type="button"
@@ -227,17 +227,17 @@ export function FramingDialog({
                       className={optionBtn(feedMode === "pad")}
                       onClick={() => setFeedMode("pad")}
                     >
-                      Pad
+                      Preencher
                     </button>
                   </div>
                   <dl className="mt-1.5 space-y-0.5 text-[11px] text-muted">
                     <div className="flex gap-1.5">
-                      <dt className="shrink-0 font-medium">Crop</dt>
-                      <dd>fills the frame — trims to fit the feed&apos;s range.</dd>
+                      <dt className="shrink-0 font-medium">Cortar</dt>
+                      <dd>preenche o quadro — corta para caber no intervalo do feed.</dd>
                     </div>
                     <div className="flex gap-1.5">
-                      <dt className="shrink-0 font-medium">Pad</dt>
-                      <dd>keeps the whole photo, on white bars.</dd>
+                      <dt className="shrink-0 font-medium">Preencher</dt>
+                      <dd>mantém a foto inteira, com barras brancas.</dd>
                     </div>
                   </dl>
                 </>
@@ -250,7 +250,7 @@ export function FramingDialog({
               <p className="mb-2 text-[11px] text-muted">9:16</p>
               {!storyNeedsCanvas ? (
                 <p className="rounded-lg border border-dashed border-border-strong px-3 py-6 text-center text-xs text-muted">
-                  Already 9:16 — the original is published untouched, with nothing to choose.
+                  Já é 9:16 — o original é publicado intacto, sem nada para escolher.
                 </p>
               ) : (
                 <>
@@ -258,7 +258,7 @@ export function FramingDialog({
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={`/api/media/${asset.id}?variant=story&mode=${storyMode}&v=${bust}`}
-                      alt="Story framing preview"
+                      alt="Prévia do enquadramento do story"
                       className={PREVIEW_IMG}
                     />
                   </div>
@@ -270,7 +270,7 @@ export function FramingDialog({
                       className={optionBtn(storyMode === "blurred")}
                       onClick={() => setStoryMode("blurred")}
                     >
-                      Blurred fill
+                      Preenchimento borrado
                     </button>
                     <button
                       type="button"
@@ -279,7 +279,7 @@ export function FramingDialog({
                       className={optionBtn(storyMode === "crop")}
                       onClick={() => setStoryMode("crop")}
                     >
-                      Crop to fill
+                      Cortar para preencher
                     </button>
                   </div>
                   {/* BOTH costs are always shown, not just the selected one. Revealing
@@ -287,12 +287,12 @@ export function FramingDialog({
                       is to compare before committing. */}
                   <dl className="mt-1.5 space-y-0.5 text-[11px] text-muted">
                     <div className="flex gap-1.5">
-                      <dt className="shrink-0 font-medium">Blurred fill</dt>
-                      <dd>keeps the whole photo, over a blurred copy of itself.</dd>
+                      <dt className="shrink-0 font-medium">Preenchimento borrado</dt>
+                      <dd>mantém a foto inteira, sobre uma cópia borrada dela mesma.</dd>
                     </div>
                     <div className="flex gap-1.5">
-                      <dt className="shrink-0 font-medium">Crop to fill</dt>
-                      <dd>fills the frame — loses {cropLoss}% of the width.</dd>
+                      <dt className="shrink-0 font-medium">Cortar para preencher</dt>
+                      <dd>preenche o quadro — perde {cropLoss}% da largura.</dd>
                     </div>
                   </dl>
                 </>
@@ -305,9 +305,9 @@ export function FramingDialog({
           // Shown up front, not only once something is dirty: the point is to know what is
           // at stake BEFORE fiddling, which is the whole reason this warning exists.
           <p className="mt-4 text-[11px] text-muted">
-            {scheduledSendCount} scheduled send{scheduledSendCount === 1 ? "" : "s"} will use
-            the new framing. Already-posted sends are unaffected — what is on Instagram
-            can&apos;t be changed from here.
+            {scheduledSendCount} envio{scheduledSendCount === 1 ? "" : "s"} agendado{scheduledSendCount === 1 ? "" : "s"} vai
+            {scheduledSendCount === 1 ? "" : "ão"} usar o novo enquadramento. Envios já publicados não são afetados — o que
+            está no Instagram não pode ser mudado por aqui.
           </p>
         ) : null}
         {error ? <p className="mt-2 text-[11px] text-status-failed">{error}</p> : null}
@@ -320,7 +320,7 @@ export function FramingDialog({
               disabled={busy || !dirty}
               className="rounded-md border border-transparent bg-brand-weak px-3 py-1.5 text-xs font-medium text-brand-strong transition-opacity hover:opacity-90 disabled:opacity-40"
             >
-              {busy ? "Saving…" : "Save framing"}
+              {busy ? "Salvando…" : "Salvar enquadramento"}
             </button>
             <button
               type="button"
@@ -328,10 +328,10 @@ export function FramingDialog({
               disabled={busy}
               className="rounded-md px-2.5 py-1.5 text-xs text-muted transition-colors hover:text-ink disabled:opacity-40"
             >
-              Cancel
+              Cancelar
             </button>
             <span className="data ml-auto text-[11px] text-faint">
-              {dirty ? "Unsaved changes" : "Nothing to save"}
+              {dirty ? "Mudanças não salvas" : "Nada para salvar"}
             </span>
           </div>
         ) : null}

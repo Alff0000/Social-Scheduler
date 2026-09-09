@@ -14,7 +14,7 @@ import { useState, useTransition } from "react";
 export function InsightsRefresh({
   channelId,
   pending,
-  label = "Sync now",
+  label = "Sincronizar agora",
 }: {
   channelId: number;
   pending?: boolean;
@@ -29,7 +29,7 @@ export function InsightsRefresh({
     setError(null);
     const response = await fetch(`/api/insights/${channelId}/refresh`, { method: "POST" });
     if (!response.ok) {
-      setError("Could not queue the refresh.");
+      setError("Não foi possível enfileirar a atualização.");
       return;
     }
     setQueued(true);
@@ -40,7 +40,7 @@ export function InsightsRefresh({
     return (
       <span className="inline-flex items-center gap-1.5 rounded-lg bg-surface-sunken px-3 py-1.5 text-xs font-medium text-muted">
         <span className="h-1.5 w-1.5 rounded-full bg-status-publishing" aria-hidden />
-        Queued — the worker picks this up on its next cycle
+        Enfileirado — o worker pega isso no próximo ciclo
       </span>
     );
   }
@@ -53,7 +53,7 @@ export function InsightsRefresh({
         disabled={isPending}
         className="inline-flex items-center rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-surface-sunken disabled:opacity-60"
       >
-        {isPending ? "Queueing…" : label}
+        {isPending ? "Enfileirando…" : label}
       </button>
       {error ? <span className="text-xs text-status-failed">{error}</span> : null}
     </span>

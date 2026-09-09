@@ -158,14 +158,14 @@ export function ScheduleFromLibrary({
     setBusy(false);
     if (!res.ok) {
       const b = await res.json().catch(() => ({}));
-      setError(b.error ?? "Could not schedule.");
+      setError(b.error ?? "Não foi possível agendar.");
       return;
     }
     const b = await res.json();
     setNotice(
       postNow
-        ? `Posting now to ${b.created} account${b.created === 1 ? "" : "s"}.`
-        : `Scheduled to ${b.created} account${b.created === 1 ? "" : "s"}.`
+        ? `Postando agora para ${b.created} conta${b.created === 1 ? "" : "s"}.`
+        : `Agendado para ${b.created} conta${b.created === 1 ? "" : "s"}.`
     );
     setTargets([]);
     // Re-fetch server state so the dry-run / kill-switch / worker readiness banner
@@ -177,15 +177,15 @@ export function ScheduleFromLibrary({
   if (!selected) {
     return (
       <div className={card}>
-        <h3 className="mb-2 font-display text-sm font-semibold text-ink">Pick a post to schedule</h3>
+        <h3 className="mb-2 font-display text-sm font-semibold text-ink">Escolha um post para agendar</h3>
         <input
           className="mb-3 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-faint focus:border-brand"
-          placeholder="Search captions…"
+          placeholder="Buscar legendas…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         {shown.length === 0 ? (
-          <p className="text-sm text-muted">No posts. Create one in “New post” or the Library.</p>
+          <p className="text-sm text-muted">Nenhum post. Crie um em "Novo post" ou na Agendamento em Massa.</p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {shown.map((p) => (
@@ -221,11 +221,11 @@ export function ScheduleFromLibrary({
                   )
                 ) : (
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-surface-sunken text-center text-[10px] text-faint">
-                    {p.post_type === "text" ? "Text post" : "no image"}
+                    {p.post_type === "text" ? "Post de texto" : "sem imagem"}
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="truncate text-sm text-ink">{p.caption || "(no caption)"}</p>
+                  <p className="truncate text-sm text-ink">{p.caption || "(sem legenda)"}</p>
                   <p className="data mt-1 text-[11px] text-muted">
                     {p.content_kind} · {p.content_status}
                   </p>
@@ -266,11 +266,11 @@ export function ScheduleFromLibrary({
               )
             ) : (
               <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-surface-sunken text-center text-xs text-faint">
-                {selected.post_type === "text" ? "Text post" : "no image"}
+                {selected.post_type === "text" ? "Post de texto" : "sem imagem"}
               </div>
             )}
             <div>
-              <p className="text-sm text-ink">{selected.caption || "(no caption)"}</p>
+              <p className="text-sm text-ink">{selected.caption || "(sem legenda)"}</p>
               <p className="data mt-1 text-[11px] text-muted">
                 {selected.content_kind} · {selected.content_status}
               </p>
@@ -281,35 +281,35 @@ export function ScheduleFromLibrary({
             onClick={() => setSelectedId(null)}
             className="shrink-0 text-xs text-brand underline underline-offset-2"
           >
-            Change
+            Trocar
           </button>
         </div>
         <p className="mt-3 text-xs text-faint">
-          Scheduling reuses this post as-is. To change wording or targets, edit it in the{" "}
+          Agendar reaproveita este post como está. Para mudar o texto ou os destinos, edite-o na{" "}
           <Link href={`/library/${selected.id}`} className="text-brand underline underline-offset-2">
-            Library
+            Agendamento em Massa
           </Link>{" "}
-          first.
+          primeiro.
         </p>
       </div>
 
       <div className={card}>
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="font-display text-sm font-semibold text-ink">Where & when</h3>
+          <h3 className="font-display text-sm font-semibold text-ink">Onde e quando</h3>
           <div className="inline-flex rounded-lg border border-border p-0.5">
             <button
               type="button"
               className={segBtn(!postNow)}
               onClick={() => setPostNow(false)}
             >
-              Schedule
+              Agendar
             </button>
             <button
               type="button"
               className={segBtn(postNow)}
               onClick={() => setPostNow(true)}
             >
-              Post now
+              Postar agora
             </button>
           </div>
         </div>
@@ -346,11 +346,11 @@ export function ScheduleFromLibrary({
         {!postNow ? (
           <div className="flex flex-wrap items-end gap-3">
             <div>
-              <label className="block text-xs font-medium text-ink-soft mb-1">Date</label>
+              <label className="block text-xs font-medium text-ink-soft mb-1">Data</label>
               <input type="date" className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink focus:border-brand" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-ink-soft mb-1">Time (each account’s local)</label>
+              <label className="block text-xs font-medium text-ink-soft mb-1">Horário (local de cada conta)</label>
               <input type="time" className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink focus:border-brand" value={time} onChange={(e) => setTime(e.target.value)} />
             </div>
           </div>
@@ -361,7 +361,7 @@ export function ScheduleFromLibrary({
         {error ? <p className="mt-3 text-sm text-status-failed">{error}</p> : null}
         {notice ? (
           <p className="mt-3 text-sm text-status-posted">
-            {notice} <Link href="/" className="underline underline-offset-2">View queue →</Link>
+            {notice} <Link href="/" className="underline underline-offset-2">Ver fila →</Link>
           </p>
         ) : null}
 
@@ -373,11 +373,11 @@ export function ScheduleFromLibrary({
           >
             {busy
               ? postNow
-                ? "Sending…"
-                : "Scheduling…"
+                ? "Enviando…"
+                : "Agendando…"
               : postNow
-              ? `Post now to ${targetAccountCount} account${targetAccountCount === 1 ? "" : "s"}`
-              : `Schedule to ${targetAccountCount} account${targetAccountCount === 1 ? "" : "s"}`}
+              ? `Postar agora para ${targetAccountCount} conta${targetAccountCount === 1 ? "" : "s"}`
+              : `Agendar para ${targetAccountCount} conta${targetAccountCount === 1 ? "" : "s"}`}
           </button>
         </div>
       </div>

@@ -70,28 +70,28 @@ export default function LibraryPage() {
   return (
     <div>
       <PageHeader
-        title="Biblioteca"
+        title="Agendamento em Massa"
         subtitle="Todas as publicações que você já fez — selecione várias para agendar em massa num ritmo, ou reaproveite para reciclar."
         action={
           <Link href="/import" className="text-sm text-brand underline underline-offset-2">
-            Bulk import →
+            Importação em massa →
           </Link>
         }
       />
       <div className="px-8 py-6">
         {posts.length === 0 ? (
-          <EmptyState title="No posts yet">
-            Create one on{" "}
+          <EmptyState title="Nenhuma publicação ainda">
+            Crie uma em{" "}
             <Link href="/compose" className="text-brand underline underline-offset-2">
-              Compose
+              Postar Reel
             </Link>{" "}
-            — use “Save as draft” to build up a library you can bulk-schedule here.
+            — use "Salvar como rascunho" pra construir uma biblioteca que você pode agendar em massa aqui.
           </EmptyState>
         ) : channels.length === 0 ? (
-          <EmptyState title="Add a channel first">
-            You need an active channel before scheduling. Head to{" "}
+          <EmptyState title="Adicione uma conta primeiro">
+            Você precisa de uma conta ativa antes de agendar. Vá em{" "}
             <Link href="/channels" className="text-brand underline underline-offset-2">
-              Channels
+              Contas
             </Link>
             .
           </EmptyState>

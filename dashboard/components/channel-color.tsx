@@ -39,7 +39,7 @@ export function ChannelColor({
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       setValue(previous);
-      setError(body.error ?? "Could not save the accent colour.");
+      setError(body.error ?? "Não foi possível salvar a cor de destaque.");
       return;
     }
     startTransition(() => router.refresh());
@@ -51,8 +51,8 @@ export function ChannelColor({
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between text-left"
       >
-        <span className="text-xs font-medium text-ink-soft">Accent colour</span>
-        <span className="text-xs text-muted">{open ? "Hide" : "Edit"}</span>
+        <span className="text-xs font-medium text-ink-soft">Cor de destaque</span>
+        <span className="text-xs text-muted">{open ? "Ocultar" : "Editar"}</span>
       </button>
 
       {open ? (
@@ -64,7 +64,7 @@ export function ChannelColor({
             previewName={accountName}
             previewPlatformLabel={platformLabel(platform)}
           />
-          {pending ? <p className="mt-2 text-[11px] text-muted">Saving…</p> : null}
+          {pending ? <p className="mt-2 text-[11px] text-muted">Salvando…</p> : null}
           {error ? <p className="mt-2 text-[11px] text-status-failed">{error}</p> : null}
         </div>
       ) : null}

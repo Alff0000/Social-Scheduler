@@ -46,7 +46,7 @@ export function FramingButton({
             : "border border-border text-muted hover:text-ink"
         }`}
       >
-        {unreviewed ? "Review framing" : "Framing"}
+        {unreviewed ? "Revisar enquadramento" : "Enquadramento"}
       </button>
       {open ? (
         <FramingDialog

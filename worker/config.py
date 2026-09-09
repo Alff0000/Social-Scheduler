@@ -244,7 +244,10 @@ class Config:
             # Instagram-Login path (recommended, no FB Page): https://graph.instagram.com
             # Facebook-Login / FB Pages path:                  https://graph.facebook.com
             graph_base=os.environ.get("META_GRAPH_BASE", "https://graph.facebook.com"),
-            default_timezone=os.environ.get("DEFAULT_TIMEZONE", "UTC"),
+            # "America/Sao_Paulo", not "UTC" — must match dashboard/lib/config.ts's own
+            # fallback for this same var, or a clone with no DEFAULT_TIMEZONE set gets a
+            # channel's auto-fill slots on a different zone than the dashboard displays.
+            default_timezone=os.environ.get("DEFAULT_TIMEZONE", "America/Sao_Paulo"),
             poll_interval=int(os.environ.get("WORKER_POLL_INTERVAL", "30")),
             publish_claim_lease_seconds=int(
                 os.environ.get("PUBLISH_CLAIM_LEASE_SECONDS", "1800")

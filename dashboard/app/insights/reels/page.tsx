@@ -17,9 +17,9 @@ export const dynamic = "force-dynamic";
 */
 
 const SORTS: { key: PostSortKey; label: string }[] = [
-  { key: "impressions", label: "Views" },
-  { key: "likes", label: "Likes" },
-  { key: "comments", label: "Comments" },
+  { key: "impressions", label: "Visualizações" },
+  { key: "likes", label: "Curtidas" },
+  { key: "comments", label: "Comentários" },
   { key: "published_at", label: "Mais recentes" },
 ];
 
@@ -104,9 +104,9 @@ export default async function ReelsInsightsPage({
               <dl className="grid grid-cols-2 divide-y divide-border sm:grid-cols-4 sm:divide-y-0 sm:divide-x">
                 {[
                   { label: "Reels", value: exact(totals.count) },
-                  { label: "Views", value: compact(totals.views) },
-                  { label: "Likes", value: compact(totals.likes) },
-                  { label: "Comments", value: compact(totals.comments) },
+                  { label: "Visualizações", value: compact(totals.views) },
+                  { label: "Curtidas", value: compact(totals.likes) },
+                  { label: "Comentários", value: compact(totals.comments) },
                 ].map((k) => (
                   <div key={k.label} className="px-5 py-4">
                     <dt className="text-[10px] uppercase tracking-wide text-faint">{k.label}</dt>
@@ -149,10 +149,10 @@ export default async function ReelsInsightsPage({
                     <thead>
                       <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-faint">
                         <th className="px-5 pb-2 pt-3 font-medium">Reel</th>
-                        <th className="pb-2 pt-3 text-right font-medium">Views</th>
-                        <th className="pb-2 pt-3 text-right font-medium">Likes</th>
-                        <th className="pb-2 pt-3 text-right font-medium">Comments</th>
-                        <th className="px-5 pb-2 pt-3 text-right font-medium">Engagement</th>
+                        <th className="pb-2 pt-3 text-right font-medium">Visualizações</th>
+                        <th className="pb-2 pt-3 text-right font-medium">Curtidas</th>
+                        <th className="pb-2 pt-3 text-right font-medium">Comentários</th>
+                        <th className="px-5 pb-2 pt-3 text-right font-medium">Engajamento</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">

@@ -174,9 +174,9 @@ export function QuickEditModal({
           signal: controller.signal,
         });
         const body = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(body.error ?? "Could not load this post's captions.");
+        if (!res.ok) throw new Error(body.error ?? "Não foi possível carregar as legendas deste post.");
         if (!Array.isArray(body.caption_variants)) {
-          throw new Error("The caption response was incomplete.");
+          throw new Error("A resposta das legendas estava incompleta.");
         }
         const drafts = captionsToDrafts(body.caption_variants);
         setOpenedCaptions(drafts);
@@ -184,7 +184,7 @@ export function QuickEditModal({
       } catch (loadError) {
         if (controller.signal.aborted) return;
         setCaptionError(
-          loadError instanceof Error ? loadError.message : "Could not load this post's captions."
+          loadError instanceof Error ? loadError.message : "Não foi possível carregar as legendas deste post."
         );
       }
     }
@@ -316,7 +316,7 @@ export function QuickEditModal({
   async function save() {
     if (saving) return;
     if (overLimit.length > 0) {
-      setError(`Caption is over the limit for: ${overLimit.join(", ")}.`);
+      setError(`A legenda ultrapassa o limite para: ${overLimit.join(", ")}.`);
       return;
     }
     setSaving(true);
@@ -325,7 +325,7 @@ export function QuickEditModal({
       // First, and abort on failure. This is the request that can 409 (the post is being
       // published right now), so failing here leaves nothing at all written.
       if (!(await slideOrder.save())) {
-        setError(slideOrder.error ?? "Could not save the slide order.");
+        setError(slideOrder.error ?? "Não foi possível salvar a ordem dos slides.");
         return;
       }
       const res = await fetch(`/api/posts/${post.id}/content`, {
@@ -351,12 +351,12 @@ export function QuickEditModal({
       if (!res.ok) {
         // Stay open with the user's input intact — a rejected save must never look like
         // a successful one, and retyping the edit to retry it is pure friction.
-        setError(body.error ?? "Could not save these changes.");
+        setError(body.error ?? "Não foi possível salvar essas alterações.");
         return;
       }
       onSaved();
     } catch {
-      setError("Could not confirm whether the save completed. Reopen this post to check.");
+      setError("Não foi possível confirmar se o salvamento foi concluído. Reabra este post para verificar.");
     } finally {
       setSaving(false);
     }
@@ -381,13 +381,13 @@ export function QuickEditModal({
               renders the variants, and on a post where those two have drifted the dialog
               would contradict itself. The caption is editable a few pixels down anyway. */}
           <h2 id="quick-edit-title" className="min-w-0 font-display text-xl font-semibold text-ink">
-            Quick edit
+            Edição rápida
           </h2>
           <button
             type="button"
             onClick={requestClose}
             className="rounded-lg px-2 py-1 text-sm text-muted hover:bg-surface-sunken hover:text-ink"
-            aria-label="Close quick edit"
+            aria-label="Fechar edição rápida"
           >
             ✕
           </button>
@@ -405,7 +405,7 @@ export function QuickEditModal({
             and POST /api/posts/[id]/assets refuses it with `text_post`. */}
         {orderAssets && post.post_type !== "text" ? (
           <div className="mt-5 space-y-2">
-            <h3 className="text-xs font-medium text-muted">Media</h3>
+            <h3 className="text-xs font-medium text-muted">Mídia</h3>
             <PostMediaEditor
               postId={post.id}
               slides={orderAssets.map((a) => ({
@@ -438,8 +438,8 @@ export function QuickEditModal({
             />
             {isCarousel && post.queued_publication_count > 0 ? (
               <p className="data text-[11px] text-muted">
-                {post.queued_publication_count} queued send
-                {post.queued_publication_count === 1 ? "" : "s"} will go out in this order.
+                {post.queued_publication_count} envio{post.queued_publication_count === 1 ? "" : "s"}{" "}
+                na fila {post.queued_publication_count === 1 ? "sairá" : "sairão"} nesta ordem.
               </p>
             ) : null}
           </div>
@@ -451,8 +451,8 @@ export function QuickEditModal({
               <div className="rounded-lg border border-status-failed/40 p-4" role="alert">
                 <p className="text-sm text-status-failed">{captionError}</p>
                 <p className="mt-1 text-xs text-muted">
-                  The captions on this post are untouched — saving now will leave them exactly
-                  as they are and only update the fields below.
+                  As legendas deste post não foram tocadas — salvar agora vai deixá-las
+                  exatamente como estão e só atualizar os campos abaixo.
                 </p>
                 <button
                   type="button"
@@ -464,12 +464,12 @@ export function QuickEditModal({
                   }}
                   className="mt-3 rounded-lg border border-border px-3 py-1.5 text-sm text-ink hover:bg-surface-sunken"
                 >
-                  Retry
+                  Tentar de novo
                 </button>
               </div>
             ) : (
               <p className="text-sm text-muted" role="status">
-                Loading caption…
+                Carregando legenda…
               </p>
             )
           ) : (
@@ -490,9 +490,9 @@ export function QuickEditModal({
                       : "text-muted"
                   }`}
                 >
-                  Generic caption: {genericLength} / {genericLimit.limit} characters —
-                  strictest of {genericLimit.label}
-                  {genericLength > genericLimit.limit ? ", over the limit." : "."}
+                  Legenda genérica: {genericLength} / {genericLimit.limit} caracteres —
+                  a mais restritiva entre {genericLimit.label}
+                  {genericLength > genericLimit.limit ? ", acima do limite." : "."}
                 </p>
               ) : null}
             </>
@@ -507,29 +507,29 @@ export function QuickEditModal({
               value={status}
               onChange={(e) => setStatus(e.target.value as ContentStatus)}
             >
-              <option value="draft">Draft</option>
-              <option value="ready">Ready</option>
-              <option value="retired">Retired</option>
+              <option value="draft">Rascunho</option>
+              <option value="ready">Pronto</option>
+              <option value="retired">Aposentado</option>
             </select>
           </label>
           <label className="text-xs text-ink-soft">
-            <span className="mb-1 block">Kind</span>
+            <span className="mb-1 block">Tipo</span>
             <select
               className={`${field} w-full`}
               value={kind}
               onChange={(e) => setKind(e.target.value as ContentKind)}
             >
               <option value="evergreen">Evergreen</option>
-              <option value="one_time">One-time</option>
+              <option value="one_time">Uma vez</option>
             </select>
           </label>
           <label className="text-xs text-ink-soft">
-            <span className="mb-1 block">Cooldown days</span>
+            <span className="mb-1 block">Dias de cooldown</span>
             <input
               type="number"
               min={0}
               step={1}
-              placeholder="Channel default"
+              placeholder="Padrão da conta"
               className={`${field} w-full`}
               value={cooldown}
               onChange={(e) => setCooldown(e.target.value)}
@@ -537,7 +537,7 @@ export function QuickEditModal({
           </label>
         </section>
         <p className="mt-1.5 text-[11px] text-faint">
-          Leave cooldown blank to use the channel default.
+          Deixe o cooldown em branco para usar o padrão da conta.
         </p>
 
         <section className="mt-5 border-t border-border pt-5">
@@ -566,10 +566,10 @@ export function QuickEditModal({
             aria-labelledby="quick-edit-discard-title"
           >
             <p id="quick-edit-discard-title" className="text-sm font-semibold text-ink">
-              Discard changes?
+              Descartar alterações?
             </p>
             <p className="mt-1 text-xs text-muted">
-              Your edits to this post have not been saved yet.
+              Suas edições neste post ainda não foram salvas.
             </p>
             <div className="mt-3 flex gap-2">
               <button
@@ -578,14 +578,14 @@ export function QuickEditModal({
                 autoFocus
                 className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-ink hover:bg-surface-sunken"
               >
-                Keep editing
+                Continuar editando
               </button>
               <button
                 type="button"
                 onClick={onClose}
                 className="rounded-lg border border-status-failed/50 px-3 py-1.5 text-sm font-medium text-status-failed hover:bg-status-failed/10"
               >
-                Discard
+                Descartar
               </button>
             </div>
           </div>
@@ -593,7 +593,7 @@ export function QuickEditModal({
 
         <div className="mt-6 flex items-center justify-between gap-4">
           <p className="text-[11px] text-faint">
-            Targets and sends stay in the full editor.
+            Destinos e envios ficam no editor completo.
           </p>
           <div className="flex gap-2">
             <button
@@ -602,7 +602,7 @@ export function QuickEditModal({
               disabled={saving}
               className="rounded-lg border border-border px-4 py-2 text-sm text-ink hover:bg-surface-sunken disabled:opacity-50"
             >
-              Cancel
+              Cancelar
             </button>
             <button
               type="button"
@@ -610,7 +610,7 @@ export function QuickEditModal({
               disabled={saving}
               className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-ink disabled:opacity-50"
             >
-              {saving ? "Saving…" : "Save changes"}
+              {saving ? "Salvando…" : "Salvar alterações"}
             </button>
           </div>
         </div>

@@ -15,17 +15,17 @@ import type { Period, Tag } from "@/lib/types";
 function noteFor(queued: number, isFailedSend: boolean): string {
   if (isFailedSend) {
     if (queued === 0) {
-      return "Edits the post itself — including this failed send, when you retry it.";
+      return "Edita o post em si — incluindo este envio com falha, quando você tentar de novo.";
     }
-    return `Edits the post itself — this failed send when you retry it, and the ${queued} other send${
-      queued === 1 ? "" : "s"
-    } queued from it.`;
+    return `Edita o post em si — este envio com falha quando você tentar de novo, e ${
+      queued === 1 ? "o outro envio" : `os outros ${queued} envios`
+    } na fila a partir dele.`;
   }
   if (queued > 1) {
-    return `Edits the post itself — all ${queued} queued sends of it, not just this row.`;
+    return `Edita o post em si — todos os ${queued} envios na fila dele, não só esta linha.`;
   }
-  if (queued === 1) return "Edits the post itself. One send is queued from it.";
-  return "Edits the post itself. Nothing is queued from it right now.";
+  if (queued === 1) return "Edita o post em si. Um envio está na fila a partir dele.";
+  return "Edita o post em si. Nada está na fila a partir dele agora.";
 }
 
 /**
@@ -80,18 +80,18 @@ export function QueueQuickEdit({
           signal: controller.signal,
         });
         const body = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(body.error ?? "Could not load this post.");
+        if (!res.ok) throw new Error(body.error ?? "Não foi possível carregar este post.");
         if (!body.quick_edit || !Array.isArray(body.caption_variants)) {
           // Half a post is worse than none: seeding the dialog from a partial response
           // and saving it would write those gaps back over real values.
-          throw new Error("The response for this post was incomplete.");
+          throw new Error("A resposta para este post estava incompleta.");
         }
         setCaptions(captionsToDrafts(body.caption_variants));
         setPost(body.quick_edit as QuickEditPost);
       } catch (loadError) {
         if (controller.signal.aborted) return;
         setError(
-          loadError instanceof Error ? loadError.message : "Could not load this post."
+          loadError instanceof Error ? loadError.message : "Não foi possível carregar este post."
         );
       }
     })();
@@ -162,7 +162,7 @@ export function QueueQuickEdit({
       className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4"
       role="dialog"
       aria-modal="true"
-      aria-label="Loading post"
+      aria-label="Carregando post"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -171,7 +171,7 @@ export function QueueQuickEdit({
         {error ? (
           <div role="alert">
             <h2 className="font-display text-base font-semibold text-ink">
-              Couldn&rsquo;t open this post
+              Não foi possível abrir este post
             </h2>
             <p className="mt-2 text-sm text-status-failed">{error}</p>
             <div className="mt-4 flex justify-end">
@@ -180,12 +180,12 @@ export function QueueQuickEdit({
                 onClick={onClose}
                 className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-surface-sunken"
               >
-                Close
+                Fechar
               </button>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-muted">Loading post…</p>
+          <p className="text-sm text-muted">Carregando post…</p>
         )}
       </div>
     </div>

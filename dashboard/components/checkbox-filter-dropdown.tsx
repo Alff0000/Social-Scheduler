@@ -47,15 +47,15 @@ export function CheckboxFilterPanel<T extends CheckboxFilterValue>({
   return (
     <div
       role="dialog"
-      aria-label={`${label} filters`}
+      aria-label={`Filtros de ${label}`}
       className="w-72 rounded-lg border border-border bg-surface p-3 shadow-lg"
     >
       <input
         ref={searchInputRef}
         type="search"
         autoFocus={autoFocus}
-        aria-label={`Search ${label}`}
-        placeholder={`Search ${label.toLocaleLowerCase()}…`}
+        aria-label={`Buscar ${label}`}
+        placeholder={`Buscar ${label.toLocaleLowerCase()}…`}
         value={query}
         onChange={(event) => onQueryChange(event.target.value)}
         className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-faint focus:border-brand"
@@ -66,19 +66,19 @@ export function CheckboxFilterPanel<T extends CheckboxFilterValue>({
           onClick={() => onChange(allOptionValues(options))}
           className="text-xs font-medium text-brand-strong hover:text-brand"
         >
-          Select all
+          Selecionar tudo
         </button>
         <button
           type="button"
           onClick={() => onChange(new Set<T>())}
           className="text-xs font-medium text-muted hover:text-ink"
         >
-          Clear all
+          Limpar tudo
         </button>
       </div>
       <div className="mt-2 max-h-56 space-y-1 overflow-y-auto">
         {visibleOptions.length === 0 ? (
-          <p className="px-2 py-3 text-center text-xs text-faint">No matches</p>
+          <p className="px-2 py-3 text-center text-xs text-faint">Nenhum resultado</p>
         ) : (
           visibleOptions.map((option) => (
             <label
@@ -101,7 +101,7 @@ export function CheckboxFilterPanel<T extends CheckboxFilterValue>({
         onClick={onApply}
         className="mt-3 w-full rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-on-accent hover:bg-accent-ink"
       >
-        Apply
+        Aplicar
       </button>
     </div>
   );
@@ -187,7 +187,7 @@ export function CheckboxFilterDropdown<T extends CheckboxFilterValue>({
   }
 
   const triggerText = disabled
-    ? `${label} — none available`
+    ? `${label} — nenhum disponível`
     : selected.size > 0
       ? `${label} · ${selected.size}`
       : label;

@@ -70,7 +70,12 @@ export const config = {
   databasePath: resolveRepoPath(get("DATABASE_PATH", "data/socialscheduler.db")),
   assetStorageDir: resolveRepoPath(get("ASSET_STORAGE_DIR", "data/assets")),
   publicAssetBaseUrl: get("PUBLIC_ASSET_BASE_URL", ""),
-  defaultTimezone: get("DEFAULT_TIMEZONE", "UTC"),
+  // "America/Sao_Paulo", not "UTC": this fork's audience is Brazilian (see
+  // lib/timezones.ts's TIMEZONE_PRESETS), and worker/config.py's fallback must match —
+  // the two independently default this same var and a clone with no DEFAULT_TIMEZONE set
+  // must get the same zone on both sides or a channel's slots and its dashboard display
+  // disagree.
+  defaultTimezone: get("DEFAULT_TIMEZONE", "America/Sao_Paulo"),
   // Read from the same env vars as worker/config.py:243, :246 and :260, with the same
   // defaults, so the account-id lookup can never ask a different API version — or a
   // different HOST — than the worker publishes against. Threads versions independently of

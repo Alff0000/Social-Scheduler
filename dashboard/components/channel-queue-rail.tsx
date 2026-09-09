@@ -58,7 +58,7 @@ export function ChannelQueueRail({
                 : "border-border hover:bg-surface-sunken/40"
             }`}
             style={{ borderLeft: `3px solid ${color.dot}` }}
-            title={isOn ? `Showing only ${c.account_name} — click to clear` : `Show only ${c.account_name}`}
+            title={isOn ? `Mostrando só ${c.account_name} — clique para limpar` : `Mostrar só ${c.account_name}`}
           >
             <div className="flex items-center justify-between">
               <ChannelChip
@@ -72,9 +72,9 @@ export function ChannelQueueRail({
             </div>
             <p className="mt-2 text-xs text-muted">
               {count === 0
-                ? "Nothing scheduled ahead"
+                ? "Nada agendado pela frente"
                 : next
-                  ? `Next ${formatInTz(next, c.timezone)} ${tzAbbrev(c.timezone)}`
+                  ? `Próximo ${formatInTz(next, c.timezone)} ${tzAbbrev(c.timezone)}`
                   : ""}
             </p>
           </button>

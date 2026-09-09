@@ -156,8 +156,8 @@ test("ready badge details provide a stable description relationship and worker c
     {
       descriptionId: "post-42-season-status-description",
       description:
-        "Advisory season status for 2026-08-03 in America/Los_Angeles. " +
-        "The worker evaluates eligibility using each target channel's timezone.",
+        "Status sazonal informativo para 2026-08-03 em America/Los_Angeles. " +
+        "O worker avalia a elegibilidade usando o fuso horário de cada conta de destino.",
       triggerProps: {
         type: "button",
         "aria-describedby": "post-42-season-status-description",
@@ -179,8 +179,8 @@ test("invalid badge details tell assistive technology that period configuration 
   );
 
   assert.equal(details.descriptionId, "post-43-season-status-description");
-  assert.match(details.description, /Invalid period configuration/);
-  assert.match(details.description, /must be fixed/);
+  assert.match(details.description, /configuração do período é inválida/);
+  assert.match(details.description, /precisa ser corrigida/);
   assert.match(details.description, /2026-08-03/);
   assert.match(details.description, /America\/Los_Angeles/);
   assert.equal(details.triggerProps.type, "button");

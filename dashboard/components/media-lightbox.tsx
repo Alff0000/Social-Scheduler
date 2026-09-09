@@ -94,7 +94,7 @@ export function MediaBadge({
   onOpen: () => void;
   label?: string;
 }) {
-  const verb = mediaKind === "video" ? "Play video" : "View image";
+  const verb = mediaKind === "video" ? "Reproduzir vídeo" : "Ver imagem";
   const accessibleName = label ? `${verb} — ${label}` : verb;
 
   return (
@@ -156,8 +156,8 @@ export function LightboxPanel({
       <button
         type="button"
         onClick={onClose}
-        aria-label="Close"
-        title="Close"
+        aria-label="Fechar"
+        title="Fechar"
         className="absolute -right-3 -top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-ink shadow-lg hover:bg-surface-sunken"
       >
         <CloseGlyph />
@@ -173,8 +173,8 @@ export function LightboxPanel({
             type="button"
             onClick={() => onStep(-1)}
             disabled={index === 0}
-            aria-label="Previous slide"
-            title="Previous slide"
+            aria-label="Slide anterior"
+            title="Slide anterior"
             className={`${navButton} -left-4`}
           >
             <ChevronGlyph direction="left" />
@@ -183,8 +183,8 @@ export function LightboxPanel({
             type="button"
             onClick={() => onStep(1)}
             disabled={index === assets.length - 1}
-            aria-label="Next slide"
-            title="Next slide"
+            aria-label="Próximo slide"
+            title="Próximo slide"
             className={`${navButton} -right-4`}
           >
             <ChevronGlyph direction="right" />
@@ -197,8 +197,9 @@ export function LightboxPanel({
 
       {mediaError ? (
         <p className="max-w-sm rounded-card border border-border bg-surface px-6 py-8 text-sm text-status-failed">
-          Couldn&apos;t load this file — it may be missing, or (for a video saved before
-          automatic conversion existed) in a format this browser can&apos;t play.
+          Não foi possível carregar este arquivo — ele pode estar ausente, ou (para um vídeo
+          salvo antes de existir conversão automática) em um formato que este navegador não
+          consegue reproduzir.
         </p>
       ) : asset.media_kind === "video" ? (
         <video

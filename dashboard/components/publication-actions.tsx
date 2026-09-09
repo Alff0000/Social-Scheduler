@@ -66,7 +66,7 @@ export function PublicationActions({
     const res = await fetch(`/api/publications/${id}/${action}`, { method: "POST" });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Something went wrong.");
+      setError(body.error ?? "Algo deu errado.");
       return;
     }
     startTransition(() => router.refresh());
@@ -81,7 +81,7 @@ export function PublicationActions({
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Something went wrong.");
+      setError(body.error ?? "Algo deu errado.");
       return;
     }
     setShowReschedule(false);
@@ -93,7 +93,7 @@ export function PublicationActions({
     const res = await fetch(`/api/publications/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Something went wrong.");
+      setError(body.error ?? "Algo deu errado.");
       return;
     }
     startTransition(() => router.refresh());
@@ -107,14 +107,14 @@ export function PublicationActions({
         disabled={pending}
         className="rounded-md bg-status-failed px-2.5 py-1 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
       >
-        {pending ? "Canceling…" : "Confirm cancel"}
+        {pending ? "Cancelando…" : "Confirmar cancelamento"}
       </button>
       <button
         onClick={() => setConfirmCancel(false)}
         disabled={pending}
         className="rounded-md px-2 py-1 text-xs font-medium text-muted hover:text-ink disabled:opacity-50"
       >
-        Keep
+        Manter
       </button>
     </div>
   ) : (
@@ -122,7 +122,7 @@ export function PublicationActions({
       onClick={() => setConfirmCancel(true)}
       className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted hover:border-status-failed hover:text-status-failed"
     >
-      Cancel
+      Cancelar
     </button>
   );
 
@@ -134,14 +134,14 @@ export function PublicationActions({
         disabled={pending}
         className="rounded-md bg-status-failed px-2.5 py-1 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
       >
-        {pending ? "Deleting…" : "Confirm delete"}
+        {pending ? "Excluindo…" : "Confirmar exclusão"}
       </button>
       <button
         onClick={() => setConfirmDelete(false)}
         disabled={pending}
         className="rounded-md px-2 py-1 text-xs font-medium text-muted hover:text-ink disabled:opacity-50"
       >
-        Keep
+        Manter
       </button>
     </div>
   ) : (
@@ -149,7 +149,7 @@ export function PublicationActions({
       onClick={() => setConfirmDelete(true)}
       className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted hover:border-status-failed hover:text-status-failed"
     >
-      Delete
+      Excluir
     </button>
   );
 
@@ -159,7 +159,7 @@ export function PublicationActions({
       disabled={pending}
       className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-ink-soft hover:bg-surface-sunken disabled:opacity-50"
     >
-      {isHeld ? (pending ? "Resuming…" : "Resume") : pending ? "Holding…" : "Hold"}
+      {isHeld ? (pending ? "Retomando…" : "Retomar") : pending ? "Colocando em espera…" : "Colocar em espera"}
     </button>
   );
 
@@ -178,11 +178,11 @@ export function PublicationActions({
         className="whitespace-nowrap rounded-md border border-border-strong px-2.5 py-1 text-xs font-medium text-ink-soft hover:bg-surface-sunken disabled:opacity-50"
         title={
           workerOnline
-            ? "Stop waiting for the retry timer — the worker picks this up on its next check, within 30 seconds."
-            : "Worker looks offline — this clears the wait now and sends once you start it."
+            ? "Parar de esperar o temporizador de nova tentativa — o worker pega isso na próxima verificação, dentro de 30 segundos."
+            : "O worker parece offline — isso limpa a espera agora e envia assim que você iniciá-lo."
         }
       >
-        {pending ? "Sending…" : "Try again now"}
+        {pending ? "Enviando…" : "Tentar de novo agora"}
       </button>
     ) : null;
 
@@ -195,9 +195,9 @@ export function PublicationActions({
         setConfirmCancel(false);
       }}
       className="rounded-md px-1.5 py-1 text-xs font-medium text-faint hover:text-ink-soft"
-      title="More actions"
+      title="Mais ações"
     >
-      {showMore ? "Less ▲" : "More ▾"}
+      {showMore ? "Menos ▲" : "Mais ▾"}
     </button>
   );
 
@@ -221,19 +221,19 @@ export function PublicationActions({
           disabled={pending || !date || !time}
           className="rounded-md bg-brand px-2.5 py-1 text-xs font-medium text-on-brand hover:bg-brand-ink disabled:opacity-50"
         >
-          {pending ? "Saving…" : "Save"}
+          {pending ? "Salvando…" : "Salvar"}
         </button>
         <button
           onClick={() => setShowReschedule(false)}
           disabled={pending}
           className="rounded-md px-2 py-1 text-xs font-medium text-muted hover:text-ink disabled:opacity-50"
         >
-          Discard
+          Descartar
         </button>
       </div>
       {isPastInTz(date, time, channelTimezone) ? (
         <span className="text-[10px] text-status-scheduled">
-          That&apos;s in the past — will send on the next worker run.
+          Isso está no passado — vai enviar na próxima execução do worker.
         </span>
       ) : null}
     </div>
@@ -242,7 +242,7 @@ export function PublicationActions({
       onClick={() => setShowReschedule(true)}
       className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted hover:border-brand hover:text-brand"
     >
-      Reschedule
+      Reagendar
     </button>
   );
 
@@ -251,7 +251,7 @@ export function PublicationActions({
     const res = await fetch(`/api/publications/${id}/refresh-metrics`, { method: "POST" });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Something went wrong.");
+      setError(body.error ?? "Algo deu errado.");
       return;
     }
     setQueued(true);
@@ -267,7 +267,7 @@ export function PublicationActions({
             disabled={pending}
             className="rounded-md border border-border-strong px-2.5 py-1 text-xs font-medium text-ink-soft hover:bg-surface-sunken disabled:opacity-50"
           >
-            {pending ? "Retrying…" : "Retry"}
+            {pending ? "Tentando de novo…" : "Tentar de novo"}
           </button>
           {moreToggle}
         </div>
@@ -286,7 +286,7 @@ export function PublicationActions({
             disabled={pending}
             className="rounded-md bg-brand px-2.5 py-1 text-xs font-medium text-on-brand hover:bg-brand-ink disabled:opacity-50"
           >
-            {pending ? "Approving…" : "Approve"}
+            {pending ? "Aprovando…" : "Aprovar"}
           </button>
           {holdResumeControl}
           {cancelControl}
@@ -348,14 +348,14 @@ export function PublicationActions({
           className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-ink-soft hover:bg-surface-sunken disabled:opacity-50"
           title={
             workerOnline
-              ? "Queue a metrics fetch on the next worker run"
-              : "Worker looks offline — this will apply once you start it"
+              ? "Enfileirar uma coleta de métricas na próxima execução do worker"
+              : "O worker parece offline — isso vai aplicar assim que você iniciá-lo"
           }
         >
-          {queued ? "Queued ✓" : "Refresh metrics"}
+          {queued ? "Enfileirado ✓" : "Atualizar métricas"}
         </button>
         {queued && !workerOnline ? (
-          <span className="text-[10px] text-status-scheduled">Worker offline — starts when it runs</span>
+          <span className="text-[10px] text-status-scheduled">Worker offline — inicia quando ele rodar</span>
         ) : null}
         {error ? <span className="text-[10px] text-status-failed">{error}</span> : null}
       </div>

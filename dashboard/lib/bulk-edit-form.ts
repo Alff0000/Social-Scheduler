@@ -57,8 +57,8 @@ export function bulkEditChangeLabels(
 ): string[] {
   const labels: string[] = [];
   for (const [verb, ids] of [
-    ["add", draft.tagAdds],
-    ["remove", draft.tagRemoves],
+    ["adicionar", draft.tagAdds],
+    ["remover", draft.tagRemoves],
   ] as const) {
     const names = ids
       .map((id) => tags.find((tag) => tag.id === id)?.name)
@@ -69,23 +69,25 @@ export function bulkEditChangeLabels(
     );
   }
   for (const [verb, links] of [
-    ["attach", draft.periodAdds],
-    ["detach", draft.periodRemoves],
+    ["anexar", draft.periodAdds],
+    ["desanexar", draft.periodRemoves],
   ] as const) {
     for (const { periodId, mode } of selectedPeriodLinks(links)) {
       const name = periods.find((period) => period.id === periodId)?.name;
-      if (name) labels.push(`${verb} ${name} as ${mode}`);
+      const modePt = mode === "green" ? "ativo" : "bloqueio";
+      if (name) labels.push(`${verb} ${name} como ${modePt}`);
     }
   }
   if (draft.contentStatus !== "unchanged") {
-    labels.push(`set status to ${draft.contentStatus}`);
+    const statusPt = { draft: "rascunho", ready: "pronto", retired: "aposentado" }[draft.contentStatus];
+    labels.push(`definir status como ${statusPt}`);
   }
   if (draft.contentKind !== "unchanged") {
-    labels.push(`set kind to ${draft.contentKind === "one_time" ? "one-time" : "evergreen"}`);
+    labels.push(`definir tipo como ${draft.contentKind === "one_time" ? "uma vez" : "evergreen"}`);
   }
-  if (draft.cooldownMode === "default") labels.push("clear cooldown to channel default");
+  if (draft.cooldownMode === "default") labels.push("limpar cooldown para o padrão da conta");
   if (draft.cooldownMode === "custom") {
-    labels.push(`set cooldown to ${draft.cooldownDays} day${draft.cooldownDays === 1 ? "" : "s"}`);
+    labels.push(`definir cooldown para ${draft.cooldownDays} dia${draft.cooldownDays === 1 ? "" : "s"}`);
   }
   return labels;
 }

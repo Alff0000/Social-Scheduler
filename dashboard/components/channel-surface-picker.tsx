@@ -152,17 +152,17 @@ export function ChannelSurfacePicker({
           const anyOn = feedOn || (offersStory && storyOn) || (offersReel && reelOn);
 
           const reason = textDisabled
-            ? `${platformLabel(c.platform)} can't post text-only`
+            ? `${platformLabel(c.platform)} não publica só texto`
             : videoDisabled
-              ? `${platformLabel(c.platform)} can't post video`
+              ? `${platformLabel(c.platform)} não publica vídeo`
               : feedLimitReason
                 ? feedLimitReason
                 : platformLabel(c.platform);
           const approval =
             !feedDisabled && c.requires_approval
               ? postNow
-                ? " · approval skipped (Post now)"
-                : " · needs approval"
+                ? " · aprovação pulada (Postar agora)"
+                : " · precisa de aprovação"
               : "";
 
           const identity = (
@@ -214,7 +214,7 @@ export function ChannelSurfacePicker({
                 <div className="flex items-center gap-3">
                   {identity}
                   <span className="ml-auto flex shrink-0 gap-1" role="group"
-                        aria-label={`${c.account_name} destinations`}>
+                        aria-label={`Destinos de ${c.account_name}`}>
                     <SurfaceChip
                       label="Feed"
                       on={feedOn}
@@ -300,12 +300,12 @@ export function ChannelSurfacePicker({
           multi-slide post becomes one Story per slide — a surprise if discovered later. */}
       {anyStorySelected && anyNeedsReframing ? (
         <p className="mt-2 text-xs text-muted">
-          Not 9:16 — will be reframed to fit a Story. Change how in Framing.
+          Não é 9:16 — será reenquadrado para caber num Story. Mude como em Enquadramento.
         </p>
       ) : null}
       {anyStorySelected && storyCount > 1 ? (
         <p className="mt-2 text-xs text-muted">
-          {storyCount} slides → {storyCount} Stories, posted back to back in slide order.
+          {storyCount} slides → {storyCount} Stories, postados em sequência na ordem dos slides.
         </p>
       ) : null}
     </div>

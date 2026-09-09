@@ -20,16 +20,16 @@ test("non-positive totals never report full coverage", () => {
 });
 
 test("coverage labels summarize all, partial, and absent coverage", () => {
-  assert.equal(coverageLabel(3, 3), "All 3");
-  assert.equal(coverageLabel(1, 3), "1 of 3");
-  assert.equal(coverageLabel(0, 3), "None");
+  assert.equal(coverageLabel(3, 3), "Todos os 3");
+  assert.equal(coverageLabel(1, 3), "1 de 3");
+  assert.equal(coverageLabel(0, 3), "Nenhum");
 });
 
 test("coverage labels clamp invalid negative values", () => {
-  assert.equal(coverageLabel(-2, 3), "None");
-  assert.equal(coverageLabel(1, 0), "Some");
-  assert.equal(coverageLabel(1, -3), "Some");
-  assert.equal(coverageLabel(0, -3), "None");
+  assert.equal(coverageLabel(-2, 3), "Nenhum");
+  assert.equal(coverageLabel(1, 0), "Alguns");
+  assert.equal(coverageLabel(1, -3), "Alguns");
+  assert.equal(coverageLabel(0, -3), "Nenhum");
 });
 
 test("removable ids put full coverage first and omit absent ids", () => {

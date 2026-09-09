@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { US_TIMEZONES, isPresetTimezone, isValidTimezone } from "@/lib/timezones";
+import { TIMEZONE_PRESETS, isPresetTimezone, isValidTimezone } from "@/lib/timezones";
 
 const CUSTOM = "__custom__";
 
 /**
- * Timezone control: the four continental US zones as a dropdown, with a Custom
- * option that takes any IANA name.
+ * Timezone control: Brasília plus the four continental US zones as a dropdown, with a
+ * Custom option that takes any IANA name.
  *
  * The shortlist is a convenience, not a constraint — this repo is meant to be
  * cloned by anyone, so the long tail has to stay reachable. A saved value that
@@ -59,12 +59,12 @@ export function TimezonePicker({
         value={isCustom ? CUSTOM : value}
         onChange={(e) => selectPreset(e.target.value)}
       >
-        {US_TIMEZONES.map((t) => (
+        {TIMEZONE_PRESETS.map((t) => (
           <option key={t.value} value={t.value}>
             {t.label} — {t.value}
           </option>
         ))}
-        <option value={CUSTOM}>Other (type an IANA name)…</option>
+        <option value={CUSTOM}>Outro (digite um nome IANA)…</option>
       </select>
 
       {isCustom ? (
@@ -140,14 +140,14 @@ function TimezonePreview({ timezone, valid }: { timezone: string; valid: boolean
     return (
       <p className="text-xs text-status-failed">
         {timezone.trim()
-          ? `"${timezone}" isn't a timezone name — try America/New_York.`
-          : "Enter an IANA timezone name, e.g. America/New_York."}
+          ? `"${timezone}" não é um nome de fuso horário — tente America/Sao_Paulo.`
+          : "Digite um nome de fuso horário IANA, ex.: America/Sao_Paulo."}
       </p>
     );
   }
   return (
     <p className="data text-xs text-muted">
-      {now ? `${now} right now` : " "}
+      {now ? `${now} agora` : " "}
     </p>
   );
 }

@@ -137,10 +137,10 @@ export function checkMedia(
   const d = asset.duration_ms;
   if (d != null) {
     if (entry.min_duration_ms != null && d < entry.min_duration_ms) {
-      out.push({ kind: "too_short", message: `shorter than ${entry.min_duration_ms / 1000}s`, severity });
+      out.push({ kind: "too_short", message: `mais curto que ${entry.min_duration_ms / 1000}s`, severity });
     }
     if (entry.max_duration_ms != null && d > entry.max_duration_ms) {
-      out.push({ kind: "too_long", message: `longer than ${entry.max_duration_ms / 1000}s`, severity });
+      out.push({ kind: "too_long", message: `mais longo que ${entry.max_duration_ms / 1000}s`, severity });
     }
   }
 
@@ -148,22 +148,22 @@ export function checkMedia(
   if (w != null && h != null) {
     if ((entry.min_width != null && w < entry.min_width) ||
         (entry.min_height != null && h < entry.min_height)) {
-      out.push({ kind: "too_small", message: `smaller than ${entry.min_width ?? "?"}x${entry.min_height ?? "?"}`, severity });
+      out.push({ kind: "too_small", message: `menor que ${entry.min_width ?? "?"}x${entry.min_height ?? "?"}`, severity });
     }
     if ((entry.max_width != null && w > entry.max_width) ||
         (entry.max_height != null && h > entry.max_height)) {
-      out.push({ kind: "too_large", message: `larger than ${entry.max_width ?? "?"}x${entry.max_height ?? "?"}`, severity });
+      out.push({ kind: "too_large", message: `maior que ${entry.max_width ?? "?"}x${entry.max_height ?? "?"}`, severity });
     }
     if (!mediaIsConformed &&
         ((entry.min_aspect && ratioBelow(w, h, entry.min_aspect)) ||
          (entry.max_aspect && ratioAbove(w, h, entry.max_aspect)))) {
-      out.push({ kind: "wrong_aspect", message: `aspect ratio ${w}x${h}`, severity });
+      out.push({ kind: "wrong_aspect", message: `proporção ${w}x${h}`, severity });
     }
   }
 
   const b = asset.byte_size;
   if (!mediaIsConformed && b != null && entry.max_bytes != null && b > entry.max_bytes) {
-    out.push({ kind: "too_large", message: `larger than ${entry.max_bytes} bytes`, severity });
+    out.push({ kind: "too_large", message: `maior que ${entry.max_bytes} bytes`, severity });
   }
 
   return out;
@@ -180,13 +180,13 @@ export function destinationDisabledReason(
 ): string | null {
   const refusals = checkMedia(platform, surface, asset).filter((v) => v.severity === "refuse");
   if (refusals.length === 0) return null;
-  const surfaceLabel = surface === "reel" ? "Reels" : surface === "story" ? "Stories" : "the feed";
+  const surfaceLabel = surface === "reel" ? "Reels" : surface === "story" ? "Stories" : "o feed";
   const v = refusals[0];
-  const lead = v.kind === "too_long" ? "Too long for"
-    : v.kind === "too_short" ? "Too short for"
-    : v.kind === "too_small" ? "Too small for"
-    : v.kind === "too_large" ? "Too large for"
-    : "Wrong shape for";
+  const lead = v.kind === "too_long" ? "Longo demais para"
+    : v.kind === "too_short" ? "Curto demais para"
+    : v.kind === "too_small" ? "Pequeno demais para"
+    : v.kind === "too_large" ? "Grande demais para"
+    : "Formato errado para";
   return `${lead} ${surfaceLabel} (${v.message})`;
 }
 

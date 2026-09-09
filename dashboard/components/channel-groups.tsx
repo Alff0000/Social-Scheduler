@@ -55,7 +55,7 @@ export function ChannelGroups({
       body: JSON.stringify({ name, timezone }),
     });
     if (!res.ok) {
-      setError(((await res.json()) as { error?: string }).error || "Could not create the group.");
+      setError(((await res.json()) as { error?: string }).error || "Não foi possível criar o grupo.");
       return;
     }
     setName("");
@@ -66,8 +66,8 @@ export function ChannelGroups({
   async function remove(id: number, label: string) {
     if (
       !window.confirm(
-        `Delete the group "${label}"?\n\nIts channels go back to auto-filling on their own. ` +
-          `Nothing already scheduled is changed or deleted.`
+        `Excluir o grupo "${label}"?\n\nSuas contas voltam a preencher automaticamente sozinhas. ` +
+          `Nada já agendado é alterado ou excluído.`
       )
     ) {
       return;
@@ -82,11 +82,11 @@ export function ChannelGroups({
   return (
     <section className="mb-8">
       <div className="mb-3">
-        <h2 className="text-sm font-semibold text-ink">Auto-fill groups</h2>
+        <h2 className="text-sm font-semibold text-ink">Grupos de preenchimento automático</h2>
         <p className="mt-1 text-xs text-muted">
-          Channels in a group auto-fill together — the same content, at the same moment, on one
-          cadence. A channel that can&rsquo;t take a post (Threads and video, say) sits that slot
-          out; anything blocked by a cooldown or blackout holds the whole group back.
+          Contas num grupo preenchem juntas — o mesmo conteúdo, no mesmo momento, numa única
+          cadência. Uma conta que não pode publicar algo (Threads e vídeo, por exemplo) fica de
+          fora naquele horário; qualquer coisa bloqueada por cooldown ou bloqueio segura o grupo todo.
         </p>
       </div>
 
@@ -103,7 +103,7 @@ export function ChannelGroups({
                   ·{" "}
                   {g.members.length
                     ? g.members.map((m) => m.account_name).join(" + ")
-                    : "no channels yet"}
+                    : "nenhuma conta ainda"}
                 </p>
               </div>
               <button
@@ -111,7 +111,7 @@ export function ChannelGroups({
                 disabled={pending}
                 className="text-xs text-muted hover:text-status-failed disabled:opacity-50"
               >
-                Delete
+                Excluir
               </button>
             </div>
             {/* The group owns its members' timezone: one preview, one confirm, every
@@ -133,16 +133,16 @@ export function ChannelGroups({
       <div className="mt-3 rounded-card border border-border bg-surface p-4">
         <div className="flex flex-wrap items-start gap-3">
           <label className="text-xs text-ink-soft">
-            <span className="mb-1 block">New group</span>
+            <span className="mb-1 block">Novo grupo</span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Personal"
+              placeholder="Pessoal"
               className={field}
             />
           </label>
           <div className="min-w-56 text-xs text-ink-soft">
-            <span className="mb-1 block">Timezone</span>
+            <span className="mb-1 block">Fuso horário</span>
             {/* Same picker the channel form uses, so an invalid zone can't be typed —
                 and a group that silently stayed on "UTC" posted at the wrong hour. */}
             <TimezonePicker
@@ -159,7 +159,7 @@ export function ChannelGroups({
             disabled={pending || !name.trim() || !tzValid}
             className="rounded-md bg-brand px-3 py-1.5 text-xs font-semibold text-on-brand hover:bg-brand-ink disabled:opacity-50"
           >
-            Create group
+            Criar grupo
           </button>
           {error ? <span className="text-xs text-status-failed">{error}</span> : null}
         </div>

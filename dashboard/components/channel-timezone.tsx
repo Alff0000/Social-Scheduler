@@ -44,8 +44,8 @@ export function ChannelTimezone({
       : `/api/channels/${target.id}/timezone`;
   const emptyLabel =
     target.kind === "group"
-      ? "No pending sends on this group’s channels — nothing to move."
-      : "No pending sends on this channel — nothing to move.";
+      ? "Nenhum envio pendente nas contas deste grupo — nada para mover."
+      : "Nenhum envio pendente nesta conta — nada para mover.";
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
@@ -73,7 +73,7 @@ export function ChannelTimezone({
       body: JSON.stringify(body),
     });
     const json = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(json.error ?? "Could not change the timezone.");
+    if (!res.ok) throw new Error(json.error ?? "Não foi possível mudar o fuso horário.");
     return json;
   }
 
@@ -113,8 +113,8 @@ export function ChannelTimezone({
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between text-left"
       >
-        <span className="text-xs font-medium text-ink-soft">Timezone</span>
-        <span className="text-xs text-muted">{open ? "Hide" : "Edit"}</span>
+        <span className="text-xs font-medium text-ink-soft">Fuso horário</span>
+        <span className="text-xs text-muted">{open ? "Ocultar" : "Editar"}</span>
       </button>
 
       {open ? (
@@ -128,9 +128,9 @@ export function ChannelTimezone({
               ) : (
                 <>
                   <p className="text-xs text-ink-soft">
-                    {moving.length} pending {moving.length === 1 ? "send" : "sends"} will keep
-                    the same clock time, so {moving.length === 1 ? "its" : "their"} actual
-                    posting moment moves:
+                    {moving.length} envio{moving.length === 1 ? "" : "s"} pendente{moving.length === 1 ? "" : "s"} vão manter
+                    o mesmo horário no relógio, então o momento real{moving.length === 1 ? "" : "s"} de
+                    postagem muda{moving.length === 1 ? "" : "m"}:
                   </p>
                   <ul className="mt-2 space-y-1">
                     {moving.map((s) => (
@@ -146,7 +146,7 @@ export function ChannelTimezone({
                         <span className="text-ink-soft">
                           {formatInTz(s.after, value)} {tzAbbrev(value)}
                         </span>
-                        {s.is_held ? <span className="text-faint">(held)</span> : null}
+                        {s.is_held ? <span className="text-faint">(em espera)</span> : null}
                       </li>
                     ))}
                   </ul>
@@ -163,10 +163,10 @@ export function ChannelTimezone({
                 className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-on-brand hover:bg-brand-ink disabled:opacity-50"
               >
                 {busy
-                  ? "Saving…"
+                  ? "Salvando…"
                   : moving.length > 0
-                    ? `Save & move ${moving.length} ${moving.length === 1 ? "send" : "sends"}`
-                    : "Save"}
+                    ? `Salvar e mover ${moving.length} envio${moving.length === 1 ? "" : "s"}`
+                    : "Salvar"}
               </button>
             ) : (
               <button
@@ -174,7 +174,7 @@ export function ChannelTimezone({
                 disabled={busy || !valid || !dirty}
                 className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-on-brand hover:bg-brand-ink disabled:opacity-50"
               >
-                {busy ? "Checking…" : dirty ? "Review change" : "No change"}
+                {busy ? "Checando…" : dirty ? "Revisar mudança" : "Sem mudança"}
               </button>
             )}
             {dirty ? (
@@ -184,12 +184,12 @@ export function ChannelTimezone({
                 }}
                 className="text-xs text-muted hover:text-ink"
               >
-                Reset
+                Redefinir
               </button>
             ) : null}
           </div>
 
-          {pending ? <p className="text-[11px] text-muted">Refreshing…</p> : null}
+          {pending ? <p className="text-[11px] text-muted">Atualizando…</p> : null}
           {error ? <p className="text-[11px] text-status-failed">{error}</p> : null}
         </div>
       ) : null}

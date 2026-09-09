@@ -47,7 +47,7 @@ export function DownloadMediaButton({
    */
   variant: "lightbox" | "overlay" | "overlay-compact";
 }) {
-  const accessibleName = label ? `Download original — ${label}` : "Download original";
+  const accessibleName = label ? `Baixar original — ${label}` : "Baixar original";
 
   const position =
     variant === "lightbox"

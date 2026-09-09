@@ -8,14 +8,14 @@ import { deliveryLabel, isAwaitingPublication } from "./platforms";
 
 test("a delivered tiktok send never reads as posted", () => {
   const label = deliveryLabel({ platform: "tiktok", status: "posted", delivery_state: "inbox" });
-  assert.match(label ?? "", /inbox/i);
-  assert.doesNotMatch(label ?? "", /^posted$/i);
+  assert.match(label ?? "", /caixa de entrada/i);
+  assert.doesNotMatch(label ?? "", /^postado$/i);
 });
 
 test("a published tiktok send says it is live", () => {
   assert.match(
     deliveryLabel({ platform: "tiktok", status: "posted", delivery_state: "published" }) ?? "",
-    /live on tiktok/i,
+    /no ar no tiktok/i,
   );
 });
 
@@ -25,11 +25,11 @@ test("an unconfirmed send says so rather than guessing either way", () => {
     status: "posted",
     delivery_state: "gave_up",
   });
-  assert.match(label ?? "", /unconfirmed/i);
+  assert.match(label ?? "", /não confirmada/i);
   // "We don't know" must not drift into either "it failed" or "it published". Word
-  // boundaries matter here: "Delivered" contains the letters of "live".
-  assert.doesNotMatch(label ?? "", /\bfailed\b/i);
-  assert.doesNotMatch(label ?? "", /\blive\b/i);
+  // boundaries matter here: "Entregue" contains no part of "no ar".
+  assert.doesNotMatch(label ?? "", /\bfalhou\b/i);
+  assert.doesNotMatch(label ?? "", /\bno ar\b/i);
 });
 
 test("every platform that publishes on command is unaffected", () => {
@@ -56,7 +56,7 @@ test("an unrecognised delivery state looks wrong rather than reading as publishe
     status: "posted",
     delivery_state: "sideways",
   });
-  assert.match(label ?? "", /unknown/i);
+  assert.match(label ?? "", /desconhecido/i);
   assert.match(label ?? "", /sideways/);
 });
 
@@ -86,7 +86,7 @@ test("tiktok is a platform the metric renderers know about", async () => {
   );
   assert.match(src, /case "tiktok":/, "post-sends-panel has no tiktok branch");
   const tiktokBranch = src.slice(src.indexOf('case "tiktok":'), src.indexOf("default:"));
-  assert.doesNotMatch(tiktokBranch, /"reach"/, "tiktok must not claim reach");
-  assert.doesNotMatch(tiktokBranch, /"saves"/, "tiktok must not claim saves");
-  assert.match(tiktokBranch, /"views"/);
+  assert.doesNotMatch(tiktokBranch, /"alcance"/, "tiktok must not claim reach");
+  assert.doesNotMatch(tiktokBranch, /"salvamentos"/, "tiktok must not claim saves");
+  assert.match(tiktokBranch, /"visualizações"/);
 });

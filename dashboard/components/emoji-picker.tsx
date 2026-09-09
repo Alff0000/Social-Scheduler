@@ -172,7 +172,7 @@ export function EmojiPicker({ onInsert }: { onInsert: (emoji: string) => void })
         type="button"
         ref={triggerRef}
         className={triggerCls}
-        aria-label="Insert emoji"
+        aria-label="Inserir emoji"
         aria-expanded={open}
         onClick={toggle}
       >
@@ -184,19 +184,19 @@ export function EmojiPicker({ onInsert }: { onInsert: (emoji: string) => void })
         <div
           className="absolute right-0 z-30 mt-1 w-80 rounded-card border border-border bg-surface p-3 shadow-lg"
           role="dialog"
-          aria-label="Emoji picker"
+          aria-label="Seletor de emoji"
         >
           <input
             ref={searchRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search emoji…"
+            placeholder="Buscar emoji…"
             className="mb-2 w-full rounded-md border border-border bg-canvas px-2 py-1 text-sm text-ink placeholder:text-faint focus:border-brand focus:outline-none"
           />
 
           {data === null ? (
-            <p className="py-6 text-center text-xs text-muted">Loading emoji…</p>
+            <p className="py-6 text-center text-xs text-muted">Carregando emoji…</p>
           ) : (
             <>
               <div className="mb-2 flex gap-1 overflow-x-auto pb-1">
@@ -205,7 +205,7 @@ export function EmojiPicker({ onInsert }: { onInsert: (emoji: string) => void })
                   className={`${chipCls} ${group === null ? "bg-surface-sunken" : ""}`}
                   onClick={() => setGroup(null)}
                 >
-                  All
+                  Todos
                 </button>
                 {data.groups.map((g) => (
                   <button
@@ -221,7 +221,7 @@ export function EmojiPicker({ onInsert }: { onInsert: (emoji: string) => void })
 
               {query.trim() === "" && recents.length > 0 ? (
                 <div className="mb-2 border-b border-border pb-2">
-                  <p className="mb-1 text-xs text-faint">Recent</p>
+                  <p className="mb-1 text-xs text-faint">Recentes</p>
                   <div className="font-emoji flex flex-wrap gap-1">
                     {recents.map((c) => (
                       <button
@@ -229,7 +229,7 @@ export function EmojiPicker({ onInsert }: { onInsert: (emoji: string) => void })
                         type="button"
                         className="rounded p-1 text-lg leading-none hover:bg-surface-sunken"
                         onClick={() => choose(c)}
-                        aria-label={`Insert ${c}`}
+                        aria-label={`Inserir ${c}`}
                       >
                         {c}
                       </button>
@@ -244,7 +244,7 @@ export function EmojiPicker({ onInsert }: { onInsert: (emoji: string) => void })
                     key={e.char}
                     type="button"
                     title={e.name}
-                    aria-label={`Insert ${e.name}`}
+                    aria-label={`Inserir ${e.name}`}
                     className="rounded p-1 text-lg leading-none hover:bg-surface-sunken"
                     onClick={() => choose(e.char)}
                   >
@@ -255,12 +255,12 @@ export function EmojiPicker({ onInsert }: { onInsert: (emoji: string) => void })
 
               {results.length === 0 ? (
                 <p className="pt-2 text-center text-xs text-muted">
-                  No emoji match “{query.trim()}”.
+                  Nenhum emoji encontrado para "{query.trim()}".
                 </p>
               ) : null}
               {results.length > GRID_CAP ? (
                 <p className="pt-2 text-center text-xs text-faint">
-                  Showing {GRID_CAP} of {results.length} — keep typing to narrow it down.
+                  Mostrando {GRID_CAP} de {results.length} — continue digitando para refinar.
                 </p>
               ) : null}
             </>

@@ -117,7 +117,7 @@ test("an 11th slide is refused with Instagram's real limit named", () => {
   assert.equal(res.ok, false);
   if (res.ok) return;
   assert.equal(res.code, "incompatible");
-  assert.match(res.error, /at most 10/);
+  assert.match(res.error, /no máximo 10/);
 });
 
 test("removing a slide from a carousel of two leaves a single", () => {

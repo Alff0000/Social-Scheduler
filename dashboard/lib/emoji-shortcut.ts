@@ -9,8 +9,8 @@
  * converterAdvice() does — every branch stays testable from one machine.
  */
 export function emojiShortcutHint(platform: string): string | null {
-  if (platform === "win32") return "Win + . opens your computer's own emoji picker";
-  if (platform === "darwin") return "Ctrl + Cmd + Space opens your Mac's own emoji picker";
+  if (platform === "win32") return "Win + . abre o seletor de emoji do seu computador";
+  if (platform === "darwin") return "Ctrl + Cmd + Espaço abre o seletor de emoji do seu Mac";
   // Linux and anything else: desktop environments differ too much to guess, and a wrong
   // shortcut is worse than none.
   return null;

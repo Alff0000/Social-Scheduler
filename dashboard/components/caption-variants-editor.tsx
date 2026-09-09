@@ -96,11 +96,11 @@ export function CaptionVariantsEditor({
   return (
     <div>
       <div className="mb-1.5 flex items-baseline justify-between">
-        <label className="block text-xs font-medium text-ink-soft">Caption</label>
+        <label className="block text-xs font-medium text-ink-soft">Legenda</label>
       </div>
       <p className="mb-2 text-xs text-muted">
-        One is fine. Generic captions rotate for variety; platform-specific ones are used
-        for that platform.
+        Uma já basta. Legendas genéricas alternam para dar variedade; as específicas por
+        plataforma são usadas naquela plataforma.
       </p>
       <div className="space-y-3">
         {value.map((v, i) => {
@@ -120,7 +120,7 @@ export function CaptionVariantsEditor({
                     value={v.platform}
                     onChange={(e) => update(i, { platform: e.target.value })}
                   >
-                    <option value="">Any</option>
+                    <option value="">Qualquer</option>
                     {PLATFORMS.map((p) => (
                       <option key={p.value} value={p.value}>
                         {p.label}
@@ -134,7 +134,7 @@ export function CaptionVariantsEditor({
                     onClick={() => remove(i)}
                     className="text-xs font-medium text-muted hover:text-status-failed"
                   >
-                    Remove
+                    Remover
                   </button>
                 ) : null}
                 <div className="ml-auto shrink-0">
@@ -147,14 +147,14 @@ export function CaptionVariantsEditor({
                   else textareas.current.delete(i);
                 }}
                 className={`${fieldCls} min-h-24 resize-y`}
-                placeholder="Write the caption…"
+                placeholder="Escreva a legenda…"
                 value={v.body}
                 onChange={(e) => update(i, { body: e.target.value })}
               />
               {limit !== null ? (
                 <p className={`text-xs ${over ? "font-medium text-accent-strong" : "text-muted"}`}>
-                  {captionLength(v.body)} / {limit} characters
-                  {over ? ` — over ${platformLabel(v.platform)}'s limit.` : ""}
+                  {captionLength(v.body)} / {limit} caracteres
+                  {over ? ` — acima do limite do ${platformLabel(v.platform)}.` : ""}
                 </p>
               ) : null}
             </div>
@@ -167,7 +167,7 @@ export function CaptionVariantsEditor({
         onClick={add}
         className="mt-2 text-xs font-medium text-brand-strong hover:underline"
       >
-        + Add caption variant
+        + Adicionar variante de legenda
       </button>
     </div>
   );

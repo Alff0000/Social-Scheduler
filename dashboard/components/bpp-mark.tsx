@@ -33,9 +33,9 @@ export function BppMark({
     return (
       <span
         className="text-[10px] text-faint"
-        title="Only posts in your library can be reposted — this one was published outside InstaVips, so there is no caption or image to send again."
+        title="Só posts na sua Agendamento em Massa podem ser republicados — este foi publicado fora do InstaVips, então não há legenda ou imagem para reenviar."
       >
-        not in library
+        fora da biblioteca
       </span>
     );
   }
@@ -63,7 +63,7 @@ export function BppMark({
       onClick={toggle}
       disabled={busy}
       aria-pressed={marked}
-      title={marked ? "Remove from your BPP Pool" : "Add to your BPP Pool for reposting"}
+      title={marked ? "Remover do seu Loop BPP" : "Adicionar ao seu Loop BPP para republicar"}
       className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors disabled:opacity-50 ${
         marked
           ? "border-brand bg-brand-weak text-brand-strong"
@@ -71,7 +71,7 @@ export function BppMark({
       }`}
     >
       <span aria-hidden>{marked ? "★" : "☆"}</span>
-      {compact ? null : marked ? "BPP" : "Mark BPP"}
+      {compact ? null : marked ? "BPP" : "Marcar BPP"}
     </button>
   );
 }

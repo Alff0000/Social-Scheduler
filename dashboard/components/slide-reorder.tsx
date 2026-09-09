@@ -62,7 +62,7 @@ export function SlideReorder({
             <button
               onClick={() => onRemove(slide.assetId)}
               className="absolute right-1 top-1 z-10 hidden h-5 w-5 items-center justify-center rounded-full bg-ink/75 text-xs text-white group-hover:flex"
-              aria-label="Remove image"
+              aria-label="Remover imagem"
             >
               ×
             </button>
@@ -70,7 +70,7 @@ export function SlideReorder({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`/api/media/${slide.assetId}?variant=thumb`}
-            alt={slide.label ?? "image"}
+            alt={slide.label ?? "imagem"}
             className="h-24 w-24 cursor-grab rounded-lg border border-border object-cover active:cursor-grabbing"
           />
           {renderExtra ? renderExtra(slide, i) : null}
@@ -79,7 +79,7 @@ export function SlideReorder({
               onClick={() => move(i, i - 1)}
               disabled={i === 0}
               className="rounded px-1 text-xs text-muted hover:text-ink disabled:opacity-30"
-              aria-label="Move left"
+              aria-label="Mover para a esquerda"
             >
               ←
             </button>
@@ -87,7 +87,7 @@ export function SlideReorder({
               onClick={() => move(i, i + 1)}
               disabled={i === slides.length - 1}
               className="rounded px-1 text-xs text-muted hover:text-ink disabled:opacity-30"
-              aria-label="Move right"
+              aria-label="Mover para a direita"
             >
               →
             </button>

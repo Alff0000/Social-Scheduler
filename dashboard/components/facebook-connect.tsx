@@ -47,14 +47,14 @@ export function FacebookConnect({
 
   async function list() {
     if (!userToken.trim()) {
-      setState({ status: "error", message: "Paste the user token from the Graph API Explorer first." });
+      setState({ status: "error", message: "Cole primeiro o user token do Graph API Explorer." });
       return;
     }
     setState({ status: "listing" });
     try {
       const body = await call({ action: "list", token: userToken });
       if (!body.ok) {
-        setState({ status: "error", message: body.error ?? "Could not list your Pages." });
+        setState({ status: "error", message: body.error ?? "Não foi possível listar suas Páginas." });
         return;
       }
       // One Page is the common case — going straight through saves a pointless click on a
@@ -65,7 +65,7 @@ export function FacebookConnect({
       }
       setState({ status: "choosing", pages: body.pages });
     } catch {
-      setState({ status: "error", message: "Could not reach the dashboard's own server." });
+      setState({ status: "error", message: "Não foi possível alcançar o servidor do dashboard." });
     }
   }
 
@@ -74,7 +74,7 @@ export function FacebookConnect({
     try {
       const body = await call({ action: "select", token: userToken, pageId: page.id });
       if (!body.ok) {
-        setState({ status: "error", message: body.error ?? "Could not verify that Page." });
+        setState({ status: "error", message: body.error ?? "Não foi possível verificar essa Página." });
         return;
       }
       onConnected({ pageId: body.pageId, name: body.name, pageToken: body.pageToken });
@@ -83,7 +83,7 @@ export function FacebookConnect({
       // in a form field where it might get saved by mistake.
       setUserToken("");
     } catch {
-      setState({ status: "error", message: "Could not reach the dashboard's own server." });
+      setState({ status: "error", message: "Não foi possível alcançar o servidor do dashboard." });
     }
   }
 
@@ -93,13 +93,13 @@ export function FacebookConnect({
     return (
       <div className="sm:col-span-2 rounded-lg border border-border bg-surface-muted p-4">
         <p className="text-sm text-ink">
-          <span className="font-medium">Connected {state.name}.</span> Page id and a
-          permanent Page token have been filled in below.
+          <span className="font-medium">{state.name} conectada.</span> O id da Página e um
+          token permanente da Página foram preenchidos abaixo.
         </p>
         <p className="mt-2 text-xs text-muted">
-          Verified as a Page token that never expires, for this Page, with
-          pages_manage_posts. Press <span className="font-medium">Save channel</span> to
-          store it.
+          Verificado como um token de Página que nunca expira, para esta Página, com
+          pages_manage_posts. Clique em <span className="font-medium">Salvar conta</span> para
+          guardá-lo.
         </p>
       </div>
     );
@@ -108,7 +108,7 @@ export function FacebookConnect({
   return (
     <div className="sm:col-span-2 rounded-lg border border-border bg-surface-muted p-4">
       <p className="mb-1 text-sm text-ink-soft">
-        Paste the <span className="font-medium text-ink">user token</span> from the{" "}
+        Cole o <span className="font-medium text-ink">user token</span> do{" "}
         <a
           href="https://developers.facebook.com/tools/explorer"
           target="_blank"
@@ -117,19 +117,19 @@ export function FacebookConnect({
         >
           Graph API Explorer
         </a>
-        , generated with <code>pages_show_list</code>, <code>pages_read_engagement</code> and{" "}
+        , gerado com <code>pages_show_list</code>, <code>pages_read_engagement</code> e{" "}
         <code>pages_manage_posts</code>.
       </p>
       <p className="mb-3 text-xs text-muted">
-        Not a Page token, and not one you have already exchanged — this makes the permanent
-        one for you.
+        Não é um token de Página, nem um que você já trocou — isso cria o permanente
+        para você.
       </p>
 
       <div className="flex gap-2">
         <input
           className={field}
           type="password"
-          placeholder="Short-lived user token — used once, never stored"
+          placeholder="Token de usuário de curta duração — usado uma vez, nunca armazenado"
           value={userToken}
           onChange={(e) => {
             setUserToken(e.target.value);
@@ -143,10 +143,10 @@ export function FacebookConnect({
           className="shrink-0 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-ink disabled:opacity-50"
         >
           {state.status === "listing"
-            ? "Extending…"
+            ? "Estendendo…"
             : state.status === "verifying"
-              ? "Verifying…"
-              : "Connect"}
+              ? "Verificando…"
+              : "Conectar"}
         </button>
       </div>
 
@@ -159,7 +159,7 @@ export function FacebookConnect({
       {state.status === "choosing" ? (
         <div className="mt-3">
           <p className="mb-2 text-xs text-ink-soft">
-            You administer {state.pages.length} Pages. Which one is this channel?
+            Você administra {state.pages.length} Páginas. Qual delas é esta conta?
           </p>
           <div className="flex flex-col gap-1">
             {state.pages.map((p) => {
@@ -180,7 +180,7 @@ export function FacebookConnect({
                       admin for access". */}
                   {blocked ? (
                     <span className="ml-2 text-status-failed">
-                      needs {p.missingTasks.join(" + ")}
+                      precisa de {p.missingTasks.join(" + ")}
                     </span>
                   ) : null}
                 </button>

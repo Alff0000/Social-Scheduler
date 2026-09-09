@@ -42,7 +42,7 @@ export function ChannelName({
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Could not save the name.");
+      setError(body.error ?? "Não foi possível salvar o nome.");
       return;
     }
     setOpen(false);
@@ -55,8 +55,8 @@ export function ChannelName({
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between text-left"
       >
-        <span className="text-xs font-medium text-ink-soft">Name</span>
-        <span className="text-xs text-muted">{open ? "Hide" : "Edit"}</span>
+        <span className="text-xs font-medium text-ink-soft">Nome</span>
+        <span className="text-xs text-muted">{open ? "Ocultar" : "Editar"}</span>
       </button>
 
       {open ? (
@@ -65,7 +65,7 @@ export function ChannelName({
             className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-faint focus:border-brand"
             value={value}
             maxLength={80}
-            placeholder="Account name"
+            placeholder="Nome da conta"
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !invalid) save();
@@ -76,7 +76,7 @@ export function ChannelName({
             }}
           />
           <p className="text-[11px] text-muted">
-            Only what this install calls the account — it is never sent to the platform.
+            É só como esta instalação chama a conta — nunca é enviado para a plataforma.
           </p>
           {error ? <p className="text-[11px] text-status-failed">{error}</p> : null}
           <div className="flex justify-end gap-2">
@@ -87,14 +87,14 @@ export function ChannelName({
               }}
               className="rounded-md border border-border px-2.5 py-1 text-xs text-ink-soft hover:bg-surface"
             >
-              Cancel
+              Cancelar
             </button>
             <button
               onClick={save}
               disabled={invalid || pending || trimmed === accountName}
               className="rounded-md bg-brand px-2.5 py-1 text-xs font-semibold text-on-brand hover:bg-brand-ink disabled:opacity-50"
             >
-              Save
+              Salvar
             </button>
           </div>
         </div>

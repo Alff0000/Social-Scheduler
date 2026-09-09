@@ -74,8 +74,8 @@ test("TagEditor keeps legacy rendering when coverage is omitted", () => {
     }),
   );
 
-  for (const label of ["Morning", "Common", "Partial", "Absent"]) assert.match(html, new RegExp(label));
-  assert.doesNotMatch(html, /All 3|1 of 3|None/);
+  for (const label of ["manhã", "Common", "Partial", "Absent"]) assert.match(html, new RegExp(label));
+  assert.doesNotMatch(html, /Todos os 3|1 de 3|Nenhum/);
 });
 
 test("TagEditor filters and sorts remove coverage and disables full add coverage", () => {
@@ -92,8 +92,8 @@ test("TagEditor filters and sorts remove coverage and disables full add coverage
     }),
   );
   assert.ok(removeHtml.indexOf("Common") < removeHtml.indexOf("Partial"));
-  assert.match(removeHtml, /All 3/);
-  assert.match(removeHtml, /1 of 3/);
+  assert.match(removeHtml, /Todos os 3/);
+  assert.match(removeHtml, /1 de 3/);
   assert.doesNotMatch(removeHtml, /Absent/);
 
   const addHtml = renderToStaticMarkup(
@@ -135,8 +135,8 @@ test("PeriodAttach keeps exact coverage modes separate", () => {
   );
   assert.match(removeHtml, /Spring/);
   assert.doesNotMatch(removeHtml, /Summer/);
-  assert.doesNotMatch(removeHtml, />Green</);
-  assert.match(removeHtml, /Blackout.*1 of 3/);
+  assert.doesNotMatch(removeHtml, />Verde</);
+  assert.match(removeHtml, /Bloqueio.*1 de 3/);
 
   const addHtml = renderToStaticMarkup(
     React.createElement(PeriodAttach, {
@@ -148,8 +148,8 @@ test("PeriodAttach keeps exact coverage modes separate", () => {
       disableFullCoverage: true,
     }),
   );
-  assert.match(addHtml, /<button[^>]*disabled=""[^>]*>Green/);
-  assert.doesNotMatch(addHtml, /<button[^>]*disabled=""[^>]*>Blackout/);
+  assert.match(addHtml, /<button[^>]*disabled=""[^>]*>Verde/);
+  assert.doesNotMatch(addHtml, /<button[^>]*disabled=""[^>]*>Bloqueio/);
 });
 
 test("PeriodAttach exact selection keeps sequential green and blackout choices", () => {
@@ -165,7 +165,7 @@ test("PeriodAttach exact selection keeps sequential green and blackout choices",
 test("current selection summary humanizes scalar values and coverage", () => {
   const html = renderToStaticMarkup(React.createElement(CurrentSelectionSummary, { context }));
 
-  for (const label of ["Ready", "Draft", "Evergreen", "Channel default", "1 day"]) {
+  for (const label of ["Pronto", "Rascunho", "Evergreen", "Padrão da conta", "1 dia"]) {
     assert.match(html, new RegExp(label));
   }
   assert.match(html, /All 3/);

@@ -51,9 +51,9 @@ export function TikTokCaptionNotice({
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-border bg-surface-muted px-3 py-2 text-xs text-muted">
       <p>
-        <span className="font-medium text-ink">TikTok:</span> your caption isn&rsquo;t sent
-        — TikTok has you write it in the app when you publish. It&rsquo;s saved here so you
-        can copy it.
+        <span className="font-medium text-ink">TikTok:</span> sua legenda não é enviada —
+        o TikTok pede que você a escreva no app ao publicar. Ela fica salva aqui para você
+        poder copiá-la.
       </p>
       {trimmed ? (
         <button
@@ -61,7 +61,7 @@ export function TikTokCaptionNotice({
           onClick={copy}
           className="rounded-md border border-border px-2 py-1 font-medium text-ink transition-colors hover:bg-surface"
         >
-          {copied ? "Copied" : "Copy caption"}
+          {copied ? "Copiado" : "Copiar legenda"}
         </button>
       ) : null}
     </div>

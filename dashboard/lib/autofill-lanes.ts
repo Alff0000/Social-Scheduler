@@ -140,18 +140,19 @@ export function activeSurface(shown: Surface[], selected: Surface): Surface {
  *  not running now, and it will start again on its own if a capable channel is ever added
  *  back — which is the only reason switching it off matters. */
 export function unofferedLaneNote(surface: Surface, noun: string): string {
+  const owner = noun === "grupo" ? "deste grupo" : "desta conta";
   return (
-    `Nothing in this ${noun} can post a ${surfaceLabel(surface)} right now, so this is ` +
-    `not running. It is still switched on, though — add a channel that can post a ` +
-    `${surfaceLabel(surface)} and it will start filling again on this schedule. ` +
-    `Switch it off and save to stop that.`
+    `Nenhuma conta ${owner} pode postar um ${surfaceLabel(surface)} agora, então isso ` +
+    `não está rodando. Mas continua ligado — adicione uma conta que possa postar um ` +
+    `${surfaceLabel(surface)} e vai voltar a preencher nesse horário. ` +
+    `Desligue e salve para parar isso.`
   );
 }
 
 /** One lane in a line: its cadence and the depths it fills between, or "Off". */
 export function laneSummary(lane: LanePanelData): string {
-  if (!lane.enabled) return "Off";
-  return `${summarize(parseCadence(lane.cadenceConfig))} · keep ≥${lane.minQueueDepth}, fill to ${lane.targetQueueDepth}`;
+  if (!lane.enabled) return "Desligado";
+  return `${summarize(parseCadence(lane.cadenceConfig))} · manter ≥${lane.minQueueDepth}, preencher até ${lane.targetQueueDepth}`;
 }
 
 /**
@@ -232,10 +233,10 @@ export function saveBlockedReason(enabled: boolean, cadence: Cadence): string | 
     // _parse_interval: a non-positive every_minutes is None, full stop. The form's own
     // 15-minute floor is a separate, looser house rule — 5 minutes is a cadence the
     // worker WILL run, so it is not this gate's business.
-    if (!(Number(cfg.every_minutes) > 0)) return "Set an interval above zero";
+    if (!(Number(cfg.every_minutes) > 0)) return "Defina um intervalo maior que zero";
     // An explicitly empty day list is refused rather than widened to all week, and the
     // form ALWAYS writes the `days` key — so unchecking all seven reaches that branch.
-    if (!hasWeekday(cfg.days)) return "Pick at least one day";
+    if (!hasWeekday(cfg.days)) return "Escolha ao menos um dia";
     return null;
   }
 
@@ -244,11 +245,11 @@ export function saveBlockedReason(enabled: boolean, cadence: Cadence): string | 
     // Nothing survived serialization. Either there were no rows, or the only rows had a
     // blank time — different mistakes, so say which one.
     return cadence.mode === "times" && cadence.slots.length > 0
-      ? "Fill in the time"
-      : "Add a time first";
+      ? "Preencha o horário"
+      : "Adicione um horário primeiro";
   }
   // _parse_times drops every slot with an empty day list, and an empty merge is None.
-  if (!slots.some((s) => hasWeekday(s.days))) return "Pick at least one day";
+  if (!slots.some((s) => hasWeekday(s.days))) return "Escolha ao menos um dia";
   return null;
 }
 

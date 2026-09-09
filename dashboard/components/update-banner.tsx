@@ -17,7 +17,7 @@ type UpdateState =
 function scriptName(p: Platform): string {
   if (p === "windows") return "Update-Windows";
   if (p === "mac") return "Update-Mac";
-  return "the Update script";
+  return "o script de atualização";
 }
 
 export function UpdateBanner() {
@@ -32,7 +32,7 @@ export function UpdateBanner() {
       setData(await res.json());
       if (force) setDismissed(false);
     } catch {
-      setData({ state: "unknown", reason: "Couldn't check for updates.", platform: "other" });
+      setData({ state: "unknown", reason: "Não foi possível verificar atualizações.", platform: "other" });
     } finally {
       setChecking(false);
     }
@@ -51,22 +51,22 @@ export function UpdateBanner() {
 
   // Prominent, actionable banner when there's actually an update to install.
   if (data?.state === "behind" && !dismissed) {
-    const label = data.behind === 1 ? "1 update" : `${data.behind} updates`;
+    const label = data.behind === 1 ? "1 atualização" : `${data.behind} atualizações`;
     return (
       <div className="rounded-lg border border-status-scheduled/40 bg-status-scheduled/10 px-3 py-2.5">
         <div className="flex items-start justify-between gap-2">
-          <p className="text-[12px] font-semibold text-ink">Update available</p>
+          <p className="text-[12px] font-semibold text-ink">Atualização disponível</p>
           <button
             onClick={() => setDismissed(true)}
             className="-mt-0.5 text-muted hover:text-ink"
-            aria-label="Dismiss"
-            title="Dismiss until next launch"
+            aria-label="Dispensar"
+            title="Dispensar até a próxima abertura"
           >
             ×
           </button>
         </div>
         <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">
-          You&apos;re {label} behind. To install: close this app, then double-click{" "}
+          Você está {label} atrás. Para instalar: feche este app e dê duplo clique em{" "}
           <code className="data text-[10px] text-muted">{scriptName(data.platform)}</code>.
         </p>
       </div>
@@ -74,16 +74,16 @@ export function UpdateBanner() {
   }
 
   // Otherwise stay quiet: a single muted line with a manual re-check.
-  let text = "Check for updates";
-  if (checking) text = "Checking…";
-  else if (data?.state === "current") text = "Up to date";
-  else if (data?.state === "unknown") text = "Update check unavailable";
+  let text = "Verificar atualizações";
+  if (checking) text = "Verificando…";
+  else if (data?.state === "current") text = "Atualizado";
+  else if (data?.state === "unknown") text = "Verificação de atualização indisponível";
 
   return (
     <button
       onClick={() => check(true)}
       disabled={checking}
-      title={data?.state === "unknown" ? data.reason : "Check for a newer version"}
+      title={data?.state === "unknown" ? data.reason : "Verificar se há uma versão mais nova"}
       className="px-3 text-left text-[11px] text-faint hover:text-ink-soft disabled:opacity-60"
     >
       {data?.state === "current" ? "✓ " : ""}

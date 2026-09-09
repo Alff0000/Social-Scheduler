@@ -36,11 +36,11 @@ export function ChannelCredentials({
       body: JSON.stringify(body),
     });
     if (!res.ok) {
-      setMsg("Could not save.");
+      setMsg("Não foi possível salvar.");
       return;
     }
     setToken("");
-    setMsg("Saved — run the preflight check to verify.");
+    setMsg("Salvo — rode a checagem preflight para verificar.");
     startT(() => router.refresh());
   }
 
@@ -53,11 +53,11 @@ export function ChannelCredentials({
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between text-left"
       >
-        <span className="text-xs font-medium text-ink-soft">Credentials</span>
+        <span className="text-xs font-medium text-ink-soft">Credenciais</span>
         {/* Says "Edit", not "Update token" — this panel also edits the account id, and
             labelling it by the token alone hides that. A wrong account id is a real and
             easy mistake (the Threads id is not the Instagram one). */}
-        <span className="text-xs text-muted">{open ? "Hide" : "Edit"}</span>
+        <span className="text-xs text-muted">{open ? "Ocultar" : "Editar"}</span>
       </button>
 
       {open ? (
@@ -79,15 +79,15 @@ export function ChannelCredentials({
             <span className="mb-1 block">
               {usesAccountId(platform) ? (
                 <>
-                  New access token{" "}
+                  Novo access token{" "}
                   {/* The "IGAA…" prefix is Instagram's; Threads and Page tokens look different,
                       so don't tell someone their valid token looks wrong. */}
-                  <span className="text-faint">(long — leave blank to keep the current one)</span>
+                  <span className="text-faint">(longo — deixe em branco para manter o atual)</span>
                 </>
               ) : (
                 <>
-                  New webhook URL{" "}
-                  <span className="text-faint">(the whole credential — leave blank to keep the current one)</span>
+                  Nova URL de webhook{" "}
+                  <span className="text-faint">(a credencial inteira — deixe em branco para manter a atual)</span>
                 </>
               )}
             </span>
@@ -98,8 +98,8 @@ export function ChannelCredentials({
               onChange={(e) => setToken(e.target.value)}
               placeholder={
                 usesAccountId(platform)
-                  ? "Paste the freshly generated token"
-                  : "Paste the full Discord webhook URL"
+                  ? "Cole o token recém-gerado"
+                  : "Cole a URL completa do webhook do Discord"
               }
             />
           </label>
@@ -109,7 +109,7 @@ export function ChannelCredentials({
               disabled={pending}
               className="rounded-md bg-brand px-3 py-1.5 text-xs font-semibold text-on-brand hover:bg-brand-ink disabled:opacity-50"
             >
-              {pending ? "Saving…" : "Save credentials"}
+              {pending ? "Salvando…" : "Salvar credenciais"}
             </button>
             {msg ? <span className="text-xs text-status-posted">{msg}</span> : null}
           </div>

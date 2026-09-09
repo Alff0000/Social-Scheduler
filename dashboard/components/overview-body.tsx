@@ -68,15 +68,15 @@ export function OverviewBody({
     selected.size === 0
       ? null
       : selected.size === 1
-        ? channels.find((c) => selected.has(c.id))?.account_name ?? "1 account"
-        : `${selected.size} accounts`;
+        ? channels.find((c) => selected.has(c.id))?.account_name ?? "1 conta"
+        : `${selected.size} contas`;
 
   return (
     <>
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-muted">
-            Channel queues
+            Filas das contas
           </h2>
           <div className="flex items-center gap-3">
             {filteringLabel ? (
@@ -87,7 +87,7 @@ export function OverviewBody({
                 onClick={() => setSelected(new Set())}
                 className="rounded-md border border-border px-2 py-0.5 text-xs font-medium text-ink-soft hover:bg-surface-sunken"
               >
-                Showing {filteringLabel} · clear
+                Mostrando {filteringLabel} · limpar
               </button>
             ) : null}
             {attention.length > 0 ? (
@@ -96,7 +96,7 @@ export function OverviewBody({
                   failedCount > 0 ? "text-status-failed" : "text-status-blocked"
                 }`}
               >
-                {attention.join(" · ")} · needs attention
+                {attention.join(" · ")} · precisa de atenção
               </span>
             ) : null}
           </div>
@@ -113,7 +113,7 @@ export function OverviewBody({
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-muted">
-            Publications
+            Publicações
           </h2>
           <div className="flex items-center gap-3">
             <WorkerStatus online={workerOnline} lastSeenAt={workerLastSeenAt} />
@@ -121,9 +121,9 @@ export function OverviewBody({
           </div>
         </div>
         {pubs.length === 0 ? (
-          <EmptyState title="Nothing here yet">
-            Composed posts and their scheduled sends show up here — failures float to the
-            top so they&rsquo;re never silent.
+          <EmptyState title="Nada por aqui ainda">
+            Posts criados e seus envios agendados aparecem aqui — as falhas sobem para o
+            topo para nunca passarem despercebidas.
           </EmptyState>
         ) : (
           <PublicationQueue
@@ -146,12 +146,12 @@ export function OverviewBody({
 /** Kept so the empty state can still point people at /channels. */
 export function NoChannelsYet() {
   return (
-    <EmptyState title="No channels yet">
-      Add an Instagram or Facebook account on the{" "}
+    <EmptyState title="Nenhuma conta ainda">
+      Adicione uma conta do Instagram ou Facebook na página{" "}
       <Link href="/channels" className="text-brand underline underline-offset-2">
-        Channels
+        Contas
       </Link>{" "}
-      page before scheduling anything.
+      antes de agendar qualquer coisa.
     </EmptyState>
   );
 }

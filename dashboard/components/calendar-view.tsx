@@ -8,7 +8,7 @@ import { addDays, monthOf, shiftMonth } from "@/lib/calendar";
 
 export type CalendarSend = ChipSend;
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAYS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 /** Matches the Overview's filter controls — the same job should not look like a different one. */
 const selectCls =
   "rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-ink focus:border-brand";
@@ -26,7 +26,7 @@ function label(day: string): string {
 // "July 2026" while showing August's grid.
 function monthTitle(anchor: string): string {
   const [y, m] = anchor.split("-");
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("pt-BR", {
     timeZone: "UTC",
     month: "long",
     year: "numeric",
@@ -35,7 +35,7 @@ function monthTitle(anchor: string): string {
 
 function rangeTitle(days: string[]): string {
   const fmt = (d: string) =>
-    new Intl.DateTimeFormat("en-US", {
+    new Intl.DateTimeFormat("pt-BR", {
       timeZone: "UTC",
       month: "short",
       day: "numeric",
@@ -114,7 +114,7 @@ export function CalendarView({
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "That send could not be moved.");
+      setError(body.error ?? "Esse envio não pôde ser movido.");
       return;
     }
     startTransition(() => router.refresh());
@@ -189,7 +189,7 @@ export function CalendarView({
               href={`/compose?date=${day}`}
               className="text-[11px] text-faint hover:text-brand"
             >
-              + Nothing scheduled — add a post
+              + Nada agendado — adicionar post
             </Link>
           ) : (
             sends.map((s) => chipFor(s, false))
@@ -234,7 +234,7 @@ export function CalendarView({
           {sends.length === 0 ? (
             <Link
               href={`/compose?date=${day}`}
-              title={`Compose a post scheduled for ${day}`}
+              title={`Postar algo agendado para ${day}`}
               className="text-[13px] leading-none text-faint opacity-0 transition-opacity hover:text-brand focus:opacity-100 group-hover/cell:opacity-100"
             >
               +
@@ -247,7 +247,7 @@ export function CalendarView({
             href={href({ view: "week", anchor: day })}
             className="px-1 text-[10px] text-muted hover:text-brand"
           >
-            +{hidden} more
+            +{hidden} mais
           </Link>
         ) : null}
       </div>
@@ -260,14 +260,14 @@ export function CalendarView({
         <div className="flex items-center gap-1">
           <Link
             href={href({ anchor: prev })}
-            aria-label="Previous"
+            aria-label="Anterior"
             className="rounded-md border border-border px-2 py-1 text-sm text-ink-soft hover:bg-surface-sunken"
           >
             ‹
           </Link>
           <Link
             href={href({ anchor: next })}
-            aria-label="Next"
+            aria-label="Próximo"
             className="rounded-md border border-border px-2 py-1 text-sm text-ink-soft hover:bg-surface-sunken"
           >
             ›
@@ -276,22 +276,22 @@ export function CalendarView({
             href={href({ anchor: today })}
             className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-ink-soft hover:bg-surface-sunken"
           >
-            Today
+            Hoje
           </Link>
         </div>
         <h2 className="text-base font-semibold text-ink">
           {view === "month" ? monthTitle(anchor) : rangeTitle(days)}
         </h2>
         <span className="data text-[11px] text-muted">
-          {total} send{total === 1 ? "" : "s"}
+          {total} envio{total === 1 ? "" : "s"}
         </span>
         <select
-          aria-label="Filter by account"
+          aria-label="Filtrar por conta"
           className={selectCls}
           value={account}
           onChange={(e) => go({ account: e.target.value })}
         >
-          <option value="all">All accounts</option>
+          <option value="all">Todas as contas</option>
           {channels.map((c) => (
             <option key={c.id} value={String(c.id)}>
               {c.account_name}
@@ -299,12 +299,12 @@ export function CalendarView({
           ))}
         </select>
         <select
-          aria-label="Filter by platform"
+          aria-label="Filtrar por plataforma"
           className={selectCls}
           value={platform}
           onChange={(e) => go({ platform: e.target.value })}
         >
-          <option value="all">All platforms</option>
+          <option value="all">Todas as plataformas</option>
           {platforms.map((p) => (
             <option key={p.value} value={p.value}>
               {p.label}
@@ -322,7 +322,7 @@ export function CalendarView({
                   : "border border-border text-muted hover:text-ink"
               }`}
             >
-              {v}
+              {v === "week" ? "Semana" : "Mês"}
             </Link>
           ))}
         </div>
@@ -357,9 +357,9 @@ export function CalendarView({
       </div>
 
       <p className="text-[11px] text-faint">
-        Each send shows its own account&apos;s local time. Today is{" "}
+        Cada envio mostra o horário local da própria conta. Hoje é{" "}
         {gridTimezone.replace("_", " ")}.
-        {" "}Drag a scheduled send to another day to move it — the time of day stays put.
+        {" "}Arraste um envio agendado para outro dia para movê-lo — o horário do dia permanece o mesmo.
       </p>
     </div>
   );

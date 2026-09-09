@@ -70,7 +70,7 @@ export function CalendarChip({
       title={
         `${send.time} · ${send.channelName}` +
         (send.caption ? ` · ${truncateChars(send.caption, 60)}` : "") +
-        (send.canMove ? " — drag to another day to reschedule" : "")
+        (send.canMove ? " — arraste para outro dia para reagendar" : "")
       }
       className={`group flex items-center gap-1.5 overflow-hidden rounded-md border border-border bg-surface px-1.5 py-1 text-left transition-colors hover:border-border-strong hover:bg-surface-sunken ${
         dragging ? "opacity-40" : ""
@@ -109,7 +109,7 @@ export function CalendarChip({
       {dense ? null : (
         <>
           <span className="truncate text-[11px] text-ink-soft">
-            {send.caption ?? "Untitled"}
+            {send.caption ?? "Sem título"}
           </span>
           {send.isDryRun ? (
             <span className="shrink-0 text-[9px] uppercase text-faint">dry</span>

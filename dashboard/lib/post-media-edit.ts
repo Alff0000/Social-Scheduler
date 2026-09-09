@@ -76,7 +76,7 @@ function fail(code: MediaEditErrorCode, error: string, status: number): MediaEdi
  * so a client component can import it.
  */
 export const LIVE_SEND_MESSAGE =
-  "This post has already gone out, or is going out right now, so its media can't be changed.";
+  "Este post já foi ao ar, ou está indo ao ar agora, então sua mídia não pode ser alterada.";
 
 /** Same shape as MediaEditCheck's failure arm, for a question with no slide list to return. */
 export type MediaEditGate =

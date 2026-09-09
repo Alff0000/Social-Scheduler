@@ -89,7 +89,7 @@ export function humanBytes(n: number | null): string {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS_SHORT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 // Plain-English description of a period's window. Shared by the server list and the
 // client form's live preview, so both read identically.
@@ -106,14 +106,14 @@ export function describePeriod(p: {
     const sm = p.start_month ?? 1, sd = p.start_day ?? 1;
     const em = p.end_month ?? 1, ed = p.end_day ?? 1;
     const s = `${MONTHS_SHORT[sm - 1]} ${sd}`;
-    if (sm === em && sd === ed) return `${s}, every year`; // single day
+    if (sm === em && sd === ed) return `${s}, todo ano`; // single day
     const e = `${MONTHS_SHORT[em - 1]} ${ed}`;
     const wraps = sm * 100 + sd > em * 100 + ed; // start after end -> spans the New Year
-    return `${s} – ${e}, every year${wraps ? " (spans the New Year)" : ""}`;
+    return `${s} – ${e}, todo ano${wraps ? " (atravessa o ano novo)" : ""}`;
   }
   const fmt = (iso: string | null) =>
     iso
-      ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" })
+      ? new Intl.DateTimeFormat("pt-BR", { month: "short", day: "numeric", year: "numeric" })
           .format(new Date(`${iso}T00:00:00`))
       : "—";
   if (p.start_date && p.start_date === p.end_date) return fmt(p.start_date); // single day
@@ -175,14 +175,14 @@ export function isBlocked(
  * (a hue number reads worse than a colour name).
  */
 export const COLOR_SWATCHES: { hue: number; name: string }[] = [
-  { hue: 0, name: "Red" },
-  { hue: 36, name: "Orange" },
-  { hue: 72, name: "Gold" },
-  { hue: 108, name: "Lime" },
-  { hue: 144, name: "Green" },
-  { hue: 180, name: "Teal" },
-  { hue: 216, name: "Blue" },
-  { hue: 252, name: "Indigo" },
-  { hue: 288, name: "Violet" },
-  { hue: 324, name: "Pink" },
+  { hue: 0, name: "Vermelho" },
+  { hue: 36, name: "Laranja" },
+  { hue: 72, name: "Dourado" },
+  { hue: 108, name: "Verde-limão" },
+  { hue: 144, name: "Verde" },
+  { hue: 180, name: "Azul-petróleo" },
+  { hue: 216, name: "Azul" },
+  { hue: 252, name: "Índigo" },
+  { hue: 288, name: "Violeta" },
+  { hue: 324, name: "Rosa" },
 ];

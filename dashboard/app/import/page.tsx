@@ -10,7 +10,7 @@ export default function ImportPage() {
       <header>
         <h1 className="font-display text-2xl font-semibold text-ink">Importação em massa</h1>
         <p className="mt-1 text-sm text-muted">
-          Add many images at once — each becomes a Draft you can tag, target, and schedule.
+          Adicione várias imagens de uma vez — cada uma vira um rascunho que você pode etiquetar, direcionar e agendar.
         </p>
       </header>
       <BulkImport

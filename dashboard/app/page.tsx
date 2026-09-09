@@ -49,7 +49,7 @@ export default function OverviewPage() {
             href="/compose"
             className="inline-flex items-center rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-ink"
           >
-            Compose post
+            Postar Reel
           </Link>
         }
       />

@@ -52,9 +52,23 @@ export function ThemeControls() {
     if (isMode(m)) setMode(m);
   }, []);
 
+  // Cookie, not just localStorage: the server reads THIS on the next request to pick
+  // data-theme/data-mode before the page ever paints (see app/layout.tsx). localStorage
+  // alone left the theme correct only until the next navigation that does a real
+  // server round trip (back/forward, a reopened tab, a proxy in front of the app) — the
+  // page briefly repainted in the default theme every time, which is exactly the bug
+  // this replaces. One year, readable from every path, lax is enough since nothing here
+  // is cross-site.
+  function setCookie(name: string, value: string) {
+    try {
+      document.cookie = `${name}=${value}; path=/; max-age=31536000; samesite=lax`;
+    } catch {}
+  }
+
   function applyTheme(next: ThemeId) {
     setTheme(next);
     document.documentElement.setAttribute("data-theme", next);
+    setCookie(THEME_STORAGE_KEY, next);
     try {
       localStorage.setItem(THEME_STORAGE_KEY, next);
     } catch {}
@@ -63,6 +77,7 @@ export function ThemeControls() {
   function applyMode(next: ThemeMode) {
     setMode(next);
     document.documentElement.setAttribute("data-mode", next);
+    setCookie(MODE_STORAGE_KEY, next);
     try {
       localStorage.setItem(MODE_STORAGE_KEY, next);
     } catch {}
@@ -73,7 +88,7 @@ export function ThemeControls() {
   return (
     <div className="flex items-center gap-2 px-1">
       <label className="sr-only" htmlFor="theme-select">
-        Theme
+        Tema
       </label>
       <select
         id="theme-select"
@@ -90,8 +105,8 @@ export function ThemeControls() {
       <button
         type="button"
         onClick={() => applyMode(nextMode)}
-        aria-label={`Switch to ${nextMode} mode`}
-        title={`Switch to ${nextMode} mode`}
+        aria-label={`Mudar para modo ${nextMode === "dark" ? "escuro" : "claro"}`}
+        title={`Mudar para modo ${nextMode === "dark" ? "escuro" : "claro"}`}
         className="shrink-0 rounded-lg border border-border bg-surface p-2 text-ink-soft transition-colors hover:bg-surface-sunken"
       >
         {mode === "light" ? <MoonIcon /> : <SunIcon />}

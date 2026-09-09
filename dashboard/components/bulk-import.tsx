@@ -69,7 +69,7 @@ export function BulkImport({
       const res = await fetch("/api/assets/upload", { method: "POST", body: fd });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(body.error ?? `Couldn't upload ${file.name}.`);
+        setError(body.error ?? `Não foi possível enviar ${file.name}.`);
         continue;
       }
       if (body.deduped) dedup += 1;
@@ -91,7 +91,7 @@ export function BulkImport({
         },
       ]);
     }
-    if (dedup > 0) setNotice(`${dedup} image(s) already existed (matched by content) — reused.`);
+    if (dedup > 0) setNotice(`${dedup} imagem(ns) já existia(m) (encontrada por conteúdo) — reutilizada(s).`);
     setUploading(false);
   }
 
@@ -128,7 +128,7 @@ export function BulkImport({
     setCreating(false);
     if (!res.ok) {
       const b = await res.json().catch(() => ({}));
-      setError(b.error ?? "Could not create drafts.");
+      setError(b.error ?? "Não foi possível criar os rascunhos.");
       return;
     }
     const b = await res.json();
@@ -141,7 +141,7 @@ export function BulkImport({
       {/* Upload */}
       <section className={card}>
         <label className="inline-flex cursor-pointer items-center rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-ink">
-          {uploading ? "Uploading…" : "Add images"}
+          {uploading ? "Enviando…" : "Adicionar imagens"}
           <input
             type="file"
             multiple
@@ -151,7 +151,7 @@ export function BulkImport({
           />
         </label>
         <p className="mt-2 text-xs text-muted">
-          Each image becomes its own Draft. Dedup is by content — the same file won’t be stored twice.
+          Cada imagem vira seu próprio rascunho. A deduplicação é por conteúdo — o mesmo arquivo não é guardado duas vezes.
         </p>
         {notice ? <p className="mt-2 text-xs text-status-posted">{notice}</p> : null}
       </section>
@@ -160,7 +160,7 @@ export function BulkImport({
       {items.length > 0 ? (
         <section className={card}>
           <h3 className="mb-3 font-display text-sm font-semibold text-ink">
-            {items.length} image{items.length === 1 ? "" : "s"} — add captions (optional)
+            {items.length} {items.length === 1 ? "imagem" : "imagens"} — adicione legendas (opcional)
           </h3>
           <div className="grid gap-4 sm:grid-cols-2">
             {items.map((it, i) => (
@@ -195,7 +195,7 @@ export function BulkImport({
                   <textarea
                     className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-faint focus:border-brand"
                     rows={2}
-                    placeholder="Caption (optional)…"
+                    placeholder="Legenda (opcional)…"
                     value={it.caption}
                     onChange={(e) => setCaption(i, e.target.value)}
                   />
@@ -204,7 +204,7 @@ export function BulkImport({
                     onClick={() => removeItem(i)}
                     className="mt-1 text-xs text-muted hover:text-status-failed"
                   >
-                    Remove
+                    Remover
                   </button>
                 </div>
               </div>
@@ -215,11 +215,11 @@ export function BulkImport({
 
       {/* Batch defaults */}
       <section className={card}>
-        <h3 className="mb-1 font-display text-sm font-semibold text-ink">Batch defaults</h3>
-        <p className="mb-3 text-xs text-muted">Applied to every image in this batch. Refine each later in the Library.</p>
+        <h3 className="mb-1 font-display text-sm font-semibold text-ink">Padrões do lote</h3>
+        <p className="mb-3 text-xs text-muted">Aplicado a cada imagem deste lote. Ajuste cada uma depois na Biblioteca.</p>
 
         <div className="mb-4">
-          <p className="mb-2 text-xs font-medium text-ink-soft">Target accounts</p>
+          <p className="mb-2 text-xs font-medium text-ink-soft">Contas de destino</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {channels.map((c) => {
               const on = targets.has(c.id);
@@ -260,20 +260,20 @@ export function BulkImport({
         </div>
 
         <div className="mb-4">
-          <p className="mb-2 text-xs font-medium text-ink-soft">Kind</p>
+          <p className="mb-2 text-xs font-medium text-ink-soft">Tipo</p>
           <div className="inline-flex rounded-lg border border-border p-0.5">
             <button type="button" className={segBtn(kind === "evergreen")} onClick={() => setKind("evergreen")}>Evergreen</button>
-            <button type="button" className={segBtn(kind === "one_time")} onClick={() => setKind("one_time")}>One-time</button>
+            <button type="button" className={segBtn(kind === "one_time")} onClick={() => setKind("one_time")}>Uma vez</button>
           </div>
         </div>
 
         <div className="mb-4">
           <p className="mb-2 text-xs font-medium text-ink-soft">Status</p>
           <div className="inline-flex rounded-lg border border-border p-0.5">
-            <button type="button" className={segBtn(status === "draft")} onClick={() => setStatus("draft")}>Draft</button>
-            <button type="button" className={segBtn(status === "ready")} onClick={() => setStatus("ready")}>Ready</button>
+            <button type="button" className={segBtn(status === "draft")} onClick={() => setStatus("draft")}>Rascunho</button>
+            <button type="button" className={segBtn(status === "ready")} onClick={() => setStatus("ready")}>Pronto</button>
           </div>
-          <p className="mt-1 text-xs text-faint">Ready content is eligible for auto-fill; drafts are not.</p>
+          <p className="mt-1 text-xs text-faint">Conteúdo pronto é elegível para preenchimento automático; rascunhos não são.</p>
         </div>
 
         <div className="mb-4">
@@ -287,8 +287,8 @@ export function BulkImport({
       {error ? <p className="text-sm text-status-failed">{error}</p> : null}
       {result !== null ? (
         <p className="text-sm text-status-posted">
-          Created {result} draft{result === 1 ? "" : "s"}.{" "}
-          <Link href="/library" className="underline underline-offset-2">View in Library →</Link>
+          {result} rascunho{result === 1 ? "" : "s"} criado{result === 1 ? "" : "s"}.{" "}
+          <Link href="/library" className="underline underline-offset-2">Ver em Agendamento em Massa →</Link>
         </p>
       ) : null}
 
@@ -298,7 +298,7 @@ export function BulkImport({
           disabled={creating || uploading || items.length === 0}
           className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-ink disabled:opacity-50"
         >
-          {creating ? "Creating…" : `Create ${items.length} draft${items.length === 1 ? "" : "s"}`}
+          {creating ? "Criando…" : `Criar ${items.length} rascunho${items.length === 1 ? "" : "s"}`}
         </button>
       </div>
     </div>

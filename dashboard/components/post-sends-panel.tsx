@@ -136,11 +136,11 @@ function metricLine(send: PostPublicationRow): MetricLine {
 
   switch (send.channel_platform) {
     case "instagram":
-      always(send.reach, "reach");
-      always(send.impressions, "views");
-      always(send.likes, "likes");
-      nonZero(send.comments, "comments");
-      nonZero(send.saves, "saves");
+      always(send.reach, "alcance");
+      always(send.impressions, "visualizações");
+      always(send.likes, "curtidas");
+      nonZero(send.comments, "comentários");
+      nonZero(send.saves, "salvamentos");
       // A Story is gone after 24h by design, so its numbers are done climbing. Only
       // alongside actual numbers — on its own, "final" describes nothing.
       if (send.surface === "story" && parts.length) parts.push("final");
@@ -148,27 +148,27 @@ function metricLine(send: PostPublicationRow): MetricLine {
     case "threads":
       // Threads' own names: no reach, no saves, and "replies"/"reposts" rather than
       // comments/shares — the columns they land in are ours, not theirs.
-      always(send.impressions, "views");
-      always(send.likes, "likes");
-      nonZero(send.comments, "replies");
+      always(send.impressions, "visualizações");
+      always(send.likes, "curtidas");
+      nonZero(send.comments, "respostas");
       nonZero(send.shares, "reposts");
       break;
     case "facebook":
-      always(send.likes, "reactions");
-      nonZero(send.comments, "comments");
-      nonZero(send.shares, "shares");
+      always(send.likes, "reações");
+      nonZero(send.comments, "comentários");
+      nonZero(send.shares, "compartilhamentos");
       // Best-effort only (Meta keeps retiring the metric names), so it goes last and only
       // when it actually came back.
-      always(send.reach, "reach");
+      always(send.reach, "alcance");
       break;
     case "tiktok":
       // TikTok's own set: views, likes, comments, shares. It has NO reach and NO saves —
       // omitted entirely rather than shown as an empty slot, the same call already made
       // for Threads. view_count lands in the impressions column (see metrics.COLUMN_MAP).
-      always(send.impressions, "views");
-      always(send.likes, "likes");
-      nonZero(send.comments, "comments");
-      nonZero(send.shares, "shares");
+      always(send.impressions, "visualizações");
+      always(send.likes, "curtidas");
+      nonZero(send.comments, "comentários");
+      nonZero(send.shares, "compartilhamentos");
       break;
     default:
       return { kind: "unknown" };
@@ -199,7 +199,7 @@ function SendRow({ send, postId }: { send: PostPublicationRow; postId: number })
     setBusy(false);
     if (!res.ok) {
       const b = await res.json().catch(() => ({}));
-      setError(b.error ?? "Something went wrong.");
+      setError(b.error ?? "Algo deu errado.");
       return;
     }
     router.refresh();
@@ -216,7 +216,7 @@ function SendRow({ send, postId }: { send: PostPublicationRow; postId: number })
     setBusy(false);
     if (!res.ok) {
       const b = await res.json().catch(() => ({}));
-      setError(b.error ?? "Something went wrong.");
+      setError(b.error ?? "Algo deu errado.");
       return;
     }
     setShowReschedule(false);
@@ -232,7 +232,7 @@ function SendRow({ send, postId }: { send: PostPublicationRow; postId: number })
     setBusy(false);
     if (!res.ok) {
       const b = await res.json().catch(() => ({}));
-      setError(b.error ?? "Something went wrong.");
+      setError(b.error ?? "Algo deu errado.");
       return;
     }
     router.refresh();
@@ -245,7 +245,7 @@ function SendRow({ send, postId }: { send: PostPublicationRow; postId: number })
     setBusy(false);
     if (!res.ok) {
       const b = await res.json().catch(() => ({}));
-      setError(b.error ?? "Something went wrong.");
+      setError(b.error ?? "Algo deu errado.");
       return;
     }
     router.refresh();
@@ -268,7 +268,7 @@ function SendRow({ send, postId }: { send: PostPublicationRow; postId: number })
             className="data text-xs text-ink-soft"
             title={
               when.actual
-                ? `Actually posted ${formatInTz(send.published_at, send.channel_timezone)} · scheduled for ${formatInTz(send.scheduled_at, send.channel_timezone)}`
+                ? `Postado de fato em ${formatInTz(send.published_at, send.channel_timezone)} · agendado para ${formatInTz(send.scheduled_at, send.channel_timezone)}`
                 : undefined
             }
           >
@@ -294,7 +294,7 @@ function SendRow({ send, postId }: { send: PostPublicationRow; postId: number })
           {send.surface === "story" ? (
             <span
               className="rounded-full bg-surface-sunken px-1.5 py-px text-[10px] text-muted"
-              title="Stories expire after 24 hours. Instagram reports reach, views and replies for them — never likes, comments or saves."
+              title="Stories expiram após 24 horas. O Instagram informa alcance, visualizações e respostas para eles — nunca curtidas, comentários ou salvamentos."
             >
               story · 24h
             </span>
@@ -308,7 +308,7 @@ function SendRow({ send, postId }: { send: PostPublicationRow; postId: number })
           {send.surface === "reel" ? (
             <span
               className="rounded-full bg-surface-sunken px-1.5 py-px text-[10px] text-muted"
-              title="Publishes to the Page's Reels, not its ordinary feed."
+              title="Publica nos Reels da Página, não no feed comum."
             >
               reel
             </span>
@@ -324,7 +324,7 @@ function SendRow({ send, postId }: { send: PostPublicationRow; postId: number })
           }) ? (
             <span
               className="rounded-full bg-surface-sunken px-1.5 py-px text-[10px] text-status-blocked"
-              title="TikTok takes the video but not the caption — you finish the post in the TikTok app."
+              title="O TikTok recebe o vídeo mas não a legenda — você finaliza o post no app do TikTok."
             >
               {deliveryLabel({
                 platform: send.channel_platform,
@@ -336,9 +336,9 @@ function SendRow({ send, postId }: { send: PostPublicationRow; postId: number })
           {send.removed_from_platform === 1 ? (
             <span
               className="rounded-full px-1.5 py-px text-[10px] text-status-failed"
-              title="This post is no longer on the account. Its numbers are frozen at the last reading and will not update."
+              title="Este post não está mais na conta. Seus números ficaram congelados na última leitura e não serão atualizados."
             >
-              removed from platform
+              removido da plataforma
             </span>
           ) : null}
           {/* Gated on metrics_fetched_at — the record of a fetch — never on a metric value.
@@ -351,12 +351,12 @@ function SendRow({ send, postId }: { send: PostPublicationRow; postId: number })
               // Matches lib/platforms.ts's fallback style: an unrecognised platform should
               // look wrong rather than borrow Instagram's metric set.
               <span className="data text-[11px] text-status-failed">
-                Unknown platform &quot;{send.channel_platform}&quot; — no metrics display for it.
+                Plataforma desconhecida &quot;{send.channel_platform}&quot; — sem exibição de métricas para ela.
               </span>
             ) : (
               // Fetched, and the platform genuinely returned nothing we keep a column for.
               // Distinct from "not fetched yet": there is nothing further to wait for.
-              <span className="text-[11px] text-faint">no numbers reported</span>
+              <span className="text-[11px] text-faint">nenhum número informado</span>
             )
           ) : send.status === "posted" && send.is_dry_run !== 1 ? (
             <span className="text-[11px] text-faint">
@@ -364,17 +364,17 @@ function SendRow({ send, postId }: { send: PostPublicationRow; postId: number })
                   the platform it never will be, and saying otherwise leaves someone waiting
                   for numbers that are never coming. */}
               {send.removed_from_platform === 1
-                ? "no metrics — the post was removed before any were collected"
+                ? "sem métricas — o post foi removido antes de coletar qualquer uma"
                 : send.surface === "story"
-                  ? "story expired before metrics were fetched"
+                  ? "o story expirou antes de as métricas serem coletadas"
                   : // A video still in a TikTok inbox, or one we never saw go public, has
                     // no published post to measure. "not fetched yet" would promise
                     // numbers that cannot arrive until the creator publishes it.
                     send.delivery_state === "inbox"
-                    ? "no metrics until you publish it in TikTok"
+                    ? "sem métricas até você publicar no TikTok"
                     : send.delivery_state === "gave_up"
-                      ? "no metrics — we never confirmed this went live"
-                      : "metrics not fetched yet"}
+                      ? "sem métricas — nunca confirmamos que isso foi ao ar"
+                      : "métricas ainda não coletadas"}
             </span>
           ) : null}
         </div>
@@ -398,7 +398,7 @@ function SendRow({ send, postId }: { send: PostPublicationRow; postId: number })
                 backgroundColor: "color-mix(in srgb, var(--color-status-draft) 12%, white)",
               }}
             >
-              Held
+              Em espera
             </span>
           ) : null}
         </div>
@@ -415,14 +415,14 @@ function SendRow({ send, postId }: { send: PostPublicationRow; postId: number })
                 disabled={busy || !date || !time}
                 className="rounded-md bg-brand px-2.5 py-1 text-xs font-medium text-on-brand hover:bg-brand-ink disabled:opacity-50"
               >
-                {busy ? "Saving…" : "Save"}
+                {busy ? "Salvando…" : "Salvar"}
               </button>
               <button
                 onClick={() => setShowReschedule(false)}
                 disabled={busy}
                 className="rounded-md px-2 py-1 text-xs font-medium text-muted hover:text-ink disabled:opacity-50"
               >
-                Discard
+                Descartar
               </button>
             </div>
           ) : (
@@ -430,7 +430,7 @@ function SendRow({ send, postId }: { send: PostPublicationRow; postId: number })
               onClick={() => setShowReschedule(true)}
               className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted hover:border-brand hover:text-brand"
             >
-              Reschedule
+              Reagendar
             </button>
           )}
 
@@ -440,7 +440,7 @@ function SendRow({ send, postId }: { send: PostPublicationRow; postId: number })
               disabled={busy}
               className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-ink-soft hover:bg-surface-sunken disabled:opacity-50"
             >
-              {send.is_held === 1 ? (busy ? "Resuming…" : "Resume") : busy ? "Holding…" : "Hold"}
+              {send.is_held === 1 ? (busy ? "Retomando…" : "Retomar") : busy ? "Colocando em espera…" : "Colocar em espera"}
             </button>
           ) : null}
 
@@ -451,14 +451,14 @@ function SendRow({ send, postId }: { send: PostPublicationRow; postId: number })
                 disabled={busy}
                 className="rounded-md bg-status-failed px-2.5 py-1 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
               >
-                {busy ? "Removing…" : "Confirm remove"}
+                {busy ? "Removendo…" : "Confirmar remoção"}
               </button>
               <button
                 onClick={() => setConfirmRemove(false)}
                 disabled={busy}
                 className="rounded-md px-2 py-1 text-xs font-medium text-muted hover:text-ink disabled:opacity-50"
               >
-                Keep
+                Manter
               </button>
             </div>
           ) : (
@@ -466,7 +466,7 @@ function SendRow({ send, postId }: { send: PostPublicationRow; postId: number })
               onClick={() => setConfirmRemove(true)}
               className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted hover:border-status-failed hover:text-status-failed"
             >
-              Remove
+              Remover
             </button>
           )}
         </div>
@@ -478,32 +478,32 @@ function SendRow({ send, postId }: { send: PostPublicationRow; postId: number })
           the post itself went out fine, so nothing else on this row hints at it. */}
       {send.first_comment_status !== "none" ? (
         <div className="flex flex-wrap items-center gap-2 rounded-md bg-surface-sunken px-2.5 py-1.5">
-          <span className="text-[11px] font-medium text-muted">First comment</span>
+          <span className="text-[11px] font-medium text-muted">Primeiro comentário</span>
           {send.first_comment_status === "posted" ? (
-            <span className="text-[11px] text-ink-soft">Posted</span>
+            <span className="text-[11px] text-ink-soft">Postado</span>
           ) : send.first_comment_status === "pending" ? (
             <span className="text-[11px] text-ink-soft">
               {send.first_comment_retry_requested === 1
-                ? "Retry queued — the worker will pick it up."
-                : "In progress…"}
+                ? "Nova tentativa enfileirada — o worker vai pegá-la."
+                : "Em andamento…"}
             </span>
           ) : (
             <>
               <span className="text-[11px] font-medium text-status-failed">
-                Failed — the post itself went out fine.
+                Falhou — o post em si saiu normalmente.
               </span>
               {send.first_comment_error ? (
                 <span className="data text-[11px] text-muted">{send.first_comment_error}</span>
               ) : null}
               {send.first_comment_retry_requested === 1 ? (
-                <span className="text-[11px] text-ink-soft">Retry queued.</span>
+                <span className="text-[11px] text-ink-soft">Nova tentativa enfileirada.</span>
               ) : (
                 <button
                   onClick={retryComment}
                   disabled={busy}
                   className="rounded-md border border-border px-2 py-0.5 text-[11px] font-medium text-muted hover:border-brand hover:text-brand disabled:opacity-50"
                 >
-                  {busy ? "Queueing…" : "Retry comment"}
+                  {busy ? "Enfileirando…" : "Tentar comentário de novo"}
                 </button>
               )}
             </>
@@ -572,24 +572,24 @@ export function PostSendsPanel({
   const addLabel =
     n === 0
       ? postNow
-        ? "Post now →"
-        : "Add send"
+        ? "Postar agora →"
+        : "Adicionar envio"
       : postNow
-        ? `Post now to ${n} ${n === 1 ? "account" : "accounts"} →`
-        : `Add ${n} ${n === 1 ? "send" : "sends"}`;
+        ? `Postar agora para ${n} ${n === 1 ? "conta" : "contas"} →`
+        : `Adicionar ${n} envio${n === 1 ? "" : "s"}`;
 
   async function addSend() {
     setError(null);
     if (effectiveTargets.length === 0) {
-      setError("Pick at least one account.");
+      setError("Escolha ao menos uma conta.");
       return;
     }
     if (postNow && dirty) {
-      setError("Save your changes first — Post now publishes what's saved.");
+      setError("Salve suas alterações primeiro — Postar agora publica o que está salvo.");
       return;
     }
     if (!postNow && (!date || !time)) {
-      setError("Pick a date and time.");
+      setError("Escolha uma data e horário.");
       return;
     }
     setBusy(true);
@@ -604,7 +604,7 @@ export function PostSendsPanel({
     setBusy(false);
     if (!res.ok) {
       const b = await res.json().catch(() => ({}));
-      setError(b.error ?? "Could not add send.");
+      setError(b.error ?? "Não foi possível adicionar o envio.");
       return;
     }
     setTargets([]);
@@ -616,14 +616,14 @@ export function PostSendsPanel({
 
   return (
     <section className="rounded-card border border-border bg-surface p-5">
-      <h3 className="mb-1 font-display text-sm font-semibold text-ink">Scheduled sends</h3>
+      <h3 className="mb-1 font-display text-sm font-semibold text-ink">Envios agendados</h3>
       <p className="mb-3 text-xs text-muted">
-        Retarget, hold, or remove this post&apos;s sends. Posted sends are permanent records and read-only.
+        Redirecione, coloque em espera ou remova os envios deste post. Envios já postados são registros permanentes e somente leitura.
       </p>
 
       {sends.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border-strong bg-surface-sunken px-3 py-4 text-center text-xs text-muted">
-          No sends yet — add one below.
+          Ainda sem envios — adicione um abaixo.
         </p>
       ) : (
         <div>
@@ -635,10 +635,10 @@ export function PostSendsPanel({
 
       <div className="mt-4 rounded-lg border border-border bg-surface-sunken p-3">
         <div className="mb-2 flex items-center justify-between">
-          <h4 className="text-xs font-semibold text-ink-soft">Add a send</h4>
+          <h4 className="text-xs font-semibold text-ink-soft">Adicionar envio</h4>
           <div
             role="group"
-            aria-label="Send timing"
+            aria-label="Momento do envio"
             className="inline-flex rounded-lg border border-border p-0.5"
           >
             <button
@@ -647,7 +647,7 @@ export function PostSendsPanel({
               className={segBtn(!postNow)}
               onClick={() => setPostNow(false)}
             >
-              Schedule
+              Agendar
             </button>
             <button
               type="button"
@@ -655,17 +655,17 @@ export function PostSendsPanel({
               className={segBtn(postNow)}
               onClick={() => setPostNow(true)}
             >
-              Post now
+              Postar agora
             </button>
           </div>
         </div>
         <div className="mb-3">
           <label className="mb-1.5 block text-[11px] font-medium text-ink-soft">
-            Accounts — each one gets its own send
+            Contas — cada uma recebe seu próprio envio
           </label>
           {pickable.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border-strong bg-surface px-3 py-3 text-center text-xs text-muted">
-              Every account that can take this post already has a send queued.
+              Toda conta que pode receber este post já tem um envio na fila.
             </p>
           ) : (
             <ChannelSurfacePicker
@@ -683,7 +683,7 @@ export function PostSendsPanel({
           {!postNow ? (
             <>
               <div>
-                <label className="mb-1 block text-[11px] font-medium text-ink-soft">Date</label>
+                <label className="mb-1 block text-[11px] font-medium text-ink-soft">Data</label>
                 <input
                   type="date"
                   className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink focus:border-brand"
@@ -692,7 +692,7 @@ export function PostSendsPanel({
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[11px] font-medium text-ink-soft">Time (channel local)</label>
+                <label className="mb-1 block text-[11px] font-medium text-ink-soft">Horário (local da conta)</label>
                 <input
                   type="time"
                   className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink focus:border-brand"
@@ -707,12 +707,12 @@ export function PostSendsPanel({
             disabled={busy || effectiveTargets.length === 0 || (postNow && dirty)}
             className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-ink disabled:opacity-50"
           >
-            {busy ? (postNow ? "Sending…" : "Adding…") : addLabel}
+            {busy ? (postNow ? "Enviando…" : "Adicionando…") : addLabel}
           </button>
         </div>
         {postNow && dirty ? (
           <p className="mt-2 text-xs text-status-failed">
-            Save your changes first — Post now publishes what&apos;s saved.
+            Salve suas alterações primeiro — Postar agora publica o que está salvo.
           </p>
         ) : null}
         {postNow ? (

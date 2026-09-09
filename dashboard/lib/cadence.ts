@@ -1,4 +1,23 @@
 export const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+
+// Display-only pt-BR labels. The stored/wire values above stay the English 3-letter
+// abbreviations the worker's _weekday_ints parses — translating those would be a data
+// format change, not a UI one, and would desync every already-saved cadence_config.
+const DAY_LABELS_PT: Record<string, string> = {
+  mon: "seg", tue: "ter", wed: "qua", thu: "qui", fri: "sex", sat: "sáb", sun: "dom",
+};
+export function dayLabel(d: string): string {
+  return DAY_LABELS_PT[d] ?? d;
+}
+
+// Same reasoning as dayLabel: "morning"/"afternoon"/"evening" are the stored band keys
+// (config.bandTimes, worker's derive_band) — only the on-screen label is pt-BR.
+const BAND_LABELS_PT: Record<string, string> = {
+  morning: "manhã", afternoon: "tarde", evening: "noite",
+};
+export function bandLabel(band: string): string {
+  return BAND_LABELS_PT[band] ?? band;
+}
 export const BAND_ORDER = ["morning", "afternoon", "evening"] as const;
 
 export type Band = (typeof BAND_ORDER)[number];
@@ -185,16 +204,16 @@ export function intervalNote(everyMinutes: number): string {
   const step = intervalStepMinutes(everyMinutes);
   const perDay = 1440 / step;
   if (perDay === 1) {
-    return "A whole number of days — this always lands at the same time."
-      + " Use “At set times” unless you meant to drift.";
+    return "Um número exato de dias — isso sempre cai no mesmo horário."
+      + " Use “Em horários definidos” a menos que você queira que varie.";
   }
   if (step > 60) {
-    return `This lands at only ${perDay} times of day, ${gapLabel(step)} apart —`
-      + " and which ones depends on when the last send was scheduled, so tagged posts may"
-      + " not be reachable.";
+    return `Isso cai em só ${perDay} horários do dia, com ${gapLabel(step)} de intervalo —`
+      + " e quais deles depende de quando o último envio foi agendado, então posts marcados"
+      + " podem não ser alcançados.";
   }
-  return "The post time drifts by this interval each time, so it sweeps through every hour"
-    + " of the window over several days instead of landing at a fixed time.";
+  return "O horário do post varia a cada envio, então percorre cada hora"
+    + " da janela ao longo de vários dias em vez de cair num horário fixo.";
 }
 
 /** The coverage warning for one band with content and no reachable slot. Mode-aware: in
@@ -205,11 +224,11 @@ export function uncoveredBandWarning(
   count: number,
   mode: Cadence["mode"],
 ): string {
-  const subject = count === 1 ? `1 ready post is tagged ${band}` : `${count} ready posts are tagged ${band}`;
-  const them = count === 1 ? "it" : "they";
+  const bandPt = bandLabel(band);
+  const subject = count === 1 ? `1 post pronto está marcado como ${bandPt}` : `${count} posts prontos estão marcados como ${bandPt}`;
   return mode === "times"
-    ? `${subject} — no ${band} time set, so ${them} will not be auto-filled.`
-    : `${subject} — this interval is not guaranteed to land in the ${band}, so ${them} may not be auto-filled.`;
+    ? `${subject} — nenhum horário de ${bandPt} definido, então não serão preenchidos automaticamente.`
+    : `${subject} — este intervalo não tem garantia de cair na ${bandPt}, então podem não ser preenchidos automaticamente.`;
 }
 
 function gapLabel(minutes: number): string {
@@ -220,10 +239,10 @@ function gapLabel(minutes: number): string {
 }
 
 function labelDays(days: string[]): string {
-  if (days.length === 7) return "daily";
-  if (!days.length) return "no days";
+  if (days.length === 7) return "todo dia";
+  if (!days.length) return "nenhum dia";
   return DAYS.filter((d) => days.includes(d))
-    .map((d) => d[0].toUpperCase() + d.slice(1))
+    .map((d) => dayLabel(d)[0].toUpperCase() + dayLabel(d).slice(1))
     .join("/");
 }
 
@@ -231,7 +250,7 @@ export function summarize(c: Cadence): string {
   if (c.mode === "interval") {
     const h = Math.floor(c.everyMinutes / 60);
     const m = c.everyMinutes % 60;
-    return `Every ${h}h ${m}m, ${c.from}–${c.to}, ${labelDays(c.days)}`;
+    return `A cada ${h}h ${m}m, ${c.from}–${c.to}, ${labelDays(c.days)}`;
   }
   return [...c.slots]
     .sort((a, b) => (minutesOf(a.time) ?? 0) - (minutesOf(b.time) ?? 0))
