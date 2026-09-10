@@ -296,42 +296,52 @@ export async function POST(req: NextRequest) {
     // Thumbnail is a nicety — if sharp chokes, keep the original and move on.
   }
 
-  // Deliberately points at the ORIGINAL, not the (possibly-conformed) publish_path
-  // derivative — asymmetric with the video branch above, and intentionally so. An
-  // un-cropped image is still a legal Instagram post: Meta accepts any aspect ratio in
-  // its own range and will itself crop/letterbox on publish (see video-spec.ts's
-  // warnAboveRatio/warnBelowRatio comment for the video equivalent of this behavior).
-  // A too-wide VIDEO, by contrast, is hard-refused by Reels — there is no server-side
-  // fallback, so public_url must resolve to something Meta will actually accept. If
-  // that ever stops being true for images (e.g. a future spec req makes conform
-  // mandatory), this needs the same fix as the video branch.
-  const publicUrl = config.publicAssetBaseUrl
-    ? `${config.publicAssetBaseUrl.replace(/\/$/, "")}/${storageRel}`
-    : null;
-
-  // Conform to Instagram's publish spec (crop/pad + resize) and store the derivative
-  // alongside the original. Never let a conform failure fail the upload — the worker
-  // falls back to the original when publish_path is null.
-  let publishPath: string | null = null;
-  // Typed via ConformMode (not the narrower "none"|"crop"|"pad") only because that type
-  // now includes "downscale" for the video path below — conformImage() itself (called
-  // a few lines down) never returns "downscale"; this is a type-compatibility widening,
-  // not a behavior change.
-  let conformMode: ConformMode = "none";
-  let needsReview = 0;
-  try {
-    const conformed = await conformImage(buf, "crop");
-    const publishRel = `pub/${hash}.jpg`;
-    const publishAbs = path.join(config.assetStorageDir, publishRel);
-    await fs.mkdir(path.dirname(publishAbs), { recursive: true });
-    await fs.writeFile(publishAbs, conformed.buffer);
-    publishPath = publishRel;
-    conformMode = conformed.mode;
-    needsReview = conformed.needsReview ? 1 : 0;
-  } catch (err) {
-    console.error("Image conform failed; falling back to original at publish time.", err);
-    publishPath = null;
+  // Conform to Instagram's publish spec (crop/pad + resize, but also — unconditionally,
+  // regardless of aspect ratio — re-encode to JPEG, sRGB, no alpha channel). This is the
+  // ONLY thing standing between an uploaded PNG/WebP (both accepted by the 415 check
+  // above) and Meta refusing it outright at publish time — the photo endpoint accepts
+  // JPEG only, and unlike the aspect-ratio crop/pad Meta will not silently fix a wrong
+  // format server-side. A conform failure therefore refuses the upload instead of
+  // silently storing an asset that would publish (or worse, fail asynchronously well
+  // after scheduling) with no local warning at all — the exact class of failure that
+  // motivated this comment. sharp is tolerant of nearly everything real; a throw here
+  // means a genuinely unreadable or unsupported file (corrupt, a truncated transfer, a
+  // decompression-bomb-sized image sharp's default limits refuse), not routine input.
+  const conformed = await conformImage(buf, "crop").catch((err) => {
+    console.error("Image conform failed:", err);
+    return null;
+  });
+  if (!conformed) {
+    await fs.rm(storageAbs, { force: true });
+    return NextResponse.json(
+      {
+        error:
+          "This image couldn't be processed — it may be corrupt, or in a format this app " +
+          "can't read. Try re-exporting it (e.g. Save As JPEG) and upload again.",
+      },
+      { status: 422 }
+    );
   }
+  const publishRel = `pub/${hash}.jpg`;
+  const publishAbs = path.join(config.assetStorageDir, publishRel);
+  await fs.mkdir(path.dirname(publishAbs), { recursive: true });
+  await fs.writeFile(publishAbs, conformed.buffer);
+  const publishPath = publishRel;
+  const conformMode: ConformMode = conformed.mode;
+  const needsReview = conformed.needsReview ? 1 : 0;
+
+  // MUST point at the conformed derivative, never the original, on the rare install that
+  // sets PUBLIC_ASSET_BASE_URL to self-host assets rather than the default cloudflared
+  // tunnel: worker/publisher.py's _resolve_url gives an explicit public_url absolute
+  // precedence over publish_path (it's meant for a genuinely external host, unrelated to
+  // this app's own asset store — see .env.example), so pointing this at storageRel would
+  // silently defeat conform on exactly that install type. On the default/recommended
+  // setup (PUBLIC_ASSET_BASE_URL unset) this is null either way and publish_path/
+  // storage_path resolution happens dynamically in the worker via _resolve_rel instead,
+  // which already prefers the conformed derivative on its own.
+  const publicUrl = config.publicAssetBaseUrl
+    ? `${config.publicAssetBaseUrl.replace(/\/$/, "")}/${publishPath}`
+    : null;
 
   const { asset, deduped } = upsertAssetByHash({
     content_hash: hash,
