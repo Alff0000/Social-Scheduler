@@ -9,6 +9,11 @@ export async function middleware(req: NextRequest) {
   if (
     pathname === "/login" ||
     pathname.startsWith("/api/auth/") ||
+    // The one deliberately public route: Meta downloads media from here at publish time
+    // and has no session cookie to send. See app/api/public-assets/[...path]/route.ts's
+    // own comment for why this exemption exists and what breaks without it (Meta silently
+    // receiving this app's login page instead of the asset it asked for).
+    pathname.startsWith("/api/public-assets/") ||
     pathname.startsWith("/_next") ||
     pathname === "/favicon.ico"
   ) {
