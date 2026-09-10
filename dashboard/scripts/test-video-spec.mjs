@@ -8,6 +8,7 @@ const ok = {
   has_audio: true,
   moov_before_mdat: true,
   is_hevc: false,
+  audio_codec: "mp4a",
 };
 const MB = 1024 * 1024;
 
@@ -52,14 +53,17 @@ assert.doesNotMatch(
   "59999ms must not format as a whole minute"
 );
 
-// File size — 300MB, inclusive
-assert.deepEqual(validateReel(ok, 300 * MB, "video/mp4").errors, [], "300MB ok");
-assert.equal(validateReel(ok, 300 * MB + 1, "video/mp4").errors.length, 1, "over 300MB refused");
-assert.match(validateReel(ok, 512 * MB, "video/mp4").errors[0], /512(\.0)?\s?MB/, "names the real size");
+// File size — 300MB, inclusive. Given its own, longer duration: at `ok`'s 30s these byte
+// sizes are hundreds of Mbps, which is realistic for nothing and would trip the bitrate
+// check below too — this section is testing the size cap in isolation.
+const sizeOk = { ...ok, duration_ms: 300_000 }; // 5 minutes — keeps even 512MB well under 25Mbps
+assert.deepEqual(validateReel(sizeOk, 300 * MB, "video/mp4").errors, [], "300MB ok");
+assert.equal(validateReel(sizeOk, 300 * MB + 1, "video/mp4").errors.length, 1, "over 300MB refused");
+assert.match(validateReel(sizeOk, 512 * MB, "video/mp4").errors[0], /512(\.0)?\s?MB/, "names the real size");
 
 // Finding 1 — a rejected too-big file must never be reported AT the cap it failed.
 // 300MB+1 byte rounded to-nearest would read "300.0 MB", contradicting "caps Reels at 300 MB".
-const overCap = validateReel(ok, 300 * MB + 1, "video/mp4");
+const overCap = validateReel(sizeOk, 300 * MB + 1, "video/mp4");
 assert.doesNotMatch(
   overCap.errors[0],
   /300\.0 MB/,
@@ -89,9 +93,11 @@ const silent = validateReel({ ...ok, has_audio: false }, MB, "video/mp4");
 assert.deepEqual(silent.errors, []);
 assert.match(silent.warnings.join(" "), /no audio/i);
 
-// Multiple problems are ALL reported, not just the first
+// Multiple problems are ALL reported, not just the first — 1s at 400MB is also, honestly,
+// an absurd bitrate (~3.2 Gbps), so this now trips 4 independent checks: too short
+// (fatal), too wide, too big, and bitrate (all convertible/fatal-mixed).
 const bad = validateReel({ ...ok, duration_ms: 1_000, width: 3840 }, 400 * MB, "video/mp4");
-assert.equal(bad.errors.length, 3, `expected 3 errors, got ${bad.errors.length}: ${bad.errors}`);
+assert.equal(bad.errors.length, 4, `expected 4 errors, got ${bad.errors.length}: ${bad.errors}`);
 
 assert.equal(REEL_SPEC.maxBytes, 300 * MB);
 assert.equal(REEL_SPEC.maxDurationMs, 900_000);
@@ -116,8 +122,10 @@ assert.deepEqual(c.fatal, [], "4K must NOT be fatal — downscaling fixes it");
 assert.equal(c.convertible.length, 1, "4K width must be convertible");
 assert.match(c.convertible[0], /2160/, "must name the measured width");
 
-// Oversize is convertible
-c = classifyReelErrors(okC, 400 * MB2, "video/mp4");
+// Oversize is convertible. Given a longer duration than okC's 30s: 400MB at 30s is
+// ~107Mbps, which would also (correctly) trip the bitrate check — this test isolates
+// the size check alone.
+c = classifyReelErrors({ ...okC, duration_ms: 300_000 }, 400 * MB2, "video/mp4");
 assert.deepEqual(c.fatal, []);
 assert.equal(c.convertible.length, 1);
 
@@ -173,6 +181,42 @@ assert.deepEqual(c.fatal, []);
 assert.equal(c.convertible.length, 2, "moov-trailing AND HEVC must both be reported");
 
 console.log("OK — classifyReelErrors splits fatal from convertible");
+
+// --- Bitrate: Meta's 25Mbps ceiling, computed from byteSize/duration ----------------
+// 30s at 25Mbps flat is exactly 93,750,000 bytes. One byte either side of that must
+// land on opposite sides of the check, matching this file's own duration/size boundary
+// tests above rather than a loose approximation.
+const bpsToBytes = (mbps, seconds) => Math.round((mbps * 1_000_000 * seconds) / 8);
+
+c = classifyReelErrors(okC, bpsToBytes(25, 30), "video/mp4");
+assert.deepEqual(c.convertible, [], "exactly 25Mbps must pass");
+
+c = classifyReelErrors(okC, bpsToBytes(25, 30) + 1, "video/mp4");
+assert.equal(c.convertible.length, 1, "one byte over 25Mbps must be convertible");
+assert.match(c.convertible[0], /25 ?Mbps/i, "must name Instagram's actual limit");
+
+c = classifyReelErrors(okC, bpsToBytes(50, 30), "video/mp4");
+assert.match(c.convertible[0], /50 ?Mbps/, "must name the measured bitrate, not just the rule");
+
+// --- Audio codec: Meta accepts AAC only ---------------------------------------------
+
+c = classifyReelErrors({ ...okC, audio_codec: "mp4a" }, 40 * MB2, "video/mp4");
+assert.deepEqual(c.convertible, [], "AAC audio must not be flagged");
+
+c = classifyReelErrors({ ...okC, audio_codec: "Opus" }, 40 * MB2, "video/mp4");
+assert.equal(c.convertible.length, 1, "non-AAC audio must be convertible, not fatal");
+assert.match(c.convertible[0], /Opus/, "must name the actual codec found");
+assert.match(c.convertible[0], /AAC/, "must name what Instagram requires");
+
+// A silent video has nothing for the audio-codec check to say anything about.
+c = classifyReelErrors({ ...okC, has_audio: false, audio_codec: null }, 40 * MB2, "video/mp4");
+assert.deepEqual(c.convertible, [], "no audio track means nothing to flag on codec");
+
+// An unreadable audio stsd (null) must never be treated as "wrong codec" — this app
+// simply doesn't know, and unknown must never refuse (the same rule media-limits.ts
+// follows for every other unverifiable field).
+c = classifyReelErrors({ ...okC, has_audio: true, audio_codec: null }, 40 * MB2, "video/mp4");
+assert.deepEqual(c.convertible, [], "unreadable audio codec must not be guessed as wrong");
 
 // --- Real-file verification (whole-branch review, Important 3) ---------------------
 // Both real files this fix was written against. Read-only — never modify either.

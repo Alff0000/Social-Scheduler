@@ -128,12 +128,18 @@ function file({
   // (the pre-existing fixture shape, which every duration/dimension test below still
   // relies on). 'avc1' = H.264, 'hvc1' = HEVC.
   videoCodec = null,
+  // Same, for the audio track — 'mp4a' = AAC. null omits stsd (audio_codec reads as null).
+  audioCodec = null,
 } = {}) {
   const ftyp = box("ftyp", Buffer.from("isomiso2avc1mp41", "ascii"));
   const videoTrakParts = [tkhd(w, h, { rotate90, rotate270, version: tkhdVersion }), hdlr("vide")];
   if (videoCodec) videoTrakParts.push(stsd(videoCodec));
   const tracks = [box("trak", Buffer.concat(videoTrakParts))];
-  if (audio) tracks.push(box("trak", Buffer.concat([tkhd(0, 0), hdlr("soun")])));
+  if (audio) {
+    const audioTrakParts = [tkhd(0, 0), hdlr("soun")];
+    if (audioCodec) audioTrakParts.push(stsd(audioCodec));
+    tracks.push(box("trak", Buffer.concat(audioTrakParts)));
+  }
   const moov = box("moov", Buffer.concat([mvhd(timescale, duration, { version: mvhdVersion }), ...tracks]));
   const mdat = box("mdat", Buffer.alloc(64));
   return moovFirst
@@ -149,6 +155,7 @@ assert.equal(m.height, 1920);
 assert.equal(m.has_audio, true);
 assert.equal(m.moov_before_mdat, true, "moov-first fixture reports moov_before_mdat true");
 assert.equal(m.is_hevc, false, "no stsd at all must not be misread as HEVC");
+assert.equal(m.audio_codec, null, "no audio stsd at all must read as null, not a guess");
 
 // No audio track
 assert.equal(readVideoMeta(file({ audio: false })).has_audio, false, "silent video");
@@ -247,6 +254,27 @@ assert.equal(readVideoMeta(file({ videoCodec: "hev1" })).is_hevc, true, "hev1 mu
 const hevcWithAudio = readVideoMeta(file({ videoCodec: "hvc1", audio: true }));
 assert.equal(hevcWithAudio.is_hevc, true, "HEVC video track detected even alongside an audio track");
 assert.equal(hevcWithAudio.has_audio, true, "audio track detection is unaffected by codec detection");
+
+// --- Audio codec detection: mp4a (AAC) vs. anything else ---------------------------
+
+// AAC ('mp4a') must read back exactly as such.
+assert.equal(readVideoMeta(file({ audioCodec: "mp4a" })).audio_codec, "mp4a", "AAC audio detected");
+
+// A non-AAC codec fourcc (e.g. Opus, copied verbatim from a WebM source by some
+// downloader/re-encoder) must be reported as itself, not silently coerced to null or
+// misread as AAC — video-spec.ts is what decides this is a problem, not this reader.
+assert.equal(readVideoMeta(file({ audioCodec: "Opus" })).audio_codec, "Opus", "non-AAC audio codec reported verbatim");
+
+// A silent video (no audio track at all) must report null, not an empty string or the
+// video track's own codec — the two are read from entirely different tracks.
+assert.equal(readVideoMeta(file({ audio: false, videoCodec: "avc1" })).audio_codec, null, "no audio track -> null audio_codec");
+
+// The video track's codec must never leak into the audio reading, or vice versa — build
+// one fixture with BOTH set to deliberately different, easily-confused values and check
+// each field independently.
+const bothCodecs = readVideoMeta(file({ videoCodec: "hvc1", audioCodec: "mp4a" }));
+assert.equal(bothCodecs.is_hevc, true, "video codec unaffected by audio_codec fixture field");
+assert.equal(bothCodecs.audio_codec, "mp4a", "audio codec unaffected by is_hevc detection");
 
 // --- Real-file verification (whole-branch review, Important 3) ---------------------
 // Both real files this fix was written against. Read-only — never modify either.

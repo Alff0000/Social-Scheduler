@@ -19,7 +19,20 @@ export const REEL_SPEC = {
   // band, because a landscape Reel is a valid post that simply letterboxes (Decision 4).
   warnBelowRatio: 0.5,   // width/height; 9:16 is 0.5625
   warnAboveRatio: 0.8,
+  // Re-verified alongside the rest of this spec (2026-07-28, #reels-specs): "VBR, 25Mbps
+  // maximum" for the combined stream. There is no separate figure for video vs. audio in
+  // the same table, so this is checked against total (video+audio) throughput — the only
+  // number this app can compute without decoding the stream, from byteSize/duration alone.
+  maxBitrateBps: 25_000_000,
 } as const;
+
+// The only audio codec Meta's Reels spec accepts: "AAC, 48khz sample rate maximum, 1 or 2
+// channels". This app can't verify sample rate or channel count without decoding the
+// stream, but the codec itself is a single fourcc read off the container (video-meta.ts)
+// — 'mp4a' is the ISO BMFF tag for MPEG-4 audio, which in practice on every real encoder
+// this app has seen means AAC. A re-encoder/downloader that copied an audio stream from a
+// non-MP4 source (Opus, MP3, PCM) writes a different fourcc, and Meta rejects it outright.
+const REEL_AUDIO_CODEC = "mp4a";
 
 export const REEL_MIME_TYPES: Record<string, string> = {
   "video/mp4": "mp4",
@@ -96,6 +109,22 @@ export function classifyReelErrors(meta: VideoMeta, byteSize: number, mime: stri
       `This video uses HEVC (H.265) encoding. Many browsers — including this app's own ` +
         `previews — can't decode it. Converting to H.264 fixes previews, the cover picker, ` +
         `and Instagram's own compatibility.`
+    );
+  }
+  // Only computable as combined video+audio throughput (byteSize/duration) — Meta's own
+  // table gives one 25Mbps ceiling with no separate video/audio breakdown, so this is
+  // exactly the figure it documents, not an approximation of it.
+  const bitrateBps = meta.duration_ms > 0 ? (byteSize * 8) / (meta.duration_ms / 1000) : 0;
+  if (bitrateBps > REEL_SPEC.maxBitrateBps) {
+    convertible.push(
+      `This video's bitrate is about ${Math.round(bitrateBps / 1_000_000)} Mbps. ` +
+        `Instagram caps Reels at 25 Mbps. Re-encoding at a lower bitrate fixes this.`
+    );
+  }
+  if (meta.has_audio && meta.audio_codec != null && meta.audio_codec !== REEL_AUDIO_CODEC) {
+    convertible.push(
+      `This video's audio is encoded as "${meta.audio_codec}". Instagram requires AAC audio. ` +
+        `Converting re-encodes the audio track to AAC.`
     );
   }
 

@@ -30,6 +30,12 @@ export interface VideoMeta {
   // scrubber) cannot decode HEVC, so it renders blank with nothing to explain why.
   // Conversion transcodes to H.264, which fixes this — same `convertible` reasoning.
   is_hevc: boolean;
+  // The audio track's codec fourcc ('mp4a' for AAC — the only audio codec Meta's Reels
+  // spec accepts), or null when the file has no audio track at all, or its stsd can't be
+  // read. Reels containers built by re-encoders/downloaders sometimes carry a different
+  // codec (Opus, MP3, PCM) copied straight from a non-MP4 source; Meta rejects those, and
+  // this is what video-spec.ts checks to catch it before upload rather than after.
+  audio_codec: string | null;
 }
 
 interface Box {
@@ -98,42 +104,41 @@ function moovBeforeMdat(buf: Buffer, moov: Box): boolean {
 }
 
 /**
- * Whether any video track's sample description names an HEVC codec (hvc1 or hev1).
+ * The sample-entry fourcc naming the codec of the FIRST track whose handler matches
+ * `handlerType` ('vide' or 'soun') — e.g. 'avc1' (H.264), 'hvc1'/'hev1' (HEVC), 'mp4a'
+ * (AAC), or something else entirely for a track this app doesn't expect. null when there
+ * is no such track, or its stsd can't be read.
  *
- * Scoped per top-level 'trak' (not a single moov-wide search) so a video track's codec
- * is never confused with an audio track's — deliberately tolerant of exactly where
- * 'hdlr'/'stsd' sit inside that trak (real ISO files nest them under mdia/minf/stbl;
- * this codebase's own synthetic test fixtures place 'hdlr' directly under 'trak' with no
- * 'mdia' wrapper at all), since `find` already recurses through any of the container
- * types below regardless of depth.
+ * Scoped per top-level 'trak' (not a single moov-wide search) so a video track's codec is
+ * never confused with an audio track's — deliberately tolerant of exactly where
+ * 'hdlr'/'stsd' sit inside that trak (real ISO files nest them under mdia/minf/stbl; this
+ * codebase's own synthetic test fixtures place 'hdlr' directly under 'trak' with no 'mdia'
+ * wrapper at all), since `find` already recurses through any of the container types below
+ * regardless of depth. Only the FIRST matching track and its FIRST stsd entry are read —
+ * a second track of the same kind, or a track that switches codecs mid-stream, is not a
+ * real-world case this app needs to detect.
  *
  * stsd (sample description box) layout: version+flags(4), entry_count(4), then
  * `entry_count` sample entries, each itself a box — [size(4)][fourcc(4)][payload] — whose
- * fourcc names the codec. Only the first entry is read: a track legitimately switching
- * codecs mid-stream is not a real-world case this app needs to detect.
+ * fourcc names the codec.
  */
-function isHevcVideo(buf: Buffer, moov: Box): boolean {
+function trackCodecFourCC(buf: Buffer, moov: Box, handlerType: "vide" | "soun"): string | null {
   for (const trak of boxes(buf, moov.start, moov.end)) {
     if (trak.type !== "trak") continue;
     const hdlrBox = find(buf, trak.start, trak.end, "hdlr");
     if (!hdlrBox || hdlrBox.end - hdlrBox.start < 12) continue;
-    const handlerType = buf.toString("ascii", hdlrBox.start + 8, hdlrBox.start + 12);
-    if (handlerType !== "vide") continue;
+    const actualHandler = buf.toString("ascii", hdlrBox.start + 8, hdlrBox.start + 12);
+    if (actualHandler !== handlerType) continue;
 
     const stsd = find(buf, trak.start, trak.end, "stsd");
     if (!stsd || stsd.end - stsd.start < 8) continue;
     const entryCount = buf.readUInt32BE(stsd.start + 4);
-    let p = stsd.start + 8;
-    for (let i = 0; i < entryCount; i++) {
-      if (p + 8 > stsd.end) break;
-      const size = buf.readUInt32BE(p);
-      const fourcc = buf.toString("ascii", p + 4, p + 8);
-      if (fourcc === "hvc1" || fourcc === "hev1") return true;
-      if (size < 8) break; // malformed entry — stop rather than loop forever
-      p += size;
-    }
+    if (entryCount < 1) continue;
+    const p = stsd.start + 8;
+    if (p + 8 > stsd.end) continue;
+    return buf.toString("ascii", p + 4, p + 8);
   }
-  return false;
+  return null;
 }
 
 export function readVideoMeta(buf: Buffer): VideoMeta {
@@ -215,6 +220,7 @@ export function readVideoMeta(buf: Buffer): VideoMeta {
   const has_audio = findAll(buf, moov.start, moov.end, "hdlr").some(
     (h) => h.end - h.start >= 12 && buf.toString("ascii", h.start + 8, h.start + 12) === "soun"
   );
+  const videoCodec = trackCodecFourCC(buf, moov, "vide");
 
   return {
     duration_ms: Math.round((duration / timescale) * 1000),
@@ -222,6 +228,7 @@ export function readVideoMeta(buf: Buffer): VideoMeta {
     height,
     has_audio,
     moov_before_mdat: moovBeforeMdat(buf, moov),
-    is_hevc: isHevcVideo(buf, moov),
+    is_hevc: videoCodec === "hvc1" || videoCodec === "hev1",
+    audio_codec: has_audio ? trackCodecFourCC(buf, moov, "soun") : null,
   };
 }
