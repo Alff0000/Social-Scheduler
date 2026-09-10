@@ -2,13 +2,20 @@ import Link from "next/link";
 import {
   blockedPublicationIds,
   getActiveChannels,
+  getAggregateAccountMetrics,
+  getPostedTodayCount,
+  getPublicationsByHour,
   getPublicationsOverview,
+  getTopChannelsByReach,
   getWorkerStatus,
   listPeriods,
   listTags,
 } from "@/lib/queries";
 import { PageHeader } from "@/components/ui";
 import { NoChannelsYet, OverviewBody } from "@/components/overview-body";
+import { DashboardPerformance } from "@/components/dashboard-performance";
+
+const PERFORMANCE_WINDOW_DAYS = 7;
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +62,16 @@ export default function OverviewPage() {
       />
 
       <div className="px-8 py-6 space-y-8">
+        {channels.length > 0 ? (
+          <DashboardPerformance
+            aggregateRows={getAggregateAccountMetrics(PERFORMANCE_WINDOW_DAYS)}
+            topChannels={getTopChannelsByReach(PERFORMANCE_WINDOW_DAYS, 5)}
+            postsByHour={getPublicationsByHour(PERFORMANCE_WINDOW_DAYS)}
+            activeChannelCount={channels.length}
+            postedTodayCount={getPostedTodayCount()}
+            windowDays={PERFORMANCE_WINDOW_DAYS}
+          />
+        ) : null}
         {channels.length > 0 ? (
           <OverviewBody
             channels={channels}

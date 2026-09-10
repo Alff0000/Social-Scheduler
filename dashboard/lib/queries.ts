@@ -3,6 +3,7 @@ import type DatabaseType from "better-sqlite3";
 import { getDb, nowIso } from "./db";
 import { isBlocked } from "./format";
 import { FINISHED_STATUSES_SQL } from "./queue-sections";
+import type { DayRow } from "./insights";
 import type {
   Asset,
   AutofillLane,
@@ -3400,4 +3401,135 @@ export function getWorkerStatus(): { online: boolean; lastSeenAt: string | null 
     online: Number.isFinite(ageMs) && ageMs >= 0 && ageMs <= WORKER_ONLINE_WINDOW_MS,
     lastSeenAt: row.last_seen_at,
   };
+}
+
+// ---- Dashboard summary (Overview page's "Desempenho" section) -----------------------
+//
+// Everything below aggregates ACROSS every active channel, in contrast to /insights'
+// per-account queries — the Overview page's whole point is "what does the whole
+// operation look like", not one account at a time. All three deliberately reuse
+// account_metrics/media_metrics/publications rather than introducing a new metrics
+// pipeline: this is a read-only summary of data the worker already syncs.
+
+/**
+ * account_metrics summed across every active channel, one row per day — feeds
+ * insights.ts's buildKpis() the same way a single account's own rows would, so the
+ * Overview page gets the exact same "vs. the previous window" math /insights already
+ * has, just aggregated. Unpopulated DayRow fields (this call never asks for them) are
+ * left null rather than guessed at.
+ */
+export function getAggregateAccountMetrics(days: number): DayRow[] {
+  const since = new Date(Date.now() - days * 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const rows = getDb()
+    .prepare(
+      `SELECT am.day AS day,
+              SUM(am.reach) AS reach,
+              SUM(am.views) AS views,
+              SUM(am.likes) AS likes,
+              SUM(am.comments) AS comments,
+              SUM(am.saves) AS saves,
+              SUM(am.shares) AS shares
+       FROM account_metrics am
+       JOIN channels c ON c.id = am.channel_id
+       WHERE c.is_active = 1 AND am.day >= ?
+       GROUP BY am.day
+       ORDER BY am.day ASC`,
+    )
+    .all(since) as {
+    day: string;
+    reach: number | null;
+    views: number | null;
+    likes: number | null;
+    comments: number | null;
+    saves: number | null;
+    shares: number | null;
+  }[];
+  return rows.map((r) => ({
+    day: r.day,
+    reach: r.reach,
+    views: r.views,
+    likes: r.likes,
+    comments: r.comments,
+    saves: r.saves,
+    shares: r.shares,
+    followers_count: null,
+    follows_count: null,
+    media_count: null,
+    profile_views: null,
+    accounts_engaged: null,
+    total_interactions: null,
+    replies: null,
+    website_clicks: null,
+    follows_gained: null,
+    lifetime_likes: null,
+  }));
+}
+
+export interface TopChannelRow {
+  id: number;
+  account_name: string;
+  platform: string;
+  color_hue: number | null;
+  avatar_path: string | null;
+  reach: number;
+}
+
+/** The channels with the most reach over the last `days` days — the Overview page's
+ *  "top contas" ranking. Only channels with at least one metrics row in the window are
+ *  returned; a brand-new or not-yet-synced channel is absent rather than shown as a 0
+ *  that would misrepresent "no data yet" as "no reach". */
+export function getTopChannelsByReach(days: number, limit: number): TopChannelRow[] {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return getDb()
+    .prepare(
+      `SELECT c.id, c.account_name, c.platform, c.color_hue, c.avatar_path,
+              SUM(am.reach) AS reach
+       FROM channels c
+       JOIN account_metrics am ON am.channel_id = c.id
+       WHERE c.is_active = 1 AND am.day >= ? AND am.reach IS NOT NULL
+       GROUP BY c.id
+       HAVING reach > 0
+       ORDER BY reach DESC
+       LIMIT ?`,
+    )
+    .all(since, limit) as TopChannelRow[];
+}
+
+/**
+ * How many posts actually went out in each hour of the day, over the last `days` days —
+ * the Overview page's "publicações por horário" chart. Grouped by the UTC hour in
+ * published_at: channels can each carry their own timezone, so an hour here describes
+ * when this INSTALL'S WORKER publishes, not necessarily local morning/afternoon/evening
+ * for any one audience — a deliberate simplification for an operational, not per-account,
+ * view.
+ */
+export function getPublicationsByHour(days: number): { hour: number; count: number }[] {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const rows = getDb()
+    .prepare(
+      `SELECT CAST(strftime('%H', published_at) AS INTEGER) AS hour, COUNT(*) AS count
+       FROM publications
+       WHERE status = 'posted' AND published_at >= ?
+       GROUP BY hour`,
+    )
+    .all(since) as { hour: number; count: number }[];
+  const byHour = new Map(rows.map((r) => [r.hour, r.count]));
+  return Array.from({ length: 24 }, (_, hour) => ({ hour, count: byHour.get(hour) ?? 0 }));
+}
+
+/** Publications that actually went out today, by UTC calendar day — every timestamp in
+ *  this schema is stored as UTC ISO-8601 (see migrations), and every connected channel
+ *  can have its own timezone, so there is no single "local today" that would be correct
+ *  for all of them at once; UTC is at least the same answer everywhere. The Overview
+ *  page's "postado hoje" count. Deliberately a plain COUNT rather than a per-channel
+ *  breakdown: this single line is meant to answer "did anything go out today", not
+ *  replace the queue list already below it. */
+export function getPostedTodayCount(): number {
+  const row = getDb()
+    .prepare(
+      `SELECT COUNT(*) AS n FROM publications
+       WHERE status = 'posted' AND date(published_at) = date('now')`,
+    )
+    .get() as { n: number };
+  return row.n;
 }
