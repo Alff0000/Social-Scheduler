@@ -37,6 +37,20 @@ async function encodeUnderLimit(pipe: Sharp): Promise<Buffer> {
   return flattened.clone().jpeg({ quality: 45, mozjpeg: true }).toBuffer();
 }
 
+/**
+ * Format/colour-safe JPEG re-encode with NO geometry change: rotate to true orientation,
+ * strip to sRGB, flatten transparency, encode under IG_MAX_BYTES. This is conformImage()'s
+ * normalize-and-encode step, decoupled from its crop/pad decision, for a caller that must
+ * never reframe — the Story canvas passthrough (dashboard/app/api/assets/[id]/story-framing
+ * and the upload route): a source already close to 9:16 needs no crop/pad, only the same
+ * format guarantee conformImage() gives the feed, since a PNG/WebP original is exactly as
+ * unpublishable to Instagram's Story endpoint as it is to the Feed's.
+ */
+export async function passthroughJpeg(input: Buffer): Promise<Buffer> {
+  const rotated = await sharp(input).rotate().toColourspace("srgb").toBuffer();
+  return encodeUnderLimit(sharp(rotated));
+}
+
 export async function conformImage(
   input: Buffer,
   mode: ConformMode = "crop",

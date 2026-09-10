@@ -6,7 +6,8 @@ import path from "node:path";
 import sharp from "sharp";
 import { config } from "@/lib/config";
 import { getAssetByHash, upsertAssetByHash } from "@/lib/queries";
-import { conformImage, type ConformMode } from "@/lib/conform";
+import { conformImage, passthroughJpeg, type ConformMode } from "@/lib/conform";
+import { needsStoryCanvas } from "@/lib/story-geometry";
 import { readVideoMeta, VideoParseError } from "@/lib/video-meta";
 import { validateReel, classifyReelErrors, humanDuration, REEL_MIME_TYPES } from "@/lib/video-spec";
 import { findConverter, convertVideo, ConvertError } from "@/lib/video-convert";
@@ -343,6 +344,32 @@ export async function POST(req: NextRequest) {
     ? `${config.publicAssetBaseUrl.replace(/\/$/, "")}/${publishPath}`
     : null;
 
+  // Same class of bug as the feed conform above, reached via a different surface: a Story
+  // target can be picked (components/channel-surface-picker.tsx) and scheduled without ever
+  // opening the Framing dialog — toggling "Story" is a pure client-side selection with no
+  // API call of its own. worker/publisher.py's _resolve_rel falls back to the untouched
+  // original whenever assets.story_path is NULL, which it always is until the Framing
+  // dialog writes it. For a source already close to 9:16 (story-geometry.ts's
+  // needsStoryCanvas), nothing about that fallback needs to change EXCEPT the format
+  // guarantee — so it's given one here, at upload, rather than staying null until (or
+  // unless) the dialog is ever opened. A source that genuinely needs reframing is left
+  // alone: guessing crop vs. blurred fill is the owner's call, made in the Framing dialog
+  // (app/api/assets/[id]/story-framing/route.ts), never defaulted silently.
+  let storyPath: string | null = null;
+  if (!needsStoryCanvas(width ?? 0, height ?? 0)) {
+    const storyPassthrough = await passthroughJpeg(buf).catch((err) => {
+      console.error("Story passthrough encode failed:", err);
+      return null;
+    });
+    if (storyPassthrough) {
+      const storyRel = `story/${hash}-original.jpg`;
+      const storyAbs = path.join(config.assetStorageDir, storyRel);
+      await fs.mkdir(path.dirname(storyAbs), { recursive: true });
+      await fs.writeFile(storyAbs, storyPassthrough);
+      storyPath = storyRel;
+    }
+  }
+
   const { asset, deduped } = upsertAssetByHash({
     content_hash: hash,
     media_kind: "image",
@@ -357,6 +384,7 @@ export async function POST(req: NextRequest) {
     publish_path: publishPath,
     conform_mode: conformMode,
     needs_review: needsReview,
+    story_path: storyPath,
   });
 
   return NextResponse.json({ asset, deduped });

@@ -4,6 +4,7 @@ import path from "node:path";
 import { config } from "@/lib/config";
 import { getAsset, updateAssetStoryFraming } from "@/lib/queries";
 import { needsStoryCanvas, renderStoryCanvas, type StoryMode } from "@/lib/story-canvas";
+import { passthroughJpeg } from "@/lib/conform";
 
 export const runtime = "nodejs";
 
@@ -46,12 +47,24 @@ export async function POST(
     );
   }
 
-  // An already-9:16 source needs no canvas: NULL story_path means "publish the untouched
-  // original", which is what the story publish path already does correctly. The mode is
-  // still recorded, so the choice survives if the asset is ever replaced by a differently
-  // shaped one.
+  // An already-9:16 source needs no reframing — but it still needs a FORMAT guarantee.
+  // story_path used to stay NULL here, meaning "publish the untouched original", which is
+  // only safe when the original happens to already be a JPEG. It can just as easily be a
+  // PNG or WebP (both accepted at upload — see dashboard/app/api/assets/upload/route.ts),
+  // and Instagram's Story endpoint accepts JPEG only, the same restriction that motivated
+  // the feed's conform-or-refuse rule. So this re-encodes (format/colour only, no
+  // crop/pad — story-canvas.ts's renderStoryCanvas is a separate pipeline for when a
+  // reframe genuinely is needed) rather than leaving the original to reach Meta untouched.
+  // The mode is still recorded, so the choice survives if the asset is ever replaced by a
+  // differently shaped one.
   if (!needsStoryCanvas(asset.width ?? 0, asset.height ?? 0)) {
-    updateAssetStoryFraming(asset.id, { story_path: null, story_mode: mode as StoryMode });
+    const original = await fs.readFile(path.join(config.assetStorageDir, asset.storage_path));
+    const passthrough = await passthroughJpeg(original);
+    const rel = `story/${asset.content_hash}-original.jpg`;
+    const abs = path.join(config.assetStorageDir, rel);
+    await fs.mkdir(path.dirname(abs), { recursive: true });
+    await fs.writeFile(abs, passthrough);
+    updateAssetStoryFraming(asset.id, { story_path: rel, story_mode: mode as StoryMode });
     return NextResponse.json({ asset: getAsset(asset.id), canvas: false });
   }
 

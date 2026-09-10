@@ -85,13 +85,48 @@ test("switching modes points story_path at the new render, not the old one", asy
   assert.match(cropped!, /crop/);
 });
 
-test("an already-9:16 source gets NO canvas — the original is published untouched", async () => {
+test("an already-9:16 source gets NO canvas — but still a format-safe JPEG passthrough", async () => {
   // 1320x2346 is asset 173 from the first real Story: ratio 0.5627 vs 0.5625.
   const id = await imageAsset(1320, 2346);
   const res = await choose(id, { mode: "blurred" });
   assert.equal(res.status, 200);
-  assert.equal((await res.json()).canvas, false);
-  assert.equal(q.getAsset(id)!.story_path, null, "NULL means: publish the original");
+  assert.equal((await res.json()).canvas, false, "not reframed — no crop/pad happened");
+
+  const asset = q.getAsset(id)!;
+  assert.ok(asset.story_path, "story_path must be set, not left NULL");
+  const meta = await sharp(path.join(config.assetStorageDir, asset.story_path!)).metadata();
+  assert.equal(meta.format, "jpeg", "must be re-encoded to JPEG, whatever the source format");
+  assert.equal(meta.width, 1320, "dimensions must be untouched — this is a passthrough, not a reframe");
+  assert.equal(meta.height, 2346, "dimensions must be untouched — this is a passthrough, not a reframe");
+});
+
+test("a non-JPEG already-9:16 source is re-encoded, not left in its original format", async () => {
+  // The original bug this guards: an original PNG/WebP reaching Meta's Story endpoint,
+  // which (like the Feed's photo endpoint) accepts JPEG only.
+  const n = ++seq;
+  const name = `sf-png${n}.png`;
+  const abs = path.join(config.assetStorageDir, name);
+  await fs.mkdir(path.dirname(abs), { recursive: true });
+  await sharp({
+    create: { width: 1080, height: 1920, channels: 4, background: { r: 5, g: 5, b: 5, alpha: 0 } },
+  })
+    .png()
+    .toFile(abs);
+  const id = Number(
+    db
+      .prepare(
+        "INSERT INTO assets (content_hash, media_kind, storage_path, width, height) " +
+          "VALUES (?, 'image', ?, 1080, 1920)"
+      )
+      .run(`sfpng${n}`, name).lastInsertRowid
+  );
+
+  const res = await choose(id, { mode: "blurred" });
+  assert.equal(res.status, 200);
+  const asset = q.getAsset(id)!;
+  assert.ok(asset.story_path);
+  const meta = await sharp(path.join(config.assetStorageDir, asset.story_path!)).metadata();
+  assert.equal(meta.format, "jpeg", "a PNG source must come out as JPEG");
 });
 
 test("an unknown mode is rejected rather than defaulted", async () => {

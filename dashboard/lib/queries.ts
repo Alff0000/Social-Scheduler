@@ -548,6 +548,7 @@ export interface InsertAssetInput {
   duration_ms?: number | null;
   cover_frame_ms?: number | null;
   has_audio?: number;
+  story_path?: string | null;
 }
 
 /** Insert an asset, or return the existing one if the content hash already exists (dedup). */
@@ -560,11 +561,11 @@ export function upsertAssetByHash(input: InsertAssetInput): { asset: Asset; dedu
         (content_hash, media_kind, original_filename, storage_path, public_url,
          thumbnail_path, mime_type, width, height, byte_size,
          publish_path, conform_mode, needs_review,
-         duration_ms, cover_frame_ms, has_audio)
+         duration_ms, cover_frame_ms, has_audio, story_path)
        VALUES (@content_hash, @media_kind, @original_filename, @storage_path, @public_url,
          @thumbnail_path, @mime_type, @width, @height, @byte_size,
          @publish_path, @conform_mode, @needs_review,
-         @duration_ms, @cover_frame_ms, @has_audio)`
+         @duration_ms, @cover_frame_ms, @has_audio, @story_path)`
     )
     .run({
       ...input,
@@ -574,6 +575,7 @@ export function upsertAssetByHash(input: InsertAssetInput): { asset: Asset; dedu
       duration_ms: input.duration_ms ?? null,
       cover_frame_ms: input.cover_frame_ms ?? null,
       has_audio: input.has_audio ?? 0,
+      story_path: input.story_path ?? null,
     });
   return {
     asset: getAsset(Number(info.lastInsertRowid))!,

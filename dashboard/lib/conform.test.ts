@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import sharp from "sharp";
 import {
   conformImage,
+  passthroughJpeg,
   IG_MAX_WIDTH,
   IG_MIN_WIDTH,
   IG_MIN_RATIO,
@@ -191,4 +192,64 @@ test("EXIF rotation is applied before dimensions are measured", async () => {
   const out = await conformImage(rotated, "pad");
   assert.ok(out.width > out.height, "the 90-degree turn must be honoured, not ignored");
   assertInRange(out.width / out.height, "EXIF-rotated source");
+});
+
+// ---- passthroughJpeg: format-safe, geometry-untouched re-encode ------------------------
+// Used by the Story surface for a source that is already close to 9:16 and needs no
+// crop/pad — see app/api/assets/[id]/story-framing/route.ts and the upload route. The
+// contract that matters: whatever format goes in, JPEG comes out, and the pixel dimensions
+// never change — unlike conformImage(), this must never reframe anything.
+
+test("a PNG is re-encoded to JPEG with dimensions unchanged", async () => {
+  const png = await sharp({
+    create: { width: 1080, height: 1920, channels: 4, background: { r: 10, g: 10, b: 10, alpha: 0 } },
+  })
+    .png()
+    .toBuffer();
+  const out = await passthroughJpeg(png);
+  const meta = await sharp(out).metadata();
+  assert.equal(meta.format, "jpeg");
+  assert.equal(meta.width, 1080);
+  assert.equal(meta.height, 1920);
+});
+
+test("a WebP is re-encoded to JPEG with dimensions unchanged", async () => {
+  const webp = await sharp({
+    create: { width: 900, height: 1600, channels: 3, background: { r: 200, g: 50, b: 50 } },
+  })
+    .webp()
+    .toBuffer();
+  const out = await passthroughJpeg(webp);
+  const meta = await sharp(out).metadata();
+  assert.equal(meta.format, "jpeg");
+  assert.equal(meta.width, 900);
+  assert.equal(meta.height, 1600);
+});
+
+test("an out-of-story-range source is left unreframed — this is a passthrough, not a canvas", async () => {
+  // 1600x1200 (4:3 landscape) is nowhere near 9:16. passthroughJpeg must not crop or pad
+  // it — that decision belongs to story-canvas.ts's renderStoryCanvas, a separate pipeline.
+  const out = await passthroughJpeg(await image(1600, 1200));
+  const meta = await sharp(out).metadata();
+  assert.equal(meta.width, 1600);
+  assert.equal(meta.height, 1200);
+});
+
+test("transparency is flattened to white, same as conformImage", async () => {
+  const transparent = await sharp({
+    create: { width: 800, height: 1422, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+  })
+    .png()
+    .toBuffer();
+  const out = await passthroughJpeg(transparent);
+  const { data, info } = await sharp(out).raw().toBuffer({ resolveWithObject: true });
+  assert.equal(info.channels, 3, "output is opaque JPEG, no alpha channel");
+  const mid = (Math.floor(info.height / 2) * info.width + Math.floor(info.width / 2)) * 3;
+  assert.ok(data[mid] > 240 && data[mid + 1] > 240 && data[mid + 2] > 240,
+    `expected near-white, got rgb(${data[mid]},${data[mid + 1]},${data[mid + 2]})`);
+});
+
+test("output stays under Instagram's byte limit", async () => {
+  const out = await passthroughJpeg(await image(1440, 2560));
+  assert.ok(out.length <= IG_MAX_BYTES, `${out.length} bytes`);
 });
