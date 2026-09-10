@@ -486,8 +486,11 @@ class GraphClient:
     ) -> dict:
         """Fetch insight metrics for a published media. Returns {metric_name: value}.
 
-        IG insights response shape:
-          {"data": [{"name": "reach", "values": [{"value": N}]}, ...]}
+        IG media insights response is a MIXED envelope: older per-period metrics still
+        carry {"values": [{"value": N}]}, but Meta migrated several media metrics —
+        `likes`, `views`, `saved`, `shares` among them, `comments` notably NOT — to
+        {"total_value": {"value": N}} on the SAME response. _parse_insights must check
+        both per item, not assume one shape for the whole payload.
         """
         data = self._get(
             f"{media_id}/insights",
@@ -497,14 +500,21 @@ class GraphClient:
 
     @staticmethod
     def _parse_insights(data: dict) -> dict:
-        """Both IG media and FB Page-post insights use the same response shape:
-        {"data": [{"name": ..., "values": [{"value": N}]}, ...]}
+        """Both IG media and FB Page-post insights use the same envelope, and it is
+        itself mixed within one response: {"data": [{"name": ..., "values": [...]}
+        | {"name": ..., "total_value": {"value": N}}, ...]}. Prefer total_value when
+        present — same rule _parse_threads_insights already applies, which is where
+        this exact shape first showed up. Checking `item.get("values")` alone here
+        silently dropped every total_value-only metric to null.
         """
         out: dict = {}
         for item in data.get("data", []):
             name = item.get("name")
-            values = item.get("values") or [{}]
-            out[name] = values[0].get("value")
+            if "total_value" in item:
+                out[name] = (item.get("total_value") or {}).get("value")
+            else:
+                values = item.get("values") or [{}]
+                out[name] = values[0].get("value")
         return out
 
     def get_content_publishing_limit(

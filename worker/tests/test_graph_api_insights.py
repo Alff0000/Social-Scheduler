@@ -130,6 +130,32 @@ def test_series_insights_skip_values_without_end_time():
     assert client.get_account_insights_series("ig1", "tok", ["reach"]) == {"reach": [("T", 7)]}
 
 
+def test_media_insights_envelope_is_mixed_within_one_response():
+    """Real Reels responses are not one shape or the other — Meta migrated `likes` and
+    `views` to total_value while leaving `comments` on the classic values[] envelope, in
+    the SAME response. A parser that assumes either shape for the whole payload silently
+    zeroes/nulls out whichever metrics use the shape it didn't check for — which is
+    exactly the bug reported live: comments came back correct, likes and views did not."""
+    client, session = _client([
+        {"data": [
+            {"name": "comments", "period": "lifetime", "values": [{"value": 1}]},
+            {"name": "likes", "total_value": {"value": 290}},
+            {"name": "views", "total_value": {"value": 290}},
+        ]}
+    ])
+    out = client.get_media_insights("media1", "tok", ["comments", "likes", "views"])
+    assert out == {"comments": 1, "likes": 290, "views": 290}
+    url, _ = session.calls[0]
+    assert url.endswith("/media1/insights")
+
+
+def test_media_insights_missing_total_value_yields_none_not_zero():
+    """Same rule as the account-level total_value parser: unpopulated is unknown, and
+    must stay null rather than come out as a false zero."""
+    client, _ = _client([{"data": [{"name": "likes"}]}])
+    assert client.get_media_insights("media1", "tok", ["likes"]) == {"likes": None}
+
+
 # -- demographics --------------------------------------------------------------------
 
 def test_breakdown_flattens_meta_nested_envelope():
