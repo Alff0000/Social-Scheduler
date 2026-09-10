@@ -189,6 +189,10 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                           ? "bg-brand-weak text-brand-strong"
                           : "text-ink-soft hover:bg-surface-sunken"
                       }`}
+                      // A discreet glow on the current page's own link, not just a flat
+                      // tint — inline because it's a per-theme CSS variable
+                      // (--shadow-glow-brand), not a Tailwind utility.
+                      style={active ? { boxShadow: "var(--shadow-glow-brand)" } : undefined}
                     >
                       <span className="block text-sm font-medium">{item.label}</span>
                       <span className="block text-[11px] text-muted">{item.hint}</span>

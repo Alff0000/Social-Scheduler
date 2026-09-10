@@ -1,55 +1,76 @@
 @import "tailwindcss";
 
 /*
-  InstaVips — "publishing control room" tokens.
-  Deliberately not the cream/serif or black/acid-green AI defaults:
-  cool paper canvas, vibrant red brand, warm orange for primary actions only,
-  monospace for all times/IDs/counts (the scheduling-cockpit signature).
+  InstaVips design tokens — four self-contained themes (Claro / Escuro / InstaVips
+  Vermelho / Roxo), no separate light/dark toggle. See lib/themes.ts for why the old
+  theme × mode matrix (7 families × 2 modes, most of them unused leftovers from the
+  original fork) collapsed into this flat list.
+
+  Token roles, same meaning in every theme:
+    brand/accent      = the theme's one identity color — primary buttons, active states,
+                         links. Every theme here sets accent equal to brand: a second,
+                         different "accent" color is exactly the inconsistency the red
+                         theme used to have (orange accent beside a red brand) and the
+                         redesign explicitly removed.
+    on-brand/on-accent = that button's text (white or near-black, per theme, for contrast).
+    brand-ink          = solid button hover / pressed state.
+    brand-weak         = translucent tint for pill/chip/badge backgrounds and icon badges.
+    brand-strong       = text color ON a -weak tint (chips, badges).
+    canvas             = page background. surface = card background (always slightly
+                         different from canvas, never identical, for the depth the redesign
+                         asked for). surface-sunken = a further-recessed fill (inputs,
+                         hover rows).
+    ink/ink-soft        = heading text / body text. Kept genuinely distinct in every dark
+                         theme (ink is near-white, ink-soft is a dimmer tinted gray) rather
+                         than both reading as "white" — that distinction is the visual
+                         hierarchy the redesign asked for.
+  All four re-verified for WCAG AA text contrast against their own canvas/surface.
 */
 @theme {
-  --color-canvas: #fdf5f6;
-  --color-surface: #ffffff;
-  --color-surface-sunken: #f8e9eb;
-  --color-border: #f0d3d7;
-  --color-border-strong: #ddabb2;
-  --color-ink: #1f1113;
-  --color-ink-soft: #4a262b;
-  --color-muted: #7a4d52;
-  --color-faint: #b08a8e;
+  /* ---- InstaVips Vermelho (also the bare default, before data-theme is known) ---- */
+  --color-canvas: #0a0a0c;
+  --color-surface: #141318;
+  --color-surface-sunken: #1c1b21;
+  --color-border: #27262d;
+  --color-border-strong: #38373f;
+  --color-ink: #ffffff;
+  --color-ink-soft: #b9bac4;
+  --color-muted: #86868f;
+  --color-faint: #55555e;
 
   --color-brand: #ff2d55;
-  --color-brand-ink: #d81f45;
-  --color-brand-weak: #ffe1e7;
-  --color-accent: #ff6b4a;
-  --color-accent-ink: #e0532f;
-  --color-accent-weak: #ffe6dc;
+  --color-brand-ink: #e0193f;
+  --color-brand-weak: #3a121d;
+  --color-brand-strong: #ff8aa0;
+  --color-accent: #ff2d55;
+  --color-accent-ink: #e0193f;
+  --color-accent-weak: #3a121d;
+  --color-accent-strong: #ff8aa0;
 
-  /* Button foreground (white or dark per theme) + pill/chip text on the -weak tints.
-     Split out so brand/accent stay vivid while buttons and pills each stay legible. */
+  /* Button foreground (white or dark per theme) + pill/chip text on the -weak tints. */
   --color-on-brand: #ffffff;
-  --color-on-accent: #2a0f08;
-  --color-brand-strong: #b3123a;
-  --color-accent-strong: #b23c1f;
+  --color-on-accent: #ffffff;
 
-  /* Status semantics (draft / scheduled / posted / failed / publishing / blocked)
+  /* Status semantics (draft / scheduled / posted / failed / publishing / blocked).
+     Shared by every dark theme — see the light override in [data-theme="light"] below.
 
      'blocked' is not a database status — it is derived in the UI for a send that is
      still 'scheduled' but whose time has passed and which recorded an error on its last
-     attempt. It sits deliberately between scheduled and failed: the post is not lost and
-     will retry, but it is NOT quietly on track either, and showing it as plain blue
-     "Scheduled" reads as healthy when it isn't. Amber, distinct from the red of a
-     genuinely dead send. */
-  --color-status-draft: #64748b;
-  --color-status-scheduled: #2563eb;
-  --color-status-posted: #0e5c4a;
-  --color-status-failed: #dc2626;
-  --color-status-publishing: #b45309;
-  /* Amber, deliberately NOT the orange-red end of the ramp: the distinction that has to
-     survive a glance is blocked-vs-failed, and a redder blocked reads as failed. Landing
-     near --color-status-publishing is the accepted cost — 'publishing' is a sub-second
-     state that is almost never on screen, and the labels differ. 4.24:1 on its own 12%
-     tint, in line with the rest of the light set (failed 4.01, publishing 4.25). */
-  --color-status-blocked: #b8500b;
+     attempt. Amber-orange, deliberately distinct from failed's red: the distinction that
+     has to survive a glance is blocked-vs-failed, not blocked-vs-publishing. */
+  --color-status-draft: #94a3b8;
+  --color-status-scheduled: #60a5fa;
+  --color-status-posted: #34d399;
+  --color-status-failed: #f87171;
+  --color-status-publishing: #fbbf24;
+  --color-status-blocked: #fb923c;
+
+  /* Card depth + a discreet glow for active/selected elements — the "not flat, not
+     gamer" middle ground the redesign asked for. Applied globally to .rounded-card
+     below and, selectively, to a handful of active states (sidebar's current link) via
+     inline style referencing this variable directly. */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(255, 45, 85, 0.07);
+  --shadow-glow-brand: 0 0 0 1px rgba(255, 45, 85, 0.45), 0 0 14px rgba(255, 45, 85, 0.3);
 
   /* Emoji come from the READER'S OWN system font, appended last to every text stack.
 
@@ -103,6 +124,15 @@ body {
   letter-spacing: -0.01em;
 }
 
+/* Card depth, everywhere .rounded-card is used, in every theme — this is the "subtle
+   depth, not flat" requirement applied once rather than per-component. Themes differ
+   only in --shadow-card's value (a neutral shadow for the light theme, a color-tinted
+   one for the three dark themes), which is exactly the point: no component needs to
+   know which theme is active to look right in all four. */
+.rounded-card {
+  box-shadow: var(--shadow-card);
+}
+
 /* sr-only is a Tailwind v4 core utility (already relied on by theme-controls.tsx and
    the carousel stack's "N slides" label) — don't redefine it here. A same-specificity
    rule after `@import "tailwindcss"` would win over Tailwind's and, being a weaker
@@ -125,307 +155,96 @@ body {
 }
 
 /* ==========================================================================
-   Themes — data-theme (family) × data-mode (light|dark) override the
-   @theme --color-* defaults. InstaVips-light = the @theme default
-   (no block needed). Token roles: brand/accent = solid button + identity;
-   on-brand/on-accent = that button's text (white or dark, per theme);
-   brand-ink/accent-ink = button hover + solid secondary bg; brand-weak/
-   accent-weak = tinted pill/chip bg; brand-strong/accent-strong = pill/chip
-   text. Values verified for WCAG AA in docs/design-themes.md §4.
+   Themes — data-theme overrides the @theme defaults above (which ARE the
+   "instavips" theme, so it needs no block of its own). One flat attribute,
+   one block per theme: no mode axis anymore.
    ========================================================================== */
 
-/* Shared dark-mode status set (light status = @theme default). */
-html[data-mode="dark"] {
-  --color-status-draft: #94a3b8;
-  --color-status-scheduled: #60a5fa;
-  --color-status-posted: #34d399;
-  --color-status-failed: #f87171;
-  --color-status-publishing: #fbbf24;
-  --color-status-blocked: #fb923c;
-}
-
-html[data-theme="instavips"][data-mode="dark"] {
-  --color-canvas: #0a0910;
-  --color-surface: #15111a;
-  --color-surface-sunken: #1d1720;
-  --color-border: #2b232f;
-  --color-border-strong: #3a2f40;
-  --color-ink: #f5eef0;
-  --color-ink-soft: #d9c3c8;
-  --color-muted: #a98d93;
-  --color-faint: #6b5459;
-  --color-brand: #ff2d55;
-  --color-on-brand: #ffffff;
-  --color-brand-ink: #d81f45;
-  --color-brand-weak: #3f1420;
-  --color-brand-strong: #ff8aa0;
-  --color-accent: #ff6b4a;
-  --color-on-accent: #1a0e0a;
-  --color-accent-ink: #e0532f;
-  --color-accent-weak: #3a1f16;
-  --color-accent-strong: #ffab8e;
-}
-
-html[data-theme="claude"][data-mode="light"] {
-  --color-canvas: #faf9f5;
+html[data-theme="light"] {
+  --color-canvas: #f7f8fa;
   --color-surface: #ffffff;
-  --color-surface-sunken: #efece1;
-  --color-border: #ddd9c8;
-  --color-border-strong: #cfc9b4;
-  --color-ink: #141413;
-  --color-ink-soft: #3d3a34;
-  --color-muted: #5a564c;
-  --color-faint: #8a857a;
-  --color-brand: #d97757;
-  --color-on-brand: #3a1e12;
-  --color-brand-ink: #c25f39;
-  --color-brand-weak: #f6e7df;
-  --color-brand-strong: #a8492c;
-  --color-accent: #d97757;
-  --color-on-accent: #3a1e12;
-  --color-accent-ink: #c25f39;
-  --color-accent-weak: #f6e7df;
-  --color-accent-strong: #a8492c;
-}
+  --color-surface-sunken: #eef0f4;
+  --color-border: #e2e5eb;
+  --color-border-strong: #ccd1db;
+  --color-ink: #12141a;
+  --color-ink-soft: #40444e;
+  --color-muted: #6b7280;
+  --color-faint: #9aa0ac;
 
-html[data-theme="claude"][data-mode="dark"] {
-  --color-canvas: #1a1716;
-  --color-surface: #2d2724;
-  --color-surface-sunken: #3a322d;
-  --color-border: #423a34;
-  --color-border-strong: #55483f;
-  --color-ink: #faf9f5;
-  --color-ink-soft: #d9d4cb;
-  --color-muted: #b0aea5;
-  --color-faint: #837e75;
-  --color-brand: #e08a68;
-  --color-on-brand: #2a1109;
-  --color-brand-ink: #cf7a58;
-  --color-brand-weak: #3a2a22;
-  --color-brand-strong: #f0a988;
-  --color-accent: #e08a68;
-  --color-on-accent: #2a1109;
-  --color-accent-ink: #cf7a58;
-  --color-accent-weak: #3a2a22;
-  --color-accent-strong: #f0a988;
-}
+  --color-brand: #3457d5;
+  --color-brand-ink: #2a45b0;
+  --color-brand-weak: #e8edfc;
+  --color-brand-strong: #2440a8;
+  --color-accent: #3457d5;
+  --color-accent-ink: #2a45b0;
+  --color-accent-weak: #e8edfc;
+  --color-accent-strong: #2440a8;
 
-html[data-theme="apt"][data-mode="light"] {
-  --color-canvas: #f7f4e8;
-  --color-surface: #ffffff;
-  --color-surface-sunken: #efe9d4;
-  --color-border: #d8ceac;
-  --color-border-strong: #c9bd94;
-  --color-ink: #292c5f;
-  --color-ink-soft: #454880;
-  --color-muted: #6f5e22;
-  --color-faint: #9a8a55;
-  --color-brand: #b2973d;
-  --color-on-brand: #1a1c3e;
-  --color-brand-ink: #9c8433;
-  --color-brand-weak: #efe6c9;
-  --color-brand-strong: #6b5a1f;
-  --color-accent: #b2973d;
-  --color-on-accent: #1a1c3e;
-  --color-accent-ink: #9c8433;
-  --color-accent-weak: #efe6c9;
-  --color-accent-strong: #6b5a1f;
-}
-
-html[data-theme="apt"][data-mode="dark"] {
-  --color-canvas: #1a1c3e;
-  --color-surface: #292c5f;
-  --color-surface-sunken: #353a78;
-  --color-border: #3a3f7a;
-  --color-border-strong: #4a4f90;
-  --color-ink: #f4e9c7;
-  --color-ink-soft: #d8cfa8;
-  --color-muted: #bfae7b;
-  --color-faint: #8a805c;
-  --color-brand: #cbb04e;
-  --color-on-brand: #1a1c3e;
-  --color-brand-ink: #b59a3e;
-  --color-brand-weak: #38321c;
-  --color-brand-strong: #e6cf7a;
-  --color-accent: #cbb04e;
-  --color-on-accent: #1a1c3e;
-  --color-accent-ink: #b59a3e;
-  --color-accent-weak: #38321c;
-  --color-accent-strong: #e6cf7a;
-}
-
-html[data-theme="fyzical"][data-mode="light"] {
-  --color-canvas: #f4f8fb;
-  --color-surface: #ffffff;
-  --color-surface-sunken: #eaf2f9;
-  --color-border: #d5dee9;
-  --color-border-strong: #c2cfde;
-  --color-ink: #1b365d;
-  --color-ink-soft: #34517a;
-  --color-muted: #4a6480;
-  --color-faint: #8298b2;
-  --color-brand: #0091da;
   --color-on-brand: #ffffff;
-  --color-brand-ink: #0073ad;
-  --color-brand-weak: #e6f4fb;
-  --color-brand-strong: #00618f;
-  --color-accent: #0091da;
   --color-on-accent: #ffffff;
-  --color-accent-ink: #0073ad;
-  --color-accent-weak: #e6f4fb;
-  --color-accent-strong: #00618f;
+
+  /* The one light status set — every dark theme shares the set defined in @theme above. */
+  --color-status-draft: #64748b;
+  --color-status-scheduled: #2563eb;
+  --color-status-posted: #15803d;
+  --color-status-failed: #dc2626;
+  --color-status-publishing: #b45309;
+  --color-status-blocked: #c2410c;
+
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.06), 0 2px 8px rgba(16, 24, 40, 0.06);
+  --shadow-glow-brand: 0 0 0 3px rgba(52, 87, 213, 0.16);
 }
 
-html[data-theme="fyzical"][data-mode="dark"] {
-  --color-canvas: #0c1a2e;
-  --color-surface: #142844;
-  --color-surface-sunken: #1b365d;
-  --color-border: #274263;
-  --color-border-strong: #345177;
-  --color-ink: #e6f4fb;
-  --color-ink-soft: #bcd6ec;
-  --color-muted: #9fc2e0;
-  --color-faint: #6b89a8;
-  --color-brand: #35abe6;
-  --color-on-brand: #04263a;
-  --color-brand-ink: #2b98cf;
-  --color-brand-weak: #10314f;
-  --color-brand-strong: #8fd3f2;
-  --color-accent: #35abe6;
-  --color-on-accent: #04263a;
-  --color-accent-ink: #2b98cf;
-  --color-accent-weak: #10314f;
-  --color-accent-strong: #8fd3f2;
-}
+html[data-theme="dark"] {
+  --color-canvas: #0d0e12;
+  --color-surface: #17181e;
+  --color-surface-sunken: #1e2027;
+  --color-border: #292b33;
+  --color-border-strong: #383b46;
+  --color-ink: #f7f8fa;
+  --color-ink-soft: #c3c7d1;
+  --color-muted: #8b8f9c;
+  --color-faint: #585b66;
 
-html[data-theme="default"][data-mode="light"] {
-  --color-canvas: #f7f3ec;
-  --color-surface: #fdfcfa;
-  --color-surface-sunken: #ece6db;
-  --color-border: #ddd6c7;
-  --color-border-strong: #cec6b3;
-  --color-ink: #322e28;
-  --color-ink-soft: #524b40;
-  --color-muted: #736a5c;
-  --color-faint: #a39a89;
-  --color-brand: #453a2e;
+  --color-brand: #5b7cfa;
+  --color-brand-ink: #3f5fe0;
+  --color-brand-weak: #1b2140;
+  --color-brand-strong: #adbdff;
+  --color-accent: #5b7cfa;
+  --color-accent-ink: #3f5fe0;
+  --color-accent-weak: #1b2140;
+  --color-accent-strong: #adbdff;
+
   --color-on-brand: #ffffff;
-  --color-brand-ink: #2f271e;
-  --color-brand-weak: #e8e1d3;
-  --color-brand-strong: #2f271e;
-  --color-accent: #453a2e;
   --color-on-accent: #ffffff;
-  --color-accent-ink: #2f271e;
-  --color-accent-weak: #e8e1d3;
-  --color-accent-strong: #2f271e;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-glow-brand: 0 0 0 1px rgba(91, 124, 250, 0.4), 0 0 14px rgba(91, 124, 250, 0.25);
 }
 
-html[data-theme="default"][data-mode="dark"] {
-  --color-canvas: #1c1c1c;
-  --color-surface: #212121;
-  --color-surface-sunken: #2b2b2b;
-  --color-border: #333333;
-  --color-border-strong: #444444;
-  --color-ink: #fafafa;
-  --color-ink-soft: #d4d4d4;
-  --color-muted: #adadad;
-  --color-faint: #6f6f6f;
-  --color-brand: #e6e6e6;
-  --color-on-brand: #1c1c1c;
-  --color-brand-ink: #d4d4d4;
-  --color-brand-weak: #2f2f2f;
-  --color-brand-strong: #e6e6e6;
-  --color-accent: #e6e6e6;
-  --color-on-accent: #1c1c1c;
-  --color-accent-ink: #d4d4d4;
-  --color-accent-weak: #2f2f2f;
-  --color-accent-strong: #e6e6e6;
-}
+html[data-theme="purple"] {
+  --color-canvas: #0d0b14;
+  --color-surface: #16121f;
+  --color-surface-sunken: #1e1829;
+  --color-border: #2a2338;
+  --color-border-strong: #3a3149;
+  --color-ink: #f8f6fc;
+  --color-ink-soft: #c6bfd9;
+  --color-muted: #8d84a3;
+  --color-faint: #5b5570;
 
-html[data-theme="solarized"][data-mode="light"] {
-  --color-canvas: #fdf6e3;
-  --color-surface: #fffdf5;
-  --color-surface-sunken: #eee8d5;
-  --color-border: #e3dcc4;
-  --color-border-strong: #d5cdb0;
-  --color-ink: #586e75;
-  --color-ink-soft: #657b83;
-  --color-muted: #839496;
-  --color-faint: #93a1a1;
-  --color-brand: #268bd2;
+  --color-brand: #8b5cf6;
+  --color-brand-ink: #7c3aed;
+  --color-brand-weak: #241a3d;
+  --color-brand-strong: #c9b8fa;
+  --color-accent: #8b5cf6;
+  --color-accent-ink: #7c3aed;
+  --color-accent-weak: #241a3d;
+  --color-accent-strong: #c9b8fa;
+
   --color-on-brand: #ffffff;
-  --color-brand-ink: #1e6fa8;
-  --color-brand-weak: #d9ebf7;
-  --color-brand-strong: #155a8a;
-  --color-accent: #cb4b16;
   --color-on-accent: #ffffff;
-  --color-accent-ink: #a53d12;
-  --color-accent-weak: #f6e0d3;
-  --color-accent-strong: #8f3410;
-}
 
-html[data-theme="solarized"][data-mode="dark"] {
-  --color-canvas: #002b36;
-  --color-surface: #073642;
-  --color-surface-sunken: #094352;
-  --color-border: #0e4b5a;
-  --color-border-strong: #145868;
-  --color-ink: #93a1a1;
-  --color-ink-soft: #839496;
-  --color-muted: #657b83;
-  --color-faint: #586e75;
-  --color-brand: #268bd2;
-  --color-on-brand: #ffffff;
-  --color-brand-ink: #1c6094;
-  --color-brand-weak: #0a3a4a;
-  --color-brand-strong: #6fb8e8;
-  --color-accent: #cb4b16;
-  --color-on-accent: #ffffff;
-  --color-accent-ink: #b5410f;
-  --color-accent-weak: #3a2013;
-  --color-accent-strong: #e8825a;
-}
-
-html[data-theme="vela"][data-mode="light"] {
-  --color-canvas: #fffaf0;
-  --color-surface: #ffffff;
-  --color-surface-sunken: #f3eee1;
-  --color-border: #e3ddce;
-  --color-border-strong: #d4ccba;
-  --color-ink: #32312e;
-  --color-ink-soft: #554c3a;
-  --color-muted: #6f665a;
-  --color-faint: #9a9384;
-  --color-brand: #738b9c;
-  --color-on-brand: #ffffff;
-  --color-brand-ink: #5a7183;
-  --color-brand-weak: #dfe7ea;
-  --color-brand-strong: #455563;
-  --color-accent: #32312e;
-  --color-on-accent: #ffffff;
-  --color-accent-ink: #201f1d;
-  --color-accent-weak: #e9e5dc;
-  --color-accent-strong: #32312e;
-}
-
-html[data-theme="vela"][data-mode="dark"] {
-  --color-canvas: #32312e;
-  --color-surface: #3d3b37;
-  --color-surface-sunken: #454340;
-  --color-border: #4f4c47;
-  --color-border-strong: #605c56;
-  --color-ink: #fffaf0;
-  --color-ink-soft: #ded8cb;
-  --color-muted: #b3a89a;
-  --color-faint: #837c6e;
-  --color-brand: #8ba3b4;
-  --color-on-brand: #20272c;
-  --color-brand-ink: #7b95a8;
-  --color-brand-weak: #3a4650;
-  --color-brand-strong: #b8ccd8;
-  --color-accent: #8ba3b4;
-  --color-on-accent: #20272c;
-  --color-accent-ink: #7b95a8;
-  --color-accent-weak: #3a4650;
-  --color-accent-strong: #b8ccd8;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(139, 92, 246, 0.09);
+  --shadow-glow-brand: 0 0 0 1px rgba(139, 92, 246, 0.45), 0 0 14px rgba(139, 92, 246, 0.3);
 }

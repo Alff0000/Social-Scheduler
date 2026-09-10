@@ -4,9 +4,7 @@ import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 import { getSessionUser } from "@/lib/auth";
-import {
-  DEFAULT_MODE, DEFAULT_THEME, isMode, isThemeId, MODE_STORAGE_KEY, THEME_STORAGE_KEY,
-} from "@/lib/themes";
+import { DEFAULT_THEME, isThemeId, THEME_STORAGE_KEY } from "@/lib/themes";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -39,15 +37,12 @@ export default async function RootLayout({
   // salvo do jeito antigo (visitante de uma versão anterior deste app).
   const cookieStore = await cookies();
   const savedTheme = cookieStore.get(THEME_STORAGE_KEY)?.value ?? null;
-  const savedMode = cookieStore.get(MODE_STORAGE_KEY)?.value ?? null;
   const theme = isThemeId(savedTheme) ? savedTheme : DEFAULT_THEME;
-  const mode = isMode(savedMode) ? savedMode : DEFAULT_MODE;
 
   return (
     <html
       lang="pt-BR"
       data-theme={theme}
-      data-mode={mode}
       suppressHydrationWarning
       className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} h-full`}
     >
@@ -58,13 +53,18 @@ export default async function RootLayout({
           deeper in the tree is still reported. */}
       <body className="min-h-full" suppressHydrationWarning>
         {/* One-time migration for a visitor whose theme is still only in localStorage
-            (saved before this cookie mechanism existed): promote it to a cookie so the
-            NEXT server render already gets it right, and apply it to this DOM right now
-            so this load isn't stuck one step behind. No-op once the cookie exists. */}
+            (saved before this cookie mechanism existed, or saved under the old theme ×
+            mode system this app used before the four-theme redesign): promote it to a
+            cookie so the NEXT server render already gets it right, and apply it to this
+            DOM right now so this load isn't stuck one step behind. No-op once the cookie
+            exists. 'instavips' survives as itself (still a real theme, just dark-only
+            now); every other old theme name is retired and falls back to the old MODE
+            instead, which is the closest honest equivalent since Claro/Escuro are what
+            the old light/dark toggle effectively was. */}
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "(function(){try{var v={instavips:1,claude:1,apt:1,fyzical:1,default:1,solarized:1,vela:1};var d=document.documentElement;function hasCookie(n){return document.cookie.split('; ').some(function(c){return c.indexOf(n+'=')===0;});}function setCookie(n,val){document.cookie=n+'='+val+'; path=/; max-age=31536000; samesite=lax';}var t=localStorage.getItem('ss-theme'),m=localStorage.getItem('ss-mode');if(t&&v[t]&&!hasCookie('ss-theme')){setCookie('ss-theme',t);d.setAttribute('data-theme',t);}if((m==='light'||m==='dark')&&!hasCookie('ss-mode')){setCookie('ss-mode',m);d.setAttribute('data-mode',m);}}catch(e){}})();",
+              "(function(){try{var d=document.documentElement;function hasCookie(n){return document.cookie.split('; ').some(function(c){return c.indexOf(n+'=')===0;});}function setCookie(n,val){document.cookie=n+'='+val+'; path=/; max-age=31536000; samesite=lax';}if(hasCookie('ss-theme'))return;var t=localStorage.getItem('ss-theme'),m=localStorage.getItem('ss-mode');var next=null;if(t==='instavips')next='instavips';else if(m==='dark')next='dark';else if(m==='light')next='light';if(next){setCookie('ss-theme',next);d.setAttribute('data-theme',next);}}catch(e){}})();",
           }}
         />
         {/* flex-col below md so the sidebar's mobile top bar stacks above <main> instead
