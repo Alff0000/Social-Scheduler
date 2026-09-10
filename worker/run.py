@@ -16,6 +16,8 @@ import sys
 import time
 from datetime import datetime, timezone
 
+import requests
+
 from . import db, single_instance
 from .clients import PLATFORM_CAPS, ClientRegistry, UnknownPlatform
 from .config import Config, dry_run_active, kill_switch_active, load_env
@@ -37,7 +39,8 @@ def _request_stop(signum, _frame):
 
 
 def run_once(conn, config: Config, client, *, client_for=None, now=None, logger=None,
-             sleep_fn=time.sleep, recover_all_claims: bool = False) -> int:
+             sleep_fn=time.sleep, recover_all_claims: bool = False,
+             verify_url_fn=None) -> int:
     """Process one batch of due publications. Returns how many were acted on.
 
     Respects the live kill switch (checked here AND between items, so flipping it
@@ -46,6 +49,10 @@ def run_once(conn, config: Config, client, *, client_for=None, now=None, logger=
     `recover_all_claims` skips the claim lease for this cycle — see the recovery block
     below. Opt-in, and False by default, so only a caller that has actually proved no
     other worker exists can turn it on.
+
+    `verify_url_fn` is threaded straight through to publish_one — None (the default)
+    skips confirming that each asset URL actually serves real media bytes before handing
+    it to Meta; see publish_one's own parameter comment for why that default matters.
     """
     # A channel's platform decides which Graph host to use (see clients.base_url_for).
     # Without a resolver (tests, --once with a single client) everything uses `client`.
@@ -192,7 +199,7 @@ def run_once(conn, config: Config, client, *, client_for=None, now=None, logger=
                 pub_client = client
             publish_one(conn, pub, config, pub_client, dry_run=dry_run,
                         asset_base_url=asset_base_url, now=now,
-                        logger=logger, sleep_fn=sleep_fn)
+                        logger=logger, sleep_fn=sleep_fn, verify_url_fn=verify_url_fn)
             processed += 1
 
     # Re-attempt first comments a human explicitly asked to retry from the dashboard.
@@ -275,7 +282,7 @@ def run_forever(config: Config, client, logger, *, client_for=None) -> None:
             # daemon down. Log it and keep polling — the kill switch is the only stop.
             try:
                 run_once(conn, config, client, client_for=client_for, logger=logger,
-                         recover_all_claims=first_cycle)
+                         recover_all_claims=first_cycle, verify_url_fn=requests.get)
             except Exception:  # noqa: BLE001
                 logger.exception("run_once failed; continuing to next cycle")
             first_cycle = False
@@ -319,7 +326,7 @@ def main() -> int:
             # guard above already refused to start alongside a daemon), so it is a first
             # cycle in exactly the sense run_once means.
             n = run_once(conn, config, client, client_for=registry.for_platform,
-                         logger=logger, recover_all_claims=True)
+                         logger=logger, recover_all_claims=True, verify_url_fn=requests.get)
             logger.info("Processed %d publication(s).", n)
         finally:
             conn.close()

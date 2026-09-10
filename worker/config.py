@@ -207,6 +207,11 @@ class Config:
     # We wait (best-effort) for it to go live before handing URLs to Meta, so the first
     # publish doesn't fail against a cold tunnel.
     tunnel_ready_timeout: int = 60
+    # How long to wait when confirming (one GET each, right before publishing) that an
+    # asset URL actually serves real media bytes rather than a 404/error page — see
+    # publisher._verify_asset_url. Only a few small bytes are ever read regardless of the
+    # file's real size, so this bounds connection + first-byte latency, not a download.
+    asset_url_verify_timeout: int = 15
     # TikTok app credentials (per-install: each clone registers its OWN app — the audit,
     # the quotas and the terms all attach to the app, never to the person). The dashboard
     # runs the OAuth flow; the worker needs them too, to refresh the 24-hour access token.
@@ -310,6 +315,7 @@ class Config:
             tunnel_provider=os.environ.get("TUNNEL_PROVIDER", "cloudflared"),
             tunnel_startup_timeout=int(os.environ.get("TUNNEL_STARTUP_TIMEOUT", "30")),
             tunnel_ready_timeout=int(os.environ.get("TUNNEL_READY_TIMEOUT", "60")),
+            asset_url_verify_timeout=int(os.environ.get("ASSET_URL_VERIFY_TIMEOUT", "15")),
             reels_status_poll_interval=int(os.environ.get("REELS_STATUS_POLL_INTERVAL", "10")),
             reels_status_poll_max_tries=int(os.environ.get("REELS_STATUS_POLL_MAX_TRIES", "90")),
             tod_morning=os.environ.get("TOD_MORNING", "09:00"),

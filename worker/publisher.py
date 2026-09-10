@@ -19,6 +19,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import requests
+
 from . import db, media_limits
 from .caption_length import caption_length
 from .clients import PLATFORM_CAPS, SUPPORTED_PLATFORMS, PlatformCaps, UnknownPlatform
@@ -399,6 +401,61 @@ def _validate_media_available(assets, dry_run: bool, asset_base_url: str | None,
             raise _NonRetryable(
                 f"assets have no public URL (no tunnel and no stored public_url): {missing}"
             )
+
+
+def _verify_asset_url(url: str, expected_kind: str, timeout: float, get_fn) -> str | None:
+    """Fetch just enough of `url` to confirm it serves real `expected_kind` bytes
+    ('image' or 'video'), or describe why it doesn't. None means it looks fine.
+
+    Meta's container-creation call accepts image_url/video_url as long as it is
+    syntactically a URL — it only discovers a broken one (a stale or misrouted tunnel, a
+    file missing from the local store that 404s, a proxy answering with an HTML error
+    page instead of the asset) minutes later, during container processing, and reports it
+    as an opaque status_code=ERROR with often no subcode at all (see
+    GraphClient.get_container_status_detail). Checking the URL ourselves first, before
+    ever creating a container, turns that into a failure that names the actual problem —
+    "returned HTTP 404" or "served Content-Type text/html" — while it's still obvious
+    what to do about it.
+
+    stream=True + a single small chunk: this never downloads a multi-hundred-MB video
+    fully, only its headers and a few bytes — proving the body is real and non-empty
+    costs nothing close to what fetching it would.
+    """
+    try:
+        resp = get_fn(url, stream=True, timeout=timeout)
+    except Exception as exc:  # noqa: BLE001 — any failure to reach it IS the finding
+        return f"could not reach {url} ({exc})"
+    try:
+        if not resp.ok:
+            return f"{url} returned HTTP {resp.status_code}"
+        content_type = (resp.headers.get("Content-Type") or "").split(";")[0].strip()
+        if not content_type.startswith(f"{expected_kind}/"):
+            return (
+                f"{url} served Content-Type '{content_type or 'unknown'}', not "
+                f"{expected_kind}/* — likely an error page instead of the actual file"
+            )
+        chunk = next(resp.iter_content(chunk_size=256), b"")
+        if not chunk:
+            return f"{url} returned an empty body"
+    finally:
+        resp.close()
+    return None
+
+
+def _verify_plan_assets_reachable(
+    asset_urls: list[str], assets, timeout: float, get_fn=requests.get
+) -> str | None:
+    """The first reason any of `plan['asset_urls']` won't actually work for Meta, or None.
+
+    Paired with `assets` by position (same order _build_plan built asset_urls in) purely
+    to know each one's media_kind — a video posted with an image URL (or the reverse)
+    would otherwise pass a bare "did this URL respond" check while still being wrong.
+    """
+    for url, asset in zip(asset_urls, assets):
+        problem = _verify_asset_url(url, _asset_media_kind(asset) or "image", timeout, get_fn)
+        if problem:
+            return problem
+    return None
 
 
 def _select_caption(conn, post_id: int, platform: str, used_count: int) -> str | None:
@@ -1313,6 +1370,14 @@ def publish_one(
     now: datetime | None = None,
     logger=None,
     sleep_fn=time.sleep,
+    # None (the default) skips the asset-URL reachability check entirely — deliberately
+    # opt-in, not opt-out: this function is unit-tested hundreds of times throughout this
+    # codebase with fake image/video URLs that were never meant to resolve, and a default
+    # of requests.get would turn every one of those into a real, likely-failing network
+    # call. worker/run.py's run_once threads this through from its own same-named,
+    # same-default parameter; main()'s daemon loop and --once mode are the two real
+    # callers that opt in by passing requests.get.
+    verify_url_fn=None,
 ) -> PublishOutcome:
     now = now or _utcnow()
 
@@ -1398,6 +1463,22 @@ def publish_one(
         except Exception as exc:  # noqa: BLE001 — a quota-check failure is retryable
             log(f"quota check failed: {exc}")
             return _mark_failure(conn, pub, config, now, f"quota check: {exc}", terminal=False)
+
+    # 3b. Confirm every asset URL Meta is about to be handed actually serves real media
+    #     bytes — see _verify_asset_url's docstring for why this exists (a broken tunnel
+    #     or a missing file otherwise surfaces minutes later as an opaque Meta error code
+    #     with no hint it was ever a delivery problem rather than the file itself).
+    #     Byte-upload platforms (TikTok/Discord/Telegram) read the local file directly and
+    #     never hand anyone a URL, so there is nothing here for them to check. Skipped
+    #     entirely when verify_url_fn is None (the default — see its parameter comment).
+    caps = PLATFORM_CAPS.get(plan["platform"])
+    if verify_url_fn is not None and caps is not None and not caps.uploads_media_bytes:
+        problem = _verify_plan_assets_reachable(
+            plan["asset_urls"], assets, config.asset_url_verify_timeout, verify_url_fn
+        )
+        if problem:
+            log(f"asset URL check failed: {problem}")
+            return _mark_failure(conn, pub, config, now, f"asset not reachable: {problem}", terminal=False)
 
     # 4. Publish for real. The row is ALREADY 'publishing' — step 0 claimed it. Writing
     #    it again here would be redundant, and re-adding that write would quietly
