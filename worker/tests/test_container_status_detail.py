@@ -9,7 +9,10 @@ the useless "status=ERROR (ERROR)".
 Covers GraphClient.get_container_status_detail correctly reading that field as a subcode
 (translating known ones via _CONTAINER_ERROR_MESSAGES, naming unknown ones by number
 rather than staying silent, and recognising the no-subcode-given case instead of echoing
-status_code back), and _poll_until_finished folding the result into the RuntimeError
+status_code back), reading the separate copyright_check_status field a video container
+also carries (a match there is likely THE real explanation for every subcode-less
+ERROR this class has ever logged — Meta owes no detailed public reason for a
+moderation match), and _poll_until_finished folding the result into the RuntimeError
 message that worker.publisher._mark_failure writes straight to publications.last_error —
 which the dashboard renders on the Overview page and the post editor's Scheduled sends
 panel.
@@ -63,7 +66,7 @@ def test_translates_a_known_subcode_to_its_documented_message():
     detail = client.get_container_status_detail("cont-1", "tok")
     assert detail == "error subcode 2207009: The image's aspect ratio is not supported."
     _, params = session.calls[0]
-    assert params["fields"] == "status,status_code"
+    assert params["fields"] == "status,status_code,copyright_check_status"
 
 
 def test_names_an_unrecognised_subcode_by_number_rather_than_staying_silent():
@@ -89,6 +92,53 @@ def test_non_numeric_status_is_still_shown_verbatim():
     # on a format assumption that might be wrong or might change.
     client, _ = _client(FakeResponse({"status_code": "ERROR", "status": "container_expired_early"}))
     assert client.get_container_status_detail("cont-1", "tok") == "container_expired_early"
+
+
+def test_a_copyright_match_is_reported_even_with_no_subcode_at_all():
+    # The real-world case that motivated adding this: five re-uploaded Reels all failed
+    # status_code=ERROR with no subcode whatsoever — status just mirrored it — and this
+    # is the likely reason why: a video that matches Meta's copyright database fails
+    # with nothing in `status`, because the rejection came from a different check
+    # entirely.
+    client, _ = _client(FakeResponse({
+        "status_code": "ERROR",
+        "status": "ERROR",
+        "copyright_check_status": {"matches_found": True, "status": "completed"},
+    }))
+    detail = client.get_container_status_detail("cont-1", "tok")
+    assert detail is not None
+    assert "copyright" in detail.lower()
+
+
+def test_a_copyright_match_is_combined_with_a_real_subcode_when_both_are_present():
+    client, _ = _client(FakeResponse({
+        "status_code": "ERROR",
+        "status": "2207009",
+        "copyright_check_status": {"matches_found": True, "status": "completed"},
+    }))
+    detail = client.get_container_status_detail("cont-1", "tok")
+    assert "copyright" in detail.lower()
+    assert "2207009" in detail
+
+
+def test_copyright_check_with_no_match_adds_nothing():
+    client, _ = _client(FakeResponse({
+        "status_code": "ERROR",
+        "status": "ERROR",
+        "copyright_check_status": {"matches_found": False, "status": "completed"},
+    }))
+    assert client.get_container_status_detail("cont-1", "tok") is None
+
+
+def test_a_copyright_check_that_itself_failed_is_reported_too():
+    client, _ = _client(FakeResponse({
+        "status_code": "ERROR",
+        "status": "ERROR",
+        "copyright_check_status": {"matches_found": False, "status": "error"},
+    }))
+    detail = client.get_container_status_detail("cont-1", "tok")
+    assert detail is not None
+    assert "copyright" in detail.lower()
 
 
 def test_a_failed_lookup_returns_none_instead_of_raising():

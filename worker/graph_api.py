@@ -380,17 +380,31 @@ class GraphClient:
 
         get_container_status above reads only `status_code` — the ERROR/EXPIRED/FINISHED
         enum — which is why a failed publish used to log nothing but "status=ERROR" with
-        no reason. Per Meta's own IG Container reference, the separate `status` field is
-        "Publishing status. If status_code is ERROR, this value will be an error subcode"
-        — a NUMBER (e.g. 2207009), not a sentence, referencing Meta's own error-codes
-        table (developers.facebook.com/docs/instagram-platform/instagram-graph-api/
-        reference/error-codes/). _CONTAINER_ERROR_MESSAGES below is that table, so the
-        number can be shown alongside what it actually means.
+        no reason. Two independent things Meta can say more on, checked here:
 
-        Meta does not always populate a subcode — some failures genuinely have none, and
-        `status` then just repeats "ERROR" (mirroring status_code, not a real subcode).
-        That case returns None rather than the useless "(ERROR)" this used to produce:
-        no new information came back, so nothing should claim otherwise.
+        1. copyright_check_status — a video-specific field: {"matches_found": bool,
+           "status": "completed"|"error"|"in_progress"|"not_started"}. A video that
+           MATCHES Meta's copyright database fails with plain status_code=ERROR and
+           nothing in the `status` field below — no subcode at all — which is exactly
+           the shape a real failure took: five Reels re-uploaded from downloaded
+           Instagram videos, all status=ERROR with no subcode, one single-image post in
+           the same batch failing instead at container CREATION with an explicit "image
+           format" message. Reposting a video you scraped from someone else's Reel is
+           precisely what this check exists to catch, and Meta does not owe a detailed
+           public reason for a moderation match — this is likely the real explanation
+           for every "status=ERROR" this class has ever logged with no subcode attached.
+
+        2. `status` itself — "Publishing status. If status_code is ERROR, this value
+           will be an error subcode" per Meta's own IG Container reference — a NUMBER
+           (e.g. 2207009), not a sentence, referencing Meta's own error-codes table
+           (developers.facebook.com/docs/instagram-platform/instagram-graph-api/
+           reference/error-codes/). _CONTAINER_ERROR_MESSAGES below is that table.
+
+        Meta does not always populate either one — some failures genuinely have no
+        subcode and no copyright match, and `status` then just repeats "ERROR" (mirroring
+        status_code, not a real subcode). That case returns None rather than the useless
+        "(ERROR)" an earlier version of this method used to produce: no new information
+        came back, so nothing should claim otherwise.
 
         Best-effort and silent on failure: this call happens while handling an existing
         failure, so a network hiccup while fetching the reason for ANOTHER failure must
@@ -399,22 +413,41 @@ class GraphClient:
         """
         try:
             body = self._get(
-                container_id, {"fields": "status,status_code", "access_token": token}
+                container_id,
+                {"fields": "status,status_code,copyright_check_status", "access_token": token},
             )
         except Exception:
             return None
+
+        parts: list[str] = []
+        copyright_check = body.get("copyright_check_status")
+        if isinstance(copyright_check, dict):
+            if copyright_check.get("matches_found") is True:
+                parts.append(
+                    "Instagram's copyright check found a match on this video — "
+                    "reposting content you don't hold the rights to is very likely why "
+                    "this failed, and Meta does not give a more specific reason for it."
+                )
+            elif copyright_check.get("status") == "error":
+                parts.append("Instagram's own copyright check failed to complete.")
+
         status = body.get("status")
         status_code = body.get("status_code")
-        if not isinstance(status, str) or not status.strip() or status == status_code:
-            return None
-        try:
-            subcode = int(status)
-        except ValueError:
-            # Not the documented numeric shape — still real text Meta sent, so show it
-            # verbatim rather than discard it on a format assumption that might be wrong.
-            return status
-        message = _CONTAINER_ERROR_MESSAGES.get(subcode)
-        return f"error subcode {subcode}: {message}" if message else f"error subcode {subcode}"
+        if isinstance(status, str) and status.strip() and status != status_code:
+            try:
+                subcode = int(status)
+            except ValueError:
+                # Not the documented numeric shape — still real text Meta sent, so show
+                # it verbatim rather than discard it on a format assumption that might
+                # be wrong.
+                parts.append(status)
+            else:
+                message = _CONTAINER_ERROR_MESSAGES.get(subcode)
+                parts.append(
+                    f"error subcode {subcode}: {message}" if message else f"error subcode {subcode}"
+                )
+
+        return " | ".join(parts) if parts else None
 
     def publish_container(self, ig_user_id: str, creation_id: str, token: str) -> str:
         return self._post(
