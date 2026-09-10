@@ -355,6 +355,40 @@ test("a single-slide story shows no fan-out note", () => {
   assert.doesNotMatch(html, /Stories, posted back to back/);
 });
 
+// ---- Select-all header -----------------------------------------------------------
+test("two or more channels get a select-all header with a live count", () => {
+  const html = render({ channels: [ig, facebook] });
+  assert.match(html, /0 de 2 contas selecionadas/);
+  assert.match(html, />Selecionar todas</);
+});
+
+test("a single channel gets no select-all header — nothing to bulk-toggle", () => {
+  const html = render({ channels: [ig] });
+  assert.doesNotMatch(html, /contas selecionadas/);
+  assert.doesNotMatch(html, /Selecionar todas/);
+});
+
+test("once every eligible channel is selected the header offers to clear instead", () => {
+  const html = render({
+    channels: [ig, facebook],
+    value: [{ channel_id: 1, surface: "feed" }, { channel_id: 4, surface: "feed" }],
+  });
+  assert.match(html, /2 de 2 contas selecionadas/);
+  assert.match(html, />Limpar seleção</);
+});
+
+test("a channel disabled by a media limit is excluded from the select-all count", () => {
+  // A too-long video disables Facebook's Reel chip but NOT its Feed chip (see the
+  // Reel-specific-limits tests above) — feed eligibility, not reel, is what select-all
+  // counts, so this must still show 2 of 2, not 1 of 2.
+  const html = render({
+    channels: [ig, facebook],
+    hasVideo: true,
+    assets: [{ width: 1080, height: 1920, duration_ms: 4000 }],
+  });
+  assert.match(html, /0 de 2 contas selecionadas/);
+});
+
 // ---- toggleTarget: the pure logic the chips drive -------------------------------
 test("toggling one surface leaves the channel's other surface untouched", () => {
   let targets: PostTarget[] = [{ channel_id: 1, surface: "feed" }];

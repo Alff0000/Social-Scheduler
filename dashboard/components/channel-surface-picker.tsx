@@ -116,8 +116,47 @@ export function ChannelSurfacePicker({
     ? { media_kind: hasVideo ? "video" : "image", ...primaryAsset }
     : null;
 
+  // Same three checks the per-row feedDisabled below applies, kept separate rather than
+  // shared: this pass only needs the yes/no answer to build the select-all set, not the
+  // per-row `reason` text that the checks below also produce.
+  const eligibleIds = channels
+    .filter((c) => {
+      const textDisabled = textOnly && !supportsText(c.platform);
+      const videoDisabled = hasVideo && videoSurfaces(c.platform).length === 0;
+      const feedLimitReason = mediaAsset ? destinationDisabledReason(c.platform, "feed", mediaAsset) : null;
+      return !(textDisabled || videoDisabled || !!feedLimitReason);
+    })
+    .map((c) => c.id);
+  const selectedEligibleCount = eligibleIds.filter((id) => hasTarget(value, id, "feed")).length;
+  const allEligibleSelected = eligibleIds.length > 0 && selectedEligibleCount === eligibleIds.length;
+
+  function selectAllChannels() {
+    const additions = eligibleIds
+      .filter((id) => !hasTarget(value, id, "feed"))
+      .map((id) => ({ channel_id: id, surface: "feed" as Surface }));
+    onChange([...value, ...additions]);
+  }
+
+  function clearAllChannels() {
+    onChange(value.filter((t) => !(t.surface === "feed" && eligibleIds.includes(t.channel_id))));
+  }
+
   return (
     <div>
+      {eligibleIds.length > 1 ? (
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-[11px] text-muted">
+            {selectedEligibleCount} de {eligibleIds.length} contas selecionadas
+          </span>
+          <button
+            type="button"
+            onClick={allEligibleSelected ? clearAllChannels : selectAllChannels}
+            className="text-xs font-medium text-brand-strong hover:underline"
+          >
+            {allEligibleSelected ? "Limpar seleção" : "Selecionar todas"}
+          </button>
+        </div>
+      ) : null}
       <div className="grid gap-2 sm:grid-cols-2">
         {channels.map((c) => {
           const color = channelColor(c.id, c.color_hue);
