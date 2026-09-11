@@ -19,10 +19,21 @@ import { makeTestDb } from "./helpers.ts";
 
 makeTestDb();
 const db = (await import("../lib/db.ts")).getDb();
+const { createSession } = await import("../lib/auth.ts");
 
 const { POST: SEND_NOW } = await import(
   "../app/api/publications/[id]/send-now/route.ts"
 );
+
+// The route now requires a session (migrations/0034_owner_scoping.sql). This file's
+// publications are all seeded with owner_user_id NULL, so admin (which skips the
+// ownership check entirely) is what matches them — same as bulk-edit-route.test.ts.
+const adminId = Number(
+  db
+    .prepare("INSERT INTO users (email, password_hash, is_admin) VALUES ('admin@test', 'x', 1)")
+    .run().lastInsertRowid
+);
+await createSession(adminId);
 
 const PAST = "2026-08-12T00:00:00.000Z";
 const FUTURE = "2099-01-01T00:00:00.000Z";

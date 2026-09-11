@@ -32,12 +32,14 @@ export interface InsightsChannel {
   media_backfill_complete: number;
   bpp_strong_pct: number;
   bpp_broad_pct: number;
+  /** Migration 0034 — see Channel.owner_user_id's doc comment in lib/types.ts. */
+  owner_user_id: number | null;
 }
 
 const CHANNEL_FIELDS = `
   id, platform, account_name, business_label, timezone, color_hue, avatar_path,
   media_synced_at, insights_synced_at, insights_error, insights_refresh_requested,
-  media_backfill_complete, bpp_strong_pct, bpp_broad_pct
+  media_backfill_complete, bpp_strong_pct, bpp_broad_pct, owner_user_id
 `;
 
 export function getInsightsChannels(): InsightsChannel[] {

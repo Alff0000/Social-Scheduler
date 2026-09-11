@@ -4,6 +4,7 @@ import { config } from "@/lib/config";
 import { getDb } from "@/lib/db";
 import { resolveInsideStore } from "@/lib/asset-files";
 import { avatarContentType } from "@/lib/avatar-files";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -23,17 +24,29 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
   const mediaId = Number(id);
   if (!Number.isInteger(mediaId)) {
     return NextResponse.json({ error: "Invalid id." }, { status: 400 });
   }
 
+  // Joined to channels for the ownership check in one query, rather than a second
+  // round trip through lib/ownership.ts's getRemoteMediaOwnerId.
   const row = getDb()
-    .prepare("SELECT thumbnail_path FROM remote_media WHERE id = ?")
-    .get(mediaId) as { thumbnail_path: string | null } | undefined;
+    .prepare(
+      `SELECT rm.thumbnail_path AS thumbnail_path, c.owner_user_id AS owner_user_id
+         FROM remote_media rm
+         JOIN channels c ON c.id = rm.channel_id
+        WHERE rm.id = ?`
+    )
+    .get(mediaId) as { thumbnail_path: string | null; owner_user_id: number | null } | undefined;
 
-  if (!row?.thumbnail_path) {
+  if (!row || (!viewer.is_admin && row.owner_user_id !== viewer.id)) {
+    return NextResponse.json({ error: "No thumbnail." }, { status: 404 });
+  }
+  if (!row.thumbnail_path) {
     return NextResponse.json({ error: "No thumbnail." }, { status: 404 });
   }
 

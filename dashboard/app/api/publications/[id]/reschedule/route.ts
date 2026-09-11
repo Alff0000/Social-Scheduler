@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getChannel, getPublication, reschedulePublication } from "@/lib/queries";
 import { intervalSlots } from "@/lib/scheduling";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -9,6 +10,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
   const pubId = Number(id);
   const pub = getPublication(pubId);
@@ -28,8 +31,8 @@ export async function POST(
   }
 
   const channel = getChannel(pub.channel_id);
-  if (!channel) {
-    return NextResponse.json({ error: "This send's channel no longer exists." }, { status: 400 });
+  if (!channel || (!viewer.is_admin && channel.owner_user_id !== viewer.id)) {
+    return NextResponse.json({ error: "Publication not found." }, { status: 404 });
   }
 
   const scheduledAtUtc = intervalSlots(date, time, 1, 1, channel.timezone)[0];
