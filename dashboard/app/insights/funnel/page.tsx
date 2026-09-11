@@ -4,6 +4,7 @@ import { FunnelChart } from "@/components/charts";
 import { getStoryPublications } from "@/lib/insights-queries";
 import { buildStoryFunnel, RANGES, rangeDays } from "@/lib/insights";
 import { channelColor } from "@/lib/format";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,9 @@ export default async function StoryFunnelPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const query = await searchParams;
-  const all = getStoryPublications();
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
+  const all = getStoryPublications(500, ownerId);
 
   const channels = [...new Map(
     all.map((r) => [r.channel_id, {

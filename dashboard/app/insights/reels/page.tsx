@@ -3,6 +3,7 @@ import { EmptyState, PageHeader, ChannelAvatar } from "@/components/ui";
 import { getReelPosts, type ReelRow } from "@/lib/insights-queries";
 import { compact, engagementOf, exact, sortPosts, type PostSortKey } from "@/lib/insights";
 import { channelColor } from "@/lib/format";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +53,9 @@ export default async function ReelsInsightsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const query = await searchParams;
-  const allReels = getReelPosts();
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
+  const allReels = getReelPosts(300, ownerId);
 
   const channels = [...new Map(
     allReels.map((r) => [r.channel_id, {

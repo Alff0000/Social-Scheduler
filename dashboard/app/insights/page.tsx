@@ -13,6 +13,7 @@ import {
 } from "@/lib/insights";
 import { channelColor } from "@/lib/format";
 import { platformBadge, platformLabel } from "@/lib/platforms";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -107,8 +108,10 @@ function sinceLabel(iso: string | null): string {
   return `há ${Math.floor(hours / 24)}d`;
 }
 
-export default function InsightsPage() {
-  const channels = getInsightsChannels();
+export default async function InsightsPage() {
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
+  const channels = getInsightsChannels(ownerId);
   const supported = channels.filter((c) => HAS_ACCOUNT_INSIGHTS.has(c.platform));
   const unsupported = channels.filter((c) => !HAS_ACCOUNT_INSIGHTS.has(c.platform));
 

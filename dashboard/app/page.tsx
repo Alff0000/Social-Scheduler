@@ -67,11 +67,11 @@ export default async function OverviewPage() {
       <div className="px-8 py-6 space-y-8">
         {channels.length > 0 ? (
           <DashboardPerformance
-            aggregateRows={getAggregateAccountMetrics(PERFORMANCE_WINDOW_DAYS)}
-            topChannels={getTopChannelsByReach(PERFORMANCE_WINDOW_DAYS, 5)}
-            postsByHour={getPublicationsByHour(PERFORMANCE_WINDOW_DAYS)}
+            aggregateRows={getAggregateAccountMetrics(PERFORMANCE_WINDOW_DAYS, ownerId)}
+            topChannels={getTopChannelsByReach(PERFORMANCE_WINDOW_DAYS, 5, ownerId)}
+            postsByHour={getPublicationsByHour(PERFORMANCE_WINDOW_DAYS, ownerId)}
             activeChannelCount={channels.length}
-            postedTodayCount={getPostedTodayCount()}
+            postedTodayCount={getPostedTodayCount(ownerId)}
             windowDays={PERFORMANCE_WINDOW_DAYS}
           />
         ) : null}

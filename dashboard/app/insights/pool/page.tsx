@@ -3,6 +3,7 @@ import { PageHeader, EmptyState } from "@/components/ui";
 import { BppMark } from "@/components/bpp-mark";
 import { getBppEntries, getBppUnits } from "@/lib/insights-queries";
 import { exact } from "@/lib/insights";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -27,9 +28,11 @@ function sinceLabel(iso: string | null): string {
   return `há ${Math.floor(days / 30)} meses`;
 }
 
-export default function BppPoolPage() {
-  const entries = getBppEntries();
-  const units = getBppUnits();
+export default async function BppPoolPage() {
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
+  const entries = getBppEntries(ownerId);
+  const units = getBppUnits(ownerId);
 
   return (
     <div>

@@ -17,6 +17,7 @@ import {
 } from "@/lib/insights";
 import { channelColor, tzAbbrev } from "@/lib/format";
 import { platformLabel } from "@/lib/platforms";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -147,9 +148,11 @@ export default async function ChannelInsightsPage({
 }) {
   const { id } = await params;
   const query = await searchParams;
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
   const channelId = Number(id);
   const channel = Number.isInteger(channelId) ? getInsightsChannel(channelId) : null;
-  if (!channel) notFound();
+  if (!channel || (ownerId !== null && channel.owner_user_id !== ownerId)) notFound();
 
   const rangeKey = typeof query.range === "string" ? query.range : "30d";
   const days = rangeDays(rangeKey);
@@ -184,8 +187,8 @@ export default async function ChannelInsightsPage({
   // curation is a judgement about the content rather than about a reporting window.
   const standouts = standoutsFor(posts, channel.bpp_strong_pct, channel.bpp_broad_pct);
   const libraryPostIds = getLibraryPostIds(channel.id);
-  const bppFlags = getBppFlags();
-  const pool = getBppPool(channel.id);
+  const bppFlags = getBppFlags(ownerId);
+  const pool = getBppPool(channel.id, ownerId);
   const standoutsOnly = query.standouts === "1";
 
   const kpis = buildKpis(allDays, metricList, days);

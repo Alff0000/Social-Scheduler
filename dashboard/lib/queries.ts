@@ -2819,16 +2819,25 @@ export function requestMetricsRefresh(
   return "ok";
 }
 
-/** Flag ALL eligible posted publications for a metrics fetch. Returns the count flagged. */
-export function requestMetricsRefreshAll(): number {
+/**
+ * Flag every eligible posted publication for a metrics fetch — admin's `ownerId: null`
+ * reaches every owner's; a regular login only ever flags its own, via a subquery into
+ * posts.owner_user_id (publications carries no such column of its own — see
+ * migrations/0034_owner_scoping.sql). Returns the count flagged.
+ */
+export function requestMetricsRefreshAll(ownerId: number | null): number {
   const db = getDb();
+  const ownerClause =
+    ownerId === null
+      ? ""
+      : "AND post_id IN (SELECT id FROM posts WHERE owner_user_id = ?)";
   const info = db
     .prepare(
       `UPDATE publications SET metrics_refresh_requested_at = ?
         WHERE status = 'posted' AND is_dry_run = 0
-          AND remote_post_id IS NOT NULL AND remote_post_id != 'DRYRUN'`
+          AND remote_post_id IS NOT NULL AND remote_post_id != 'DRYRUN' ${ownerClause}`
     )
-    .run(nowIso());
+    .run(...(ownerId === null ? [nowIso()] : [nowIso(), ownerId]));
   return info.changes;
 }
 
@@ -3560,8 +3569,9 @@ export function getWorkerStatus(): { online: boolean; lastSeenAt: string | null 
  * has, just aggregated. Unpopulated DayRow fields (this call never asks for them) are
  * left null rather than guessed at.
  */
-export function getAggregateAccountMetrics(days: number): DayRow[] {
+export function getAggregateAccountMetrics(days: number, ownerId: number | null): DayRow[] {
   const since = new Date(Date.now() - days * 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const ownerClause = ownerId === null ? "" : "AND c.owner_user_id = ?";
   const rows = getDb()
     .prepare(
       `SELECT am.day AS day,
@@ -3573,11 +3583,11 @@ export function getAggregateAccountMetrics(days: number): DayRow[] {
               SUM(am.shares) AS shares
        FROM account_metrics am
        JOIN channels c ON c.id = am.channel_id
-       WHERE c.is_active = 1 AND am.day >= ?
+       WHERE c.is_active = 1 AND am.day >= ? ${ownerClause}
        GROUP BY am.day
        ORDER BY am.day ASC`,
     )
-    .all(since) as {
+    .all(...(ownerId === null ? [since] : [since, ownerId])) as {
     day: string;
     reach: number | null;
     views: number | null;
@@ -3620,21 +3630,26 @@ export interface TopChannelRow {
  *  "top contas" ranking. Only channels with at least one metrics row in the window are
  *  returned; a brand-new or not-yet-synced channel is absent rather than shown as a 0
  *  that would misrepresent "no data yet" as "no reach". */
-export function getTopChannelsByReach(days: number, limit: number): TopChannelRow[] {
+export function getTopChannelsByReach(
+  days: number,
+  limit: number,
+  ownerId: number | null,
+): TopChannelRow[] {
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const ownerClause = ownerId === null ? "" : "AND c.owner_user_id = ?";
   return getDb()
     .prepare(
       `SELECT c.id, c.account_name, c.platform, c.color_hue, c.avatar_path,
               SUM(am.reach) AS reach
        FROM channels c
        JOIN account_metrics am ON am.channel_id = c.id
-       WHERE c.is_active = 1 AND am.day >= ? AND am.reach IS NOT NULL
+       WHERE c.is_active = 1 AND am.day >= ? AND am.reach IS NOT NULL ${ownerClause}
        GROUP BY c.id
        HAVING reach > 0
        ORDER BY reach DESC
        LIMIT ?`,
     )
-    .all(since, limit) as TopChannelRow[];
+    .all(...(ownerId === null ? [since, limit] : [since, ownerId, limit])) as TopChannelRow[];
 }
 
 /**
@@ -3645,16 +3660,21 @@ export function getTopChannelsByReach(days: number, limit: number): TopChannelRo
  * for any one audience — a deliberate simplification for an operational, not per-account,
  * view.
  */
-export function getPublicationsByHour(days: number): { hour: number; count: number }[] {
+export function getPublicationsByHour(
+  days: number,
+  ownerId: number | null,
+): { hour: number; count: number }[] {
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const ownerClause = ownerId === null ? "" : "AND p.owner_user_id = ?";
   const rows = getDb()
     .prepare(
-      `SELECT CAST(strftime('%H', published_at) AS INTEGER) AS hour, COUNT(*) AS count
-       FROM publications
-       WHERE status = 'posted' AND published_at >= ?
+      `SELECT CAST(strftime('%H', pub.published_at) AS INTEGER) AS hour, COUNT(*) AS count
+       FROM publications pub
+       JOIN posts p ON p.id = pub.post_id
+       WHERE pub.status = 'posted' AND pub.published_at >= ? ${ownerClause}
        GROUP BY hour`,
     )
-    .all(since) as { hour: number; count: number }[];
+    .all(...(ownerId === null ? [since] : [since, ownerId])) as { hour: number; count: number }[];
   const byHour = new Map(rows.map((r) => [r.hour, r.count]));
   return Array.from({ length: 24 }, (_, hour) => ({ hour, count: byHour.get(hour) ?? 0 }));
 }
@@ -3666,12 +3686,14 @@ export function getPublicationsByHour(days: number): { hour: number; count: numb
  *  page's "postado hoje" count. Deliberately a plain COUNT rather than a per-channel
  *  breakdown: this single line is meant to answer "did anything go out today", not
  *  replace the queue list already below it. */
-export function getPostedTodayCount(): number {
+export function getPostedTodayCount(ownerId: number | null): number {
+  const ownerClause = ownerId === null ? "" : "AND p.owner_user_id = ?";
   const row = getDb()
     .prepare(
-      `SELECT COUNT(*) AS n FROM publications
-       WHERE status = 'posted' AND date(published_at) = date('now')`,
+      `SELECT COUNT(*) AS n FROM publications pub
+       JOIN posts p ON p.id = pub.post_id
+       WHERE pub.status = 'posted' AND date(pub.published_at) = date('now') ${ownerClause}`,
     )
-    .get() as { n: number };
+    .get(...(ownerId === null ? [] : [ownerId])) as { n: number };
   return row.n;
 }

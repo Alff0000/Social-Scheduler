@@ -42,13 +42,14 @@ const CHANNEL_FIELDS = `
   media_backfill_complete, bpp_strong_pct, bpp_broad_pct, owner_user_id
 `;
 
-export function getInsightsChannels(): InsightsChannel[] {
+export function getInsightsChannels(ownerId: number | null): InsightsChannel[] {
+  const ownerClause = ownerId === null ? "" : "AND owner_user_id = ?";
   return getDb()
     .prepare(
       `SELECT ${CHANNEL_FIELDS} FROM channels
-       WHERE is_active = 1 ORDER BY platform ASC, account_name ASC`,
+       WHERE is_active = 1 ${ownerClause} ORDER BY platform ASC, account_name ASC`,
     )
-    .all() as InsightsChannel[];
+    .all(...(ownerId === null ? [] : [ownerId])) as InsightsChannel[];
 }
 
 export function getInsightsChannel(id: number): InsightsChannel | null {
@@ -121,7 +122,8 @@ export interface ReelRow extends PostRow {
  * `media_product_type = 'REELS'` (Reels is Instagram-only; other platforms simply
  * contribute nothing here rather than needing their own branch).
  */
-export function getReelPosts(limit = 300): ReelRow[] {
+export function getReelPosts(limit: number, ownerId: number | null): ReelRow[] {
+  const ownerClause = ownerId === null ? "" : "AND c.owner_user_id = ?";
   return getDb()
     .prepare(
       `
@@ -139,12 +141,12 @@ export function getReelPosts(limit = 300): ReelRow[] {
         ORDER BY fetched_at DESC, id DESC
         LIMIT 1
       )
-      WHERE rm.media_product_type = 'REELS' AND rm.is_deleted = 0
+      WHERE rm.media_product_type = 'REELS' AND rm.is_deleted = 0 ${ownerClause}
       ORDER BY rm.published_at DESC
       LIMIT ?
       `,
     )
-    .all(limit) as ReelRow[];
+    .all(...(ownerId === null ? [limit] : [ownerId, limit])) as ReelRow[];
 }
 
 export interface StoryPublicationRow {
@@ -170,7 +172,8 @@ export interface StoryPublicationRow {
  * which is also why this is naturally scoped to stories WE sent, not "every story this
  * account ever posted" the way getReelPosts covers every Reel.
  */
-export function getStoryPublications(limit = 500): StoryPublicationRow[] {
+export function getStoryPublications(limit: number, ownerId: number | null): StoryPublicationRow[] {
+  const ownerClause = ownerId === null ? "" : "AND c.owner_user_id = ?";
   return getDb()
     .prepare(
       `
@@ -186,12 +189,12 @@ export function getStoryPublications(limit = 500): StoryPublicationRow[] {
         ORDER BY fetched_at DESC, id DESC
         LIMIT 1
       )
-      WHERE pub.surface = 'story' AND pub.status = 'posted' AND pub.is_dry_run = 0
+      WHERE pub.surface = 'story' AND pub.status = 'posted' AND pub.is_dry_run = 0 ${ownerClause}
       ORDER BY pub.published_at DESC
       LIMIT ?
       `,
     )
-    .all(limit) as StoryPublicationRow[];
+    .all(...(ownerId === null ? [limit] : [ownerId, limit])) as StoryPublicationRow[];
 }
 
 export interface DemographicRow {
@@ -294,11 +297,12 @@ export interface BppPool {
  * leaderboard is in the pool but cannot go out here, so a cadence set against the raw
  * count would quietly under-deliver.
  */
-export function getBppPool(channelId: number): BppPool {
+export function getBppPool(channelId: number, ownerId: number | null): BppPool {
   const db = getDb();
-  const size = (db.prepare("SELECT COUNT(*) AS n FROM posts WHERE is_bpp = 1").get() as {
-    n: number;
-  }).n;
+  const ownerClause = ownerId === null ? "" : "AND owner_user_id = ?";
+  const size = (db
+    .prepare(`SELECT COUNT(*) AS n FROM posts WHERE is_bpp = 1 ${ownerClause}`)
+    .get(...(ownerId === null ? [] : [ownerId])) as { n: number }).n;
   const usable = (db
     .prepare(
       `SELECT COUNT(*) AS n FROM posts p
@@ -326,10 +330,11 @@ export function getLibraryPostIds(channelId: number): Record<number, number> {
   return out;
 }
 
-export function getBppFlags(): Record<number, boolean> {
-  const rows = getDb().prepare("SELECT id, is_bpp FROM posts WHERE is_bpp = 1").all() as {
-    id: number;
-  }[];
+export function getBppFlags(ownerId: number | null): Record<number, boolean> {
+  const ownerClause = ownerId === null ? "" : "AND owner_user_id = ?";
+  const rows = getDb()
+    .prepare(`SELECT id, is_bpp FROM posts WHERE is_bpp = 1 ${ownerClause}`)
+    .all(...(ownerId === null ? [] : [ownerId])) as { id: number }[];
   const out: Record<number, boolean> = {};
   for (const r of rows) out[r.id] = true;
   return out;
@@ -355,7 +360,8 @@ export interface BppEntry {
  * marked post that has not gone out since being marked is the stalest of all. The order
  * shown here IS the order it will be used, so "up next" is a fact rather than a guess.
  */
-export function getBppEntries(): BppEntry[] {
+export function getBppEntries(ownerId: number | null): BppEntry[] {
+  const ownerClause = ownerId === null ? "" : "AND p.owner_user_id = ?";
   return getDb()
     .prepare(
       `
@@ -371,11 +377,11 @@ export function getBppEntries(): BppEntry[] {
            JOIN channels c ON c.id = pt.channel_id
           WHERE pt.post_id = p.id AND pt.surface = 'feed') AS targets
       FROM posts p
-      WHERE p.is_bpp = 1
+      WHERE p.is_bpp = 1 ${ownerClause}
       ORDER BY (last_posted IS NOT NULL), last_posted ASC, p.id ASC
       `,
     )
-    .all() as BppEntry[];
+    .all(...(ownerId === null ? [] : [ownerId])) as BppEntry[];
 }
 
 export interface BppUnit {
@@ -386,17 +392,24 @@ export interface BppUnit {
 }
 
 /** Each active channel's cadence and how much of the pool it can actually send. */
-export function getBppUnits(): BppUnit[] {
+export function getBppUnits(ownerId: number | null): BppUnit[] {
+  const ownerClause = ownerId === null ? "" : "AND owner_user_id = ?";
   const rows = getDb()
     .prepare(
-      `SELECT id, account_name, platform, bpp_every_days FROM channels WHERE is_active = 1
+      `SELECT id, account_name, platform, bpp_every_days FROM channels
+        WHERE is_active = 1 ${ownerClause}
         ORDER BY platform, account_name`,
     )
-    .all() as { id: number; account_name: string; platform: string; bpp_every_days: number }[];
+    .all(...(ownerId === null ? [] : [ownerId])) as {
+    id: number;
+    account_name: string;
+    platform: string;
+    bpp_every_days: number;
+  }[];
   return rows.map((r) => ({
     id: r.id,
     label: `${r.account_name} · ${r.platform}`,
     everyDays: r.bpp_every_days ?? 0,
-    usable: getBppPool(r.id).usable,
+    usable: getBppPool(r.id, ownerId).usable,
   }));
 }

@@ -70,7 +70,7 @@ export default async function ChannelsPage({
       timezone: g.timezone,
       bpp_every_days: g.bpp_every_days,
       // Pool is measured against a MEMBER: a group sends what its members can send.
-      bpp_pool_size: getBppPool(members[0]?.id ?? 0).usable,
+      bpp_pool_size: getBppPool(members[0]?.id ?? 0, ownerId).usable,
       surfaces,
       lanes: toLanePanels(surfaces, getAutofillLanes({ kind: "group", id: g.id }), (s) =>
         getBandCounts(memberIds, s),
@@ -289,7 +289,7 @@ export default async function ChannelsPage({
                       (s) => getBandCounts([c.id], s),
                     )}
                     bppEveryDays={c.bpp_every_days ?? 0}
-                    bppPoolSize={getBppPool(c.id).usable}
+                    bppPoolSize={getBppPool(c.id, ownerId).usable}
                     bandTimes={config.bandTimes}
                   />
                 ) : (
