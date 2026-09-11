@@ -1,6 +1,7 @@
 import { listMetaApps } from "@/lib/meta-apps-queries";
 import { PageHeader } from "@/components/ui";
 import { MetaAppsManager } from "@/components/meta-apps-manager";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +16,10 @@ export const dynamic = "force-dynamic";
   existing way (paste a token on /channels); nothing here changes that.
 */
 
-export default function MetaAppsPage() {
-  const apps = listMetaApps();
+export default async function MetaAppsPage() {
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
+  const apps = listMetaApps(ownerId);
 
   return (
     <div>

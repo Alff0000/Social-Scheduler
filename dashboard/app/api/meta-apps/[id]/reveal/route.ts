@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revealMetaAppSecret } from "@/lib/meta-apps-queries";
+import { getMetaApp, revealMetaAppSecret } from "@/lib/meta-apps-queries";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -9,8 +10,15 @@ export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
-  const secret = revealMetaAppSecret(Number(id));
+  const appId = Number(id);
+  const app = getMetaApp(appId);
+  if (!app || (!viewer.is_admin && app.owner_user_id !== viewer.id)) {
+    return NextResponse.json({ error: "App not found." }, { status: 404 });
+  }
+  const secret = revealMetaAppSecret(appId);
   if (secret === null) {
     return NextResponse.json({ error: "App not found." }, { status: 404 });
   }

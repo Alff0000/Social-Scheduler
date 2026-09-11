@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { deleteStockAccount, setStockAccountFolder, setStockAccountUsed } from "@/lib/stock-queries";
+import {
+  deleteStockAccount,
+  getStockAccount,
+  setStockAccountFolder,
+  setStockAccountUsed,
+} from "@/lib/stock-queries";
 import { listFolders } from "@/lib/queries";
 import { getSessionUser } from "@/lib/auth";
 
@@ -13,6 +18,10 @@ export async function PATCH(
   if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
   const accountId = Number(id);
+  const account = getStockAccount(accountId);
+  if (!account || (!viewer.is_admin && account.owner_user_id !== viewer.id)) {
+    return NextResponse.json({ error: "Account not found." }, { status: 404 });
+  }
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") {
     return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 });
@@ -34,8 +43,15 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
-  const ok = deleteStockAccount(Number(id));
+  const accountId = Number(id);
+  const account = getStockAccount(accountId);
+  if (!account || (!viewer.is_admin && account.owner_user_id !== viewer.id)) {
+    return NextResponse.json({ error: "Account not found." }, { status: 404 });
+  }
+  const ok = deleteStockAccount(accountId);
   if (!ok) {
     return NextResponse.json({ error: "Account not found." }, { status: 404 });
   }

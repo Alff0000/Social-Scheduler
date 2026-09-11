@@ -3,11 +3,14 @@ import { listMetaApps } from "@/lib/meta-apps-queries";
 import { config } from "@/lib/config";
 import { EmptyState, PageHeader } from "@/components/ui";
 import { IntegrationLinks } from "@/components/integration-links";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export default function IntegrationPage() {
-  const apps = listMetaApps();
+export default async function IntegrationPage() {
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
+  const apps = listMetaApps(ownerId);
 
   return (
     <div>

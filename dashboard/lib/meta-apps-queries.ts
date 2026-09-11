@@ -13,16 +13,29 @@ export interface MetaAppRow {
   name: string;
   app_id: string;
   graph_version: string | null;
+  /** See Channel.owner_user_id in lib/types.ts for what this means and why it's nullable. */
+  owner_user_id: number | null;
   created_at: string;
 }
 
-export function listMetaApps(): MetaAppRow[] {
+export function listMetaApps(ownerId: number | null): MetaAppRow[] {
+  const where = ownerId === null ? "" : "WHERE owner_user_id = ?";
   return getDb()
     .prepare(
-      `SELECT id, name, app_id, graph_version, created_at
-       FROM meta_apps ORDER BY created_at ASC, id ASC`,
+      `SELECT id, name, app_id, graph_version, owner_user_id, created_at
+       FROM meta_apps ${where} ORDER BY created_at ASC, id ASC`,
     )
-    .all() as MetaAppRow[];
+    .all(...(ownerId === null ? [] : [ownerId])) as MetaAppRow[];
+}
+
+/** Single-row fetch used by the [id] routes to check existence + ownership before acting. */
+export function getMetaApp(id: number): MetaAppRow | undefined {
+  return getDb()
+    .prepare(
+      `SELECT id, name, app_id, graph_version, owner_user_id, created_at
+       FROM meta_apps WHERE id = ?`,
+    )
+    .get(id) as MetaAppRow | undefined;
 }
 
 export function createMetaApp(input: {
@@ -30,17 +43,18 @@ export function createMetaApp(input: {
   app_id: string;
   app_secret: string;
   graph_version?: string | null;
-}): number {
+}, ownerUserId: number): number {
   const info = getDb()
     .prepare(
-      `INSERT INTO meta_apps (name, app_id, app_secret_enc, graph_version)
-       VALUES (@name, @app_id, @app_secret_enc, @graph_version)`,
+      `INSERT INTO meta_apps (name, app_id, app_secret_enc, graph_version, owner_user_id)
+       VALUES (@name, @app_id, @app_secret_enc, @graph_version, @owner_user_id)`,
     )
     .run({
       name: input.name.trim(),
       app_id: input.app_id.trim(),
       app_secret_enc: encryptSecret(input.app_secret),
       graph_version: input.graph_version?.trim() || null,
+      owner_user_id: ownerUserId,
     });
   return info.lastInsertRowid as number;
 }

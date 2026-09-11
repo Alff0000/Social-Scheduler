@@ -18,16 +18,21 @@ export interface StockAccountRow {
   hasTwofa: boolean;
   notes: string | null;
   is_used: number;
+  /** See Channel.owner_user_id in lib/types.ts for what this means and why it's nullable. */
+  owner_user_id: number | null;
   created_at: string;
 }
 
-export function listStockAccounts(): StockAccountRow[] {
+export function listStockAccounts(ownerId: number | null): StockAccountRow[] {
+  const where = ownerId === null ? "" : "WHERE owner_user_id = ?";
   const rows = getDb()
     .prepare(
-      `SELECT id, folder_id, username, twofa_enc, notes, is_used, created_at
-       FROM stock_accounts ORDER BY created_at DESC, id DESC`,
+      `SELECT id, folder_id, username, twofa_enc, notes, is_used, owner_user_id, created_at
+       FROM stock_accounts ${where} ORDER BY created_at DESC, id DESC`,
     )
-    .all() as (Omit<StockAccountRow, "hasTwofa"> & { twofa_enc: string | null })[];
+    .all(...(ownerId === null ? [] : [ownerId])) as (Omit<StockAccountRow, "hasTwofa"> & {
+    twofa_enc: string | null;
+  })[];
   return rows.map((r) => ({
     id: r.id,
     folder_id: r.folder_id,
@@ -35,8 +40,16 @@ export function listStockAccounts(): StockAccountRow[] {
     hasTwofa: r.twofa_enc !== null,
     notes: r.notes,
     is_used: r.is_used,
+    owner_user_id: r.owner_user_id,
     created_at: r.created_at,
   }));
+}
+
+/** Single-row fetch used by the [id] routes to check existence + ownership before acting. */
+export function getStockAccount(id: number): { owner_user_id: number | null } | undefined {
+  return getDb()
+    .prepare("SELECT owner_user_id FROM stock_accounts WHERE id = ?")
+    .get(id) as { owner_user_id: number | null } | undefined;
 }
 
 export interface NewStockAccount {
@@ -47,11 +60,15 @@ export interface NewStockAccount {
 }
 
 /** Bulk insert, encrypting each credential on the way in. Returns how many were created. */
-export function createStockAccounts(entries: NewStockAccount[], folderId: number | null): number {
+export function createStockAccounts(
+  entries: NewStockAccount[],
+  folderId: number | null,
+  ownerUserId: number,
+): number {
   const db = getDb();
   const insert = db.prepare(
-    `INSERT INTO stock_accounts (folder_id, username, password_enc, twofa_enc)
-     VALUES (@folder_id, @username, @password_enc, @twofa_enc)`,
+    `INSERT INTO stock_accounts (folder_id, username, password_enc, twofa_enc, owner_user_id)
+     VALUES (@folder_id, @username, @password_enc, @twofa_enc, @owner_user_id)`,
   );
   const tx = db.transaction((rows: NewStockAccount[]) => {
     let created = 0;
@@ -63,6 +80,7 @@ export function createStockAccounts(entries: NewStockAccount[], folderId: number
         username,
         password_enc: encryptSecret(r.password),
         twofa_enc: r.twofa ? encryptSecret(r.twofa) : null,
+        owner_user_id: ownerUserId,
       });
       created += 1;
     }

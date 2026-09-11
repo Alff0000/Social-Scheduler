@@ -5,15 +5,10 @@ import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
-// NOTE: stock_accounts itself is not yet owner-scoped (tracked separately — migrations/
-// 0034_owner_scoping.sql added the column, but listStockAccounts/createStockAccounts in
-// lib/stock-queries.ts still read/write it install-wide). The folder lookup below IS
-// scoped now that folders are: a stock account can only be filed into a folder its owner
-// can actually see.
 export async function GET() {
   const viewer = await getSessionUser();
   if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
-  return NextResponse.json({ accounts: listStockAccounts() });
+  return NextResponse.json({ accounts: listStockAccounts(viewer.is_admin ? null : viewer.id) });
 }
 
 export async function POST(req: NextRequest) {
@@ -42,7 +37,7 @@ export async function POST(req: NextRequest) {
     );
   }
   try {
-    const created = createStockAccounts(entries, folderId);
+    const created = createStockAccounts(entries, folderId, viewer.id);
     return NextResponse.json({ created }, { status: 201 });
   } catch (err) {
     // A missing/invalid CREDENTIALS_ENCRYPTION_KEY throws from lib/crypto.ts — surface

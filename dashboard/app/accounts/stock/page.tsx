@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
 export default async function StockPage() {
   const viewer = await getSessionUser();
   const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
-  const accounts = listStockAccounts();
+  const accounts = listStockAccounts(ownerId);
   const folders = listFolders(ownerId);
 
   return (
