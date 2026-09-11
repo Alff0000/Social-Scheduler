@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deletePeriod, getPeriod, updatePeriod } from "@/lib/queries";
 import { hasValidOneOffPeriodDates, isIsoCalendarDate } from "@/lib/periods";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -11,10 +12,12 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
   const periodId = Number(id);
   const current = getPeriod(periodId);
-  if (!current) {
+  if (!current || (!viewer.is_admin && current.owner_user_id !== viewer.id)) {
     return NextResponse.json({ error: "Period not found." }, { status: 404 });
   }
   const body = await req.json();
@@ -103,8 +106,14 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
   const periodId = Number(id);
+  const current = getPeriod(periodId);
+  if (!current || (!viewer.is_admin && current.owner_user_id !== viewer.id)) {
+    return NextResponse.json({ error: "Period not found." }, { status: 404 });
+  }
   const ok = deletePeriod(periodId);
   if (!ok) {
     return NextResponse.json({ error: "Period not found." }, { status: 404 });

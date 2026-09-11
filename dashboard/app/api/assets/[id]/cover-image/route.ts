@@ -5,6 +5,7 @@ import path from "node:path";
 import { config } from "@/lib/config";
 import { getAsset, getAssetByHash, upsertAssetByHash, setAssetCoverImage } from "@/lib/queries";
 import { conformCover, COVER_MAX_BYTES } from "@/lib/conform-cover";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -25,9 +26,11 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
   const asset = getAsset(Number(id));
-  if (!asset) {
+  if (!asset || (!viewer.is_admin && asset.owner_user_id !== viewer.id)) {
     return NextResponse.json({ error: "Asset not found." }, { status: 404 });
   }
   if (asset.media_kind !== "video") {
@@ -75,7 +78,10 @@ export async function POST(
   // Hash the CONFORMED bytes, not the original upload — dedup must reflect what is
   // actually stored and would actually be sent to Meta as cover_url.
   const hash = crypto.createHash("sha256").update(conformed.buffer).digest("hex");
-  const existing = getAssetByHash(hash);
+  // The cover belongs to the VIDEO's owner, not necessarily the acting viewer — an admin
+  // setting a cover on someone else's Reel must not silently claim the cover asset for
+  // themselves.
+  const existing = getAssetByHash(hash, asset.owner_user_id);
 
   let coverAsset;
   if (existing) {
@@ -100,7 +106,7 @@ export async function POST(
       height: conformed.height,
       byte_size: conformed.buffer.length,
       publish_path: null,
-    });
+    }, asset.owner_user_id);
     coverAsset = created;
   }
 
@@ -118,9 +124,11 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
   const asset = getAsset(Number(id));
-  if (!asset) {
+  if (!asset || (!viewer.is_admin && asset.owner_user_id !== viewer.id)) {
     return NextResponse.json({ error: "Asset not found." }, { status: 404 });
   }
   if (asset.media_kind !== "video") {

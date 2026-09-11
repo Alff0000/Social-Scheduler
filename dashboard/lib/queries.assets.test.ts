@@ -22,7 +22,7 @@ async function setup() {
         .run(`${prefix}-hash-${n}`, `a/${prefix}/${n}.jpg`).lastInsertRowid
     );
   const mkDraft = (assetIds: number[]) =>
-    q.createDraftPost({ caption: "", first_comment: "", asset_ids: assetIds });
+    q.createDraftPost({ caption: "", first_comment: "", asset_ids: assetIds }, null);
   const exists = (id: number) =>
     db.prepare("SELECT 1 FROM assets WHERE id = ?").get(id) !== undefined;
   return { q, db, mkAsset, mkDraft, exists };
@@ -103,7 +103,7 @@ test("listAssetsWithUsage reports usage that matches what delete will allow", as
   const unused = mkAsset(2);
   mkDraft([used]);
 
-  const rows = q.listAssetsWithUsage();
+  const rows = q.listAssetsWithUsage(null);
   const byId = new Map(rows.map((r) => [r.id, r]));
 
   // The page decides whether to show a Delete button from post_count. If that ever
@@ -116,7 +116,7 @@ test("listAssetsWithUsage reports usage that matches what delete will allow", as
 
 // ---- A Reels cover is a USE, even though it has no post_assets row --------------------
 // The test above states the invariant these keep honest: the page decides whether to offer
-// a Delete button from what listAssetsWithUsage() reports, so anything deleteAsset() will
+// a Delete button from what listAssetsWithUsage(null) reports, so anything deleteAsset() will
 // refuse has to be reported as used. migration 0016 added a second way to reference an
 // asset — assets.cover_asset_id, a video pointing at the image it uses as its Reels cover —
 // and it carries no post_assets row at all.
@@ -140,7 +140,7 @@ test("an asset used only as a Reels cover is reported as used, not as free space
   const cover = mkAsset(1);
   q.setAssetCoverImage(video, cover);
 
-  const byId = new Map(q.listAssetsWithUsage().map((r) => [r.id, r]));
+  const byId = new Map(q.listAssetsWithUsage(null).map((r) => [r.id, r]));
   const row = byId.get(cover);
   assert.equal(row?.post_count, 0, "a cover genuinely has no post_assets row");
   assert.equal(row?.cover_use_count, 1, "but it IS referenced, and /media has to say so");
@@ -156,7 +156,7 @@ test("clearing the cover releases the asset again", async () => {
   q.setAssetCoverImage(video, cover);
   q.setAssetCoverImage(video, null);
 
-  const byId = new Map(q.listAssetsWithUsage().map((r) => [r.id, r]));
+  const byId = new Map(q.listAssetsWithUsage(null).map((r) => [r.id, r]));
   assert.equal(byId.get(cover)?.cover_use_count, 0);
   assert.equal(q.deleteAsset(cover), "ok", "nothing references it any more");
 });
@@ -167,7 +167,7 @@ test("one image serving as the cover for several videos counts every one", async
   const videos = [mkVideo(3), mkVideo(4)];
   for (const v of videos) q.setAssetCoverImage(v, cover);
 
-  const byId = new Map(q.listAssetsWithUsage().map((r) => [r.id, r]));
+  const byId = new Map(q.listAssetsWithUsage(null).map((r) => [r.id, r]));
   assert.equal(byId.get(cover)?.cover_use_count, 2);
   // The videos themselves are unused — pointing AT a cover is not being used BY anything.
   assert.equal(byId.get(videos[0])?.cover_use_count, 0);
@@ -180,7 +180,7 @@ test("an asset in a post AND serving as a cover reports both", async () => {
   mkDraft([cover]);
   q.setAssetCoverImage(video, cover);
 
-  const byId = new Map(q.listAssetsWithUsage().map((r) => [r.id, r]));
+  const byId = new Map(q.listAssetsWithUsage(null).map((r) => [r.id, r]));
   assert.equal(byId.get(cover)?.post_count, 1);
   assert.equal(byId.get(cover)?.cover_use_count, 1);
 });
@@ -198,7 +198,7 @@ test("an asset in several posts reports every one of them", async () => {
   const second = mkDraft([shared]);
   const third = mkDraft([shared]);
 
-  const byId = new Map(q.listAssetsWithUsage().map((r) => [r.id, r]));
+  const byId = new Map(q.listAssetsWithUsage(null).map((r) => [r.id, r]));
   const row = byId.get(shared);
 
   assert.equal(row?.post_count, 3);
@@ -216,10 +216,10 @@ test("each linked post carries what it takes to recognise it", async () => {
     caption: "Spring sale — last chance\nsecond line that must not appear",
     first_comment: "",
     asset_ids: [asset],
-  });
+  }, null);
   db.prepare("UPDATE posts SET status = 'scheduled' WHERE id = ?").run(postId);
 
-  const byId = new Map(q.listAssetsWithUsage().map((r) => [r.id, r]));
+  const byId = new Map(q.listAssetsWithUsage(null).map((r) => [r.id, r]));
   const [linked] = byId.get(asset)!.posts;
 
   assert.equal(linked.post_id, postId);
@@ -233,7 +233,7 @@ test("an unused asset has no linked posts", async () => {
   const { q, mkAsset } = await setup();
   const unused = mkAsset(3);
 
-  const byId = new Map(q.listAssetsWithUsage().map((r) => [r.id, r]));
+  const byId = new Map(q.listAssetsWithUsage(null).map((r) => [r.id, r]));
   assert.equal(byId.get(unused)?.post_count, 0);
   assert.deepEqual(byId.get(unused)?.posts, []);
 });
@@ -245,7 +245,7 @@ test("one asset's posts never leak onto another asset", async () => {
   const postA = mkDraft([a]);
   const postB = mkDraft([b]);
 
-  const byId = new Map(q.listAssetsWithUsage().map((r) => [r.id, r]));
+  const byId = new Map(q.listAssetsWithUsage(null).map((r) => [r.id, r]));
   assert.deepEqual(byId.get(a)?.posts.map((p) => p.post_id), [postA]);
   assert.deepEqual(byId.get(b)?.posts.map((p) => p.post_id), [postB]);
 });
@@ -259,7 +259,7 @@ test("a carousel counts once per post, not once per slide", async () => {
   const two = mkAsset(7);
   const carousel = mkDraft([one, two]);
 
-  const byId = new Map(q.listAssetsWithUsage().map((r) => [r.id, r]));
+  const byId = new Map(q.listAssetsWithUsage(null).map((r) => [r.id, r]));
   for (const id of [one, two]) {
     assert.equal(byId.get(id)?.post_count, 1);
     assert.deepEqual(byId.get(id)?.posts.map((p) => p.post_id), [carousel]);
@@ -279,7 +279,7 @@ test("linking every post does not cost a query per asset", async () => {
     return original(sql);
   }) as typeof db.prepare;
   try {
-    const rows = q.listAssetsWithUsage();
+    const rows = q.listAssetsWithUsage(null);
     assert.ok(rows.length >= 12, "precondition: there are plenty of assets to fan out over");
   } finally {
     (db as unknown as { prepare: typeof db.prepare }).prepare = original;

@@ -4,10 +4,14 @@ import type { ContentKind, ContentStatus } from "@/lib/types";
 import { parsePeriodLinks, parseTagIds } from "@/lib/content-model-validation";
 import { captionLimitError } from "@/lib/caption-limits";
 import { feedTargets } from "@/lib/story-fanout";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  const ownerId = viewer.is_admin ? null : viewer.id;
   const body = await req.json().catch(() => ({}));
 
   // --- items (one per image) ---
@@ -20,7 +24,8 @@ export async function POST(req: NextRequest) {
   const items: { asset_id: number; caption: string }[] = [];
   for (const it of body.items) {
     const assetId = Number(it?.asset_id);
-    if (!Number.isInteger(assetId) || !getAsset(assetId)) {
+    const asset = Number.isInteger(assetId) ? getAsset(assetId) : undefined;
+    if (!asset || (ownerId !== null && asset.owner_user_id !== ownerId)) {
       return NextResponse.json({ error: `Unknown asset ${it?.asset_id}.` }, { status: 400 });
     }
     if (it.caption !== undefined && typeof it.caption !== "string") {
@@ -52,7 +57,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid target_channel_ids." }, { status: 400 });
     }
     for (const cid of body.target_channel_ids) {
-      if (typeof cid !== "number" || !getChannel(cid)) {
+      const ch = typeof cid === "number" ? getChannel(cid) : undefined;
+      if (!ch || (ownerId !== null && ch.owner_user_id !== ownerId)) {
         return NextResponse.json({ error: `Unknown channel ${cid}.` }, { status: 400 });
       }
     }
@@ -77,13 +83,16 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const validTagIds = new Set(listTags().map((t) => t.id));
+  const validTagIds = new Set(listTags(undefined, ownerId).map((t) => t.id));
   const tagIds = parseTagIds(body.tag_ids, (id) => validTagIds.has(id));
   if (tagIds === "invalid") {
     return NextResponse.json({ error: "Invalid tag_ids." }, { status: 400 });
   }
 
-  const periodLinks = parsePeriodLinks(body.period_links, getPeriod);
+  const periodLinks = parsePeriodLinks(body.period_links, (pid) => {
+    const p = getPeriod(pid);
+    return p && (ownerId === null || p.owner_user_id === ownerId) ? p : undefined;
+  });
   if (periodLinks === "invalid") {
     return NextResponse.json({ error: "Invalid period_links." }, { status: 400 });
   }
@@ -94,6 +103,6 @@ export async function POST(req: NextRequest) {
     content_status: contentStatus,
     tag_ids: tagIds ?? undefined,
     period_links: periodLinks ?? undefined,
-  });
+  }, ownerId);
   return NextResponse.json({ created: ids.length }, { status: 201 });
 }

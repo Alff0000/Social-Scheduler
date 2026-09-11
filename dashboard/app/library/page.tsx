@@ -15,7 +15,7 @@ export default async function LibraryPage() {
   // "all", not the default "active": the Library owns the Archived view, and one query
   // feeding both sides means switching between them costs no round trip. Compose's reuse
   // picker takes the default and never sees archived posts.
-  const posts = listPosts(undefined, "all").map((p) => ({
+  const posts = listPosts(undefined, "all", ownerId).map((p) => ({
     id: p.id,
     is_bpp: p.is_bpp,
     caption: p.caption,
@@ -102,9 +102,9 @@ export default async function LibraryPage() {
           <LibraryView
             posts={posts}
             channels={channels}
-            periods={listPeriods()}
-            timeOfDayTags={listTags("time_of_day")}
-            topicTags={listTags("topic")}
+            periods={listPeriods(ownerId)}
+            timeOfDayTags={listTags("time_of_day", ownerId)}
+            topicTags={listTags("topic", ownerId)}
             evaluationDate={evaluationDate}
             evaluationTimezone={config.defaultTimezone}
           />

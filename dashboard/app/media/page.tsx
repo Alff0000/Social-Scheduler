@@ -2,11 +2,14 @@ import Link from "next/link";
 import { listAssetsWithUsage } from "@/lib/queries";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { MediaManager } from "@/components/media-manager";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export default function MediaPage() {
-  const assets = listAssetsWithUsage();
+export default async function MediaPage() {
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
+  const assets = listAssetsWithUsage(ownerId);
 
   return (
     <div>

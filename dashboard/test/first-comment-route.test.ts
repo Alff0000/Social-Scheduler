@@ -16,10 +16,22 @@ makeTestDb();
 const q = await import("../lib/queries.ts");
 const db = (await import("../lib/db.ts")).getDb();
 
+const { createSession } = await import("../lib/auth.ts");
 const { PATCH, GET } = await import("../app/api/posts/[id]/content/route.ts");
 const { POST: RETRY_COMMENT } = await import(
   "../app/api/publications/[id]/retry-comment/route.ts"
 );
+
+// content/route.ts now requires a session (migrations/0034_owner_scoping.sql). This
+// file's posts are all seeded with owner_user_id NULL, so admin (which skips the
+// ownership check entirely) is what matches them — same as test/autofill-lane-surface-
+// route.test.ts.
+const adminId = Number(
+  db
+    .prepare("INSERT INTO users (email, password_hash, is_admin) VALUES ('admin@test', 'x', 1)")
+    .run().lastInsertRowid
+);
+await createSession(adminId);
 
 function patch(postId: number, body: unknown) {
   return PATCH(
@@ -41,7 +53,7 @@ function storedFirstComment(postId: number): string | null {
 }
 
 function makePost(caption: string) {
-  return q.createDraftPost({ caption, first_comment: "", asset_ids: [] });
+  return q.createDraftPost({ caption, first_comment: "", asset_ids: [] }, null);
 }
 
 // ---- PATCH: the gap that made this unreachable on imported posts ----------------------

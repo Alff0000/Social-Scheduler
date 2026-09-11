@@ -545,10 +545,12 @@ export function changeChannelGroupTimezone(
 }
 
 // ---- Assets ---------------------------------------------------------------------
-export function getAssetByHash(hash: string): Asset | undefined {
+// Dedup is scoped to (content_hash, ownerUserId): two different users uploading the
+// identical bytes get two separately-owned rows, not one asset shared across tenants.
+export function getAssetByHash(hash: string, ownerUserId: number | null): Asset | undefined {
   return getDb()
-    .prepare("SELECT * FROM assets WHERE content_hash = ?")
-    .get(hash) as Asset | undefined;
+    .prepare("SELECT * FROM assets WHERE content_hash = ? AND owner_user_id IS ?")
+    .get(hash, ownerUserId) as Asset | undefined;
 }
 
 export function getAsset(id: number): Asset | undefined {
@@ -577,9 +579,13 @@ export interface InsertAssetInput {
   story_path?: string | null;
 }
 
-/** Insert an asset, or return the existing one if the content hash already exists (dedup). */
-export function upsertAssetByHash(input: InsertAssetInput): { asset: Asset; deduped: boolean } {
-  const existing = getAssetByHash(input.content_hash);
+/** Insert an asset, or return the existing one if the content hash already exists (dedup,
+ *  scoped to this owner — see getAssetByHash). */
+export function upsertAssetByHash(
+  input: InsertAssetInput,
+  ownerUserId: number | null
+): { asset: Asset; deduped: boolean } {
+  const existing = getAssetByHash(input.content_hash, ownerUserId);
   if (existing) return { asset: existing, deduped: true };
   const info = getDb()
     .prepare(
@@ -587,11 +593,11 @@ export function upsertAssetByHash(input: InsertAssetInput): { asset: Asset; dedu
         (content_hash, media_kind, original_filename, storage_path, public_url,
          thumbnail_path, mime_type, width, height, byte_size,
          publish_path, conform_mode, needs_review,
-         duration_ms, cover_frame_ms, has_audio, story_path)
+         duration_ms, cover_frame_ms, has_audio, story_path, owner_user_id)
        VALUES (@content_hash, @media_kind, @original_filename, @storage_path, @public_url,
          @thumbnail_path, @mime_type, @width, @height, @byte_size,
          @publish_path, @conform_mode, @needs_review,
-         @duration_ms, @cover_frame_ms, @has_audio, @story_path)`
+         @duration_ms, @cover_frame_ms, @has_audio, @story_path, @owner_user_id)`
     )
     .run({
       ...input,
@@ -602,6 +608,7 @@ export function upsertAssetByHash(input: InsertAssetInput): { asset: Asset; dedu
       cover_frame_ms: input.cover_frame_ms ?? null,
       has_audio: input.has_audio ?? 0,
       story_path: input.story_path ?? null,
+      owner_user_id: ownerUserId,
     });
   return {
     asset: getAsset(Number(info.lastInsertRowid))!,
@@ -737,8 +744,9 @@ export interface AssetPostRef {
  * second one-to-many table would multiply the post_assets rows and silently inflate
  * post_count. Not an aggregate over the join, so it needs no GROUP BY entry of its own.
  */
-export function listAssetsWithUsage(): AssetWithUsage[] {
+export function listAssetsWithUsage(ownerId: number | null): AssetWithUsage[] {
   const db = getDb();
+  const where = ownerId !== null ? "WHERE a.owner_user_id = ?" : "";
   const rows = db
     .prepare(
       `SELECT a.*,
@@ -747,10 +755,11 @@ export function listAssetsWithUsage(): AssetWithUsage[] {
                 AS cover_use_count
          FROM assets a
          LEFT JOIN post_assets pa ON pa.asset_id = a.id
+         ${where}
         GROUP BY a.id
         ORDER BY a.created_at DESC, a.id DESC`
     )
-    .all() as (Omit<AssetWithUsage, "posts"> & { posts?: never })[];
+    .all(...(ownerId !== null ? [ownerId] : [])) as (Omit<AssetWithUsage, "posts"> & { posts?: never })[];
 
   // ONE more query for the whole store, not one per asset. /media renders every asset on the
   // page, so a per-asset lookup is an N+1 that stays invisible until the store grows.
@@ -1210,18 +1219,46 @@ export interface CreatePostInput extends ContentModelInput {
  * optional so existing callers keep working with today's schema defaults.
  * Returns the new post id and the created publication ids.
  */
+/** Thrown when a post's targets reference a channel a different owner controls — see
+ *  createPostWithPublications and bulkAddTargets/setPostTargets, which all guard the
+ *  same invariant: a post and everything it is sent to must belong to one tenant. */
+export class CrossOwnerTargetError extends Error {
+  // A plain field assignment, not a TS constructor-parameter-property: this test suite
+  // runs under Node's type-stripping mode, which parses out type annotations but cannot
+  // handle that shorthand (it isn't just an annotation — it's syntax with no JS
+  // equivalent), and fails every test file that imports this module at all.
+  readonly channelId: number;
+  constructor(channelId: number) {
+    super(`Channel ${channelId} not found.`);
+    this.name = "CrossOwnerTargetError";
+    this.channelId = channelId;
+  }
+}
+
 export function createPostWithPublications(
-  input: CreatePostInput
+  input: CreatePostInput,
+  ownerUserId: number | null
 ): { postId: number; publicationIds: number[] } {
   const db = getDb();
   const tx = db.transaction((data: CreatePostInput) => {
+    // Every target channel must belong to this same owner — skipped entirely for admin
+    // (ownerUserId === null), who is trusted to target any channel. Checked before any
+    // INSERT runs so a rejection never depends on the transaction's auto-rollback.
+    if (ownerUserId !== null) {
+      for (const target of data.targets) {
+        const ch = getChannel(target.channel_id);
+        if (!ch || ch.owner_user_id !== ownerUserId) {
+          throw new CrossOwnerTargetError(target.channel_id);
+        }
+      }
+    }
     const postInfo = db
       .prepare(
         `INSERT INTO posts
            (caption, first_comment, post_type, status, content_kind, content_status,
-            cooldown_days, created_by)
+            cooldown_days, created_by, owner_user_id)
          VALUES (@caption, @first_comment, @post_type, 'scheduled', @content_kind,
-            @content_status, @cooldown_days, @created_by)`
+            @content_status, @cooldown_days, @created_by, @owner_user_id)`
       )
       .run({
         caption: data.caption || null,
@@ -1231,6 +1268,7 @@ export function createPostWithPublications(
         content_status: data.content_status || "draft",
         cooldown_days: data.cooldown_days ?? null,
         created_by: data.created_by || null,
+        owner_user_id: ownerUserId,
       });
     const postId = Number(postInfo.lastInsertRowid);
 
@@ -1318,17 +1356,29 @@ function derivePostType(db: DatabaseType.Database, assetIds: number[]): PostType
   return derivePostTypeFromKinds([row?.media_kind ?? "image"]);
 }
 
-export function createDraftPost(input: CreateDraftInput): number {
+export function createDraftPost(input: CreateDraftInput, ownerUserId: number | null): number {
   const db = getDb();
   const postType: PostType = input.post_type ?? derivePostType(db, input.asset_ids);
+  // Same cross-owner guard createPostWithPublications applies, and for the same reason:
+  // insertContentModelRows below writes input.targets straight into post_targets with
+  // no check of its own, so a draft saved with a target channel someone else owns would
+  // otherwise go through silently.
+  if (ownerUserId !== null) {
+    for (const target of input.targets ?? []) {
+      const ch = getChannel(target.channel_id);
+      if (!ch || ch.owner_user_id !== ownerUserId) {
+        throw new CrossOwnerTargetError(target.channel_id);
+      }
+    }
+  }
   const tx = db.transaction((data: CreateDraftInput) => {
     const info = db
       .prepare(
         `INSERT INTO posts
            (caption, first_comment, post_type, status, content_kind, content_status,
-            cooldown_days, created_by)
+            cooldown_days, created_by, owner_user_id)
          VALUES (@caption, @first_comment, @post_type, 'draft', @content_kind,
-            @content_status, @cooldown_days, @created_by)`
+            @content_status, @cooldown_days, @created_by, @owner_user_id)`
       )
       .run({
         caption: data.caption || null,
@@ -1338,6 +1388,7 @@ export function createDraftPost(input: CreateDraftInput): number {
         content_status: data.content_status || "draft",
         cooldown_days: data.cooldown_days ?? null,
         created_by: data.created_by || null,
+        owner_user_id: ownerUserId,
       });
     const postId = Number(info.lastInsertRowid);
     const link = db.prepare(
@@ -1371,26 +1422,33 @@ export interface BulkDraftShared {
  * back together). A non-empty caption becomes the post's single generic caption variant.
  * Returns the new post ids.
  */
-export function createDraftPostsBulk(items: BulkDraftItem[], shared: BulkDraftShared): number[] {
+export function createDraftPostsBulk(
+  items: BulkDraftItem[],
+  shared: BulkDraftShared,
+  ownerUserId: number | null
+): number[] {
   const db = getDb();
   const tx = db.transaction((rows: BulkDraftItem[]) => {
     const ids: number[] = [];
     for (const item of rows) {
       const caption = item.caption.trim();
       ids.push(
-        createDraftPost({
-          caption,
-          first_comment: "",
-          asset_ids: [item.asset_id],
-          targets: shared.targets,
-          content_kind: shared.content_kind,
-          content_status: shared.content_status,
-          tag_ids: shared.tag_ids,
-          period_links: shared.period_links,
-          caption_variants: caption
-            ? [{ platform: null, body: caption, sort_order: 0 }]
-            : undefined,
-        })
+        createDraftPost(
+          {
+            caption,
+            first_comment: "",
+            asset_ids: [item.asset_id],
+            targets: shared.targets,
+            content_kind: shared.content_kind,
+            content_status: shared.content_status,
+            tag_ids: shared.tag_ids,
+            period_links: shared.period_links,
+            caption_variants: caption
+              ? [{ platform: null, body: caption, sort_order: 0 }]
+              : undefined,
+          },
+          ownerUserId
+        )
       );
     }
     return ids;
@@ -2139,8 +2197,13 @@ const LIBRARY_SCOPE_SQL: Record<LibraryScope, string> = {
   all: "WHERE 1 = 1",
 };
 
-export function listPosts(limit?: number, scope: LibraryScope = "active"): PostLibraryRow[] {
+export function listPosts(
+  limit: number | undefined,
+  scope: LibraryScope = "active",
+  ownerId: number | null
+): PostLibraryRow[] {
   const db = getDb();
+  const ownerClause = ownerId !== null ? "AND p.owner_user_id = ?" : "";
   const posts = db
     .prepare(
       `SELECT p.*,
@@ -2188,13 +2251,13 @@ export function listPosts(limit?: number, scope: LibraryScope = "active"): PostL
          (SELECT COUNT(*) FROM publications pub WHERE pub.post_id = p.id
             AND pub.status IN ('posted','publishing')) AS live_send_count
        FROM posts p
-       ${LIBRARY_SCOPE_SQL[scope]}
+       ${LIBRARY_SCOPE_SQL[scope]} ${ownerClause}
        ORDER BY p.created_at DESC, p.id DESC
        LIMIT ?`
     )
     // SQLite reads a negative LIMIT as "no upper bound", which keeps this one prepared
     // statement serving both the capped and the uncapped call.
-    .all(limit ?? -1) as Omit<PostLibraryRow, "periods">[];
+    .all(...(ownerId !== null ? [ownerId] : []), limit ?? -1) as Omit<PostLibraryRow, "periods">[];
 
   if (posts.length === 0) return [];
 
@@ -2497,10 +2560,12 @@ const PUBLICATION_ROW_SELECT = `
          ORDER BY pm.fetched_at DESC, pm.id DESC LIMIT 1
        )`;
 
-export function getPublicationsOverview(limit = 200): PublicationRow[] {
+export function getPublicationsOverview(limit: number, ownerId: number | null): PublicationRow[] {
+  const where = ownerId !== null ? "WHERE p.owner_user_id = ?" : "";
   return getDb()
     .prepare(
       `${PUBLICATION_ROW_SELECT}
+       ${where}
        ORDER BY
          -- Live work first, most urgent kind first, then the history block. 'posted' and
          -- 'canceled' share the last rank because both are over; everything above is still
@@ -2548,7 +2613,7 @@ export function getPublicationsOverview(limit = 200): PublicationRow[] {
          pub.id ASC
        LIMIT ?`
     )
-    .all(limit) as PublicationRow[];
+    .all(...(ownerId !== null ? [ownerId] : []), limit) as PublicationRow[];
 }
 
 /**
@@ -2567,15 +2632,21 @@ export function getPublicationsOverview(limit = 200): PublicationRow[] {
  * that produced it (an evening send in New York is already tomorrow in UTC), so the page
  * asks for a day's slack at each end and lets bucketByDay discard what falls outside.
  */
-export function getPublicationsInRange(startIso: string, endIso: string): PublicationRow[] {
+export function getPublicationsInRange(
+  startIso: string,
+  endIso: string,
+  ownerId: number | null
+): PublicationRow[] {
+  const ownerClause = ownerId !== null ? "AND p.owner_user_id = @ownerId" : "";
   return getDb()
     .prepare(
       `${PUBLICATION_ROW_SELECT}
        WHERE COALESCE(pub.published_at, pub.scheduled_at) >= @start
          AND COALESCE(pub.published_at, pub.scheduled_at) <  @end
+         ${ownerClause}
        ORDER BY COALESCE(pub.published_at, pub.scheduled_at) ASC, pub.id ASC`
     )
-    .all({ start: startIso, end: endIso }) as PublicationRow[];
+    .all({ start: startIso, end: endIso, ownerId }) as PublicationRow[];
 }
 
 export function getPublication(id: number): Publication | undefined {
@@ -2762,8 +2833,11 @@ export function requestMetricsRefreshAll(): number {
 }
 
 // ---- Periods (reusable in-season window library) ---------------------------------
-export function listPeriods(): Period[] {
-  return getDb().prepare("SELECT * FROM periods ORDER BY name ASC").all() as Period[];
+export function listPeriods(ownerId: number | null): Period[] {
+  const where = ownerId !== null ? "WHERE owner_user_id = ?" : "";
+  return getDb()
+    .prepare(`SELECT * FROM periods ${where} ORDER BY name ASC`)
+    .all(...(ownerId !== null ? [ownerId] : [])) as Period[];
 }
 
 export function getPeriod(id: number): Period | undefined {
@@ -2783,13 +2857,14 @@ export interface CreatePeriodInput {
   end_date?: string | null;
 }
 
-export function createPeriod(input: CreatePeriodInput): number {
+export function createPeriod(input: CreatePeriodInput, ownerUserId: number | null): number {
   const info = getDb()
     .prepare(
       `INSERT INTO periods
-         (name, recurs_yearly, start_month, start_day, end_month, end_day, start_date, end_date)
+         (name, recurs_yearly, start_month, start_day, end_month, end_day, start_date, end_date,
+          owner_user_id)
        VALUES (@name, @recurs_yearly, @start_month, @start_day, @end_month, @end_day,
-         @start_date, @end_date)`
+         @start_date, @end_date, @owner_user_id)`
     )
     .run({
       name: input.name,
@@ -2800,6 +2875,7 @@ export function createPeriod(input: CreatePeriodInput): number {
       end_day: input.end_day ?? null,
       start_date: input.start_date ?? null,
       end_date: input.end_date ?? null,
+      owner_user_id: ownerUserId,
     });
   return Number(info.lastInsertRowid);
 }
@@ -2841,9 +2917,24 @@ export function getPostTargets(postId: number): PostTarget[] {
     .all(postId) as PostTarget[];
 }
 
-/** Replace a post's target set atomically (delete-all then insert — the "all" snapshot). */
-export function setPostTargets(postId: number, targets: PostTarget[]): void {
+/** Replace a post's target set atomically (delete-all then insert — the "all" snapshot).
+ *  ownerUserId, when not null, rejects any target whose channel belongs to someone else
+ *  — same CrossOwnerTargetError createPostWithPublications throws, and for the same
+ *  reason: a post and everything it is sent to must belong to one tenant. */
+export function setPostTargets(
+  postId: number,
+  targets: PostTarget[],
+  ownerUserId: number | null
+): void {
   const db = getDb();
+  if (ownerUserId !== null) {
+    for (const t of targets) {
+      const ch = getChannel(t.channel_id);
+      if (!ch || ch.owner_user_id !== ownerUserId) {
+        throw new CrossOwnerTargetError(t.channel_id);
+      }
+    }
+  }
   const tx = db.transaction((rows: PostTarget[]) => {
     db.prepare("DELETE FROM post_targets WHERE post_id = ?").run(postId);
     const insert = db.prepare(
@@ -2855,16 +2946,26 @@ export function setPostTargets(postId: number, targets: PostTarget[]): void {
 }
 
 // ---- Tags (taxonomy: topic + time_of_day) -------------------------------------
-export function listTags(kind?: "topic" | "time_of_day"): Tag[] {
+// time_of_day tags (morning/afternoon/evening/anytime) are fixed, install-wide
+// scheduling vocabulary (migration 0003), seeded once with owner_user_id NULL — never
+// per-owner content, so they are excluded from the ownership filter below on purpose:
+// every tenant must see the same four bands regardless of who is asking.
+export function listTags(kind: "topic" | "time_of_day" | undefined, ownerId: number | null): Tag[] {
   const db = getDb();
+  const conditions: string[] = [];
+  const params: unknown[] = [];
   if (kind) {
-    return db
-      .prepare("SELECT id, name, kind FROM tags WHERE kind = ? ORDER BY name COLLATE NOCASE")
-      .all(kind) as Tag[];
+    conditions.push("kind = ?");
+    params.push(kind);
   }
+  if (ownerId !== null) {
+    conditions.push("(kind = 'time_of_day' OR owner_user_id = ?)");
+    params.push(ownerId);
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
   return db
-    .prepare("SELECT id, name, kind FROM tags ORDER BY kind, name COLLATE NOCASE")
-    .all() as Tag[];
+    .prepare(`SELECT id, name, kind, owner_user_id FROM tags ${where} ORDER BY kind, name COLLATE NOCASE`)
+    .all(...params) as Tag[];
 }
 
 /** Create-or-get a free-form topic tag by name (case-insensitive). */
@@ -2882,19 +2983,26 @@ export class ReservedTagNameError extends Error {
  * is rejected rather than silently returning the band — otherwise a user "adding a
  * topic" would quietly attach a scheduling tag.
  */
-export function createTopicTag(name: string): Tag {
+export function createTopicTag(name: string, ownerUserId: number | null): Tag {
   const db = getDb();
   const clean = name.trim();
+  // A collision is either a shared time_of_day band, or this SAME owner's own tag —
+  // two different owners each having "promocao" is not a collision at all (migrations/
+  // 0035_tags_per_owner_unique.sql's whole point).
   const existing = db
-    .prepare("SELECT id, name, kind FROM tags WHERE name = ? COLLATE NOCASE")
-    .get(clean) as Tag | undefined;
+    .prepare(
+      "SELECT id, name, kind, owner_user_id FROM tags WHERE name = ? COLLATE NOCASE AND (owner_user_id IS NULL OR owner_user_id IS ?)"
+    )
+    .get(clean, ownerUserId) as Tag | undefined;
   if (existing) {
     if (existing.kind !== "topic") throw new ReservedTagNameError(clean);
     return existing;
   }
-  const info = db.prepare("INSERT INTO tags (name, kind) VALUES (?, 'topic')").run(clean);
+  const info = db
+    .prepare("INSERT INTO tags (name, kind, owner_user_id) VALUES (?, 'topic', ?)")
+    .run(clean, ownerUserId);
   return db
-    .prepare("SELECT id, name, kind FROM tags WHERE id = ?")
+    .prepare("SELECT id, name, kind, owner_user_id FROM tags WHERE id = ?")
     .get(Number(info.lastInsertRowid)) as Tag;
 }
 
@@ -2925,14 +3033,18 @@ export class DuplicateTagNameError extends Error {
  * already holds — tags.name is UNIQUE COLLATE NOCASE, so the bare UPDATE would otherwise
  * surface as a 500 rather than something the page can explain.
  */
+export function getTag(id: number): Tag | undefined {
+  return getDb().prepare("SELECT id, name, kind, owner_user_id FROM tags WHERE id = ?").get(id) as
+    | Tag
+    | undefined;
+}
+
 export function renameTopicTag(tagId: number, name: string): Tag | null {
   const db = getDb();
   const clean = name.trim();
   if (!clean) throw new Error("Tag name cannot be empty.");
 
-  const tag = db.prepare("SELECT id, name, kind FROM tags WHERE id = ?").get(tagId) as
-    | Tag
-    | undefined;
+  const tag = getTag(tagId);
   if (!tag) return null;
   if (tag.kind !== "topic") {
     throw new ProtectedTagError(
@@ -2942,30 +3054,35 @@ export function renameTopicTag(tagId: number, name: string): Tag | null {
 
   // Exclude the row itself: renaming "beach" -> "Beach" is a legitimate case fix, and
   // COLLATE NOCASE would otherwise report the tag as colliding with its own old name.
+  // Scoped to a shared band or THIS tag's own owner — a different owner's "Beach" is not
+  // a collision (migrations/0035_tags_per_owner_unique.sql).
   const clash = db
-    .prepare("SELECT id, name, kind FROM tags WHERE name = ? COLLATE NOCASE AND id != ?")
-    .get(clean, tagId) as Tag | undefined;
+    .prepare(
+      "SELECT id, name, kind, owner_user_id FROM tags WHERE name = ? COLLATE NOCASE AND id != ? AND (owner_user_id IS NULL OR owner_user_id IS ?)"
+    )
+    .get(clean, tagId, tag.owner_user_id) as Tag | undefined;
   if (clash) {
     if (clash.kind !== "topic") throw new ReservedTagNameError(clean);
     throw new DuplicateTagNameError(clean);
   }
 
   db.prepare("UPDATE tags SET name = ? WHERE id = ?").run(clean, tagId);
-  return db.prepare("SELECT id, name, kind FROM tags WHERE id = ?").get(tagId) as Tag;
+  return getTag(tagId) as Tag;
 }
 
 /** Topic tags with how many posts each is attached to, for the Tags admin page. */
-export function listTopicTagsWithUsage(): (Tag & { post_count: number })[] {
+export function listTopicTagsWithUsage(ownerId: number | null): (Tag & { post_count: number })[] {
+  const ownerClause = ownerId !== null ? "AND t.owner_user_id = ?" : "";
   return getDb()
     .prepare(
-      `SELECT t.id, t.name, t.kind, COUNT(pt.post_id) AS post_count
+      `SELECT t.id, t.name, t.kind, t.owner_user_id, COUNT(pt.post_id) AS post_count
          FROM tags t
          LEFT JOIN post_tags pt ON pt.tag_id = t.id
-        WHERE t.kind = 'topic'
+        WHERE t.kind = 'topic' ${ownerClause}
         GROUP BY t.id
         ORDER BY t.name COLLATE NOCASE`
     )
-    .all() as (Tag & { post_count: number })[];
+    .all(...(ownerId !== null ? [ownerId] : [])) as (Tag & { post_count: number })[];
 }
 
 /**

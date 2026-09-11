@@ -19,6 +19,18 @@ import { makeTestDb } from "./helpers.ts";
 makeTestDb();
 const { config } = await import("../lib/config.ts");
 const { POST } = await import("../app/api/assets/upload/route.ts");
+const { getDb } = await import("../lib/db.ts");
+const { createSession } = await import("../lib/auth.ts");
+
+// The upload route now requires a session (migrations/0034_owner_scoping.sql) and stamps
+// the uploaded asset's owner_user_id from it — sign in once for the whole file, same
+// pattern as test/autofill-lane-surface-route.test.ts.
+const userId = Number(
+  getDb()
+    .prepare("INSERT INTO users (email, password_hash, is_admin) VALUES ('u@test', 'x', 0)")
+    .run().lastInsertRowid
+);
+await createSession(userId);
 
 async function upload(buf: Buffer, name: string, type: string) {
   const form = new FormData();

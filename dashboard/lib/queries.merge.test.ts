@@ -27,7 +27,7 @@ async function setup() {
       first_comment: "",
       asset_ids: assetIds,
       ...(postType ? { post_type: postType } : {}),
-    });
+    }, null);
   return { q, db, mkAsset, mkDraft };
 }
 
@@ -108,8 +108,8 @@ test("targets are unioned from every merged post", async () => {
   const c1 = ch("a"), c2 = ch("b");
   const ids = [mkAsset(1), mkAsset(2)];
   const posts = ids.map((a) => mkDraft([a]));
-  q.setPostTargets(posts[0], [{ channel_id: c1, surface: "feed" }]);
-  q.setPostTargets(posts[1], [{ channel_id: c2, surface: "feed" }]);
+  q.setPostTargets(posts[0], [{ channel_id: c1, surface: "feed" }], null);
+  q.setPostTargets(posts[1], [{ channel_id: c2, surface: "feed" }], null);
 
   const res = q.mergePostsIntoCarousel(posts, ids, null);
   assert.equal(res.ok, true);
@@ -190,8 +190,8 @@ for (const [label, caption] of [
       first_comment: "",
       asset_ids: [ids[0]],
       caption_variants: [{ platform: null, body: "old text", sort_order: 0 }],
-    });
-    const other = q.createDraftPost({ caption: "", first_comment: "", asset_ids: [ids[1]] });
+    }, null);
+    const other = q.createDraftPost({ caption: "", first_comment: "", asset_ids: [ids[1]] }, null);
 
     const res = q.mergePostsIntoCarousel([survivor, other], ids, caption);
     assert.equal(res.ok, true);
@@ -210,8 +210,8 @@ test("a real caption replaces the survivor's existing caption and variants", asy
     first_comment: "",
     asset_ids: [ids[0]],
     caption_variants: [{ platform: null, body: "old text", sort_order: 0 }],
-  });
-  const other = q.createDraftPost({ caption: "", first_comment: "", asset_ids: [ids[1]] });
+  }, null);
+  const other = q.createDraftPost({ caption: "", first_comment: "", asset_ids: [ids[1]] }, null);
 
   const res = q.mergePostsIntoCarousel([survivor, other], ids, "new text");
   assert.equal(res.ok, true);
@@ -235,7 +235,7 @@ test("the cap is read from the merged posts' own target channels", async () => {
   const threads = ch("threads", "threads-only");
   const ids = Array.from({ length: 11 }, (_, i) => mkAsset(i + 1));
   const posts = ids.map((a) => mkDraft([a]));
-  for (const p of posts) q.setPostTargets(p, [{ channel_id: threads, surface: "feed" }]);
+  for (const p of posts) q.setPostTargets(p, [{ channel_id: threads, surface: "feed" }], null);
 
   const res = q.mergePostsIntoCarousel(posts, ids, null);
   assert.equal(res.ok, true, "11 slides is within Threads' cap of 20");
@@ -255,8 +255,8 @@ test("one strict target channel caps the whole merge", async () => {
   const insta = ch("instagram", "ig");
   const ids = Array.from({ length: 11 }, (_, i) => mkAsset(i + 1));
   const posts = ids.map((a) => mkDraft([a]));
-  for (const p of posts) q.setPostTargets(p, [{ channel_id: threads, surface: "feed" }]);
-  q.setPostTargets(posts[3], [{ channel_id: insta, surface: "feed" }]);
+  for (const p of posts) q.setPostTargets(p, [{ channel_id: threads, surface: "feed" }], null);
+  q.setPostTargets(posts[3], [{ channel_id: insta, surface: "feed" }], null);
 
   const res = q.mergePostsIntoCarousel(posts, ids, null);
   assert.equal(res.ok, false);
@@ -280,8 +280,8 @@ test("a caption legal for the survivor alone is rejected once a sibling's strict
   const threads = ch("threads", "th-guard8");
   const ids = [mkAsset(1), mkAsset(2)];
   const posts = ids.map((a) => mkDraft([a]));
-  q.setPostTargets(posts[0], [{ channel_id: insta, surface: "feed" }]);
-  q.setPostTargets(posts[1], [{ channel_id: threads, surface: "feed" }]);
+  q.setPostTargets(posts[0], [{ channel_id: insta, surface: "feed" }], null);
+  q.setPostTargets(posts[1], [{ channel_id: threads, surface: "feed" }], null);
 
   // 1,500 characters is legal on Instagram (no enforced limit) and always was — the survivor
   // is the Instagram post. The merge unions the Threads channel onto it, and Threads caps at
@@ -312,8 +312,8 @@ test("the same merge succeeds once the caption fits the strictest target", async
   const threads = ch("threads", "th-guard8-ok");
   const ids = [mkAsset(1), mkAsset(2)];
   const posts = ids.map((a) => mkDraft([a]));
-  q.setPostTargets(posts[0], [{ channel_id: insta, surface: "feed" }]);
-  q.setPostTargets(posts[1], [{ channel_id: threads, surface: "feed" }]);
+  q.setPostTargets(posts[0], [{ channel_id: insta, surface: "feed" }], null);
+  q.setPostTargets(posts[1], [{ channel_id: threads, surface: "feed" }], null);
 
   const res = q.mergePostsIntoCarousel(posts, ids, "x".repeat(499));
   assert.equal(res.ok, true, "499 fits Threads' 500");
@@ -334,7 +334,7 @@ test("clearing the caption is never blocked by the limit guard", async () => {
 
   const ids = [mkAsset(1), mkAsset(2)];
   const posts = ids.map((a) => mkDraft([a]));
-  for (const p of posts) q.setPostTargets(p, [{ channel_id: threads, surface: "feed" }]);
+  for (const p of posts) q.setPostTargets(p, [{ channel_id: threads, surface: "feed" }], null);
 
   // null means CLEAR (see the caption contract). There is no text to be over a limit, so a
   // guard that measured it anyway would block the "No caption" option outright.

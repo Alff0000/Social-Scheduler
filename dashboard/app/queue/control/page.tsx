@@ -39,7 +39,7 @@ export default async function QueueControlPage() {
   const viewer = await getSessionUser();
   const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
   const channels = getActiveChannels(ownerId);
-  const pubs = getPublicationsOverview();
+  const pubs = getPublicationsOverview(200, ownerId);
   const blocked = new Set(blockedPublicationIds(pubs));
   const limits = getLatestPublishLimits();
 

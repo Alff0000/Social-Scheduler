@@ -70,7 +70,7 @@ test("deleting a group ungroups its channels and keeps their publications", asyn
       .prepare("INSERT INTO assets (content_hash, media_kind, storage_path) VALUES (?, 'image', ?)")
       .run(`${prefix}-hash`, `a/${prefix}.jpg`).lastInsertRowid
   );
-  const postId = q.createDraftPost({ caption: "", first_comment: "", asset_ids: [assetId] });
+  const postId = q.createDraftPost({ caption: "", first_comment: "", asset_ids: [assetId] }, null);
   db.prepare(
     "INSERT INTO publications (post_id, channel_id, scheduled_at) VALUES (?,?,?)"
   ).run(postId, cid, "2026-08-01T18:00:00.000Z");
@@ -102,7 +102,7 @@ test("changing a group's timezone rebases every member's pending sends", async (
       .prepare("INSERT INTO assets (content_hash, media_kind, storage_path) VALUES (?, 'image', ?)")
       .run(`${prefix}-hash`, `a/${prefix}.jpg`).lastInsertRowid
   );
-  const postId = q.createDraftPost({ caption: "", first_comment: "", asset_ids: [assetId] });
+  const postId = q.createDraftPost({ caption: "", first_comment: "", asset_ids: [assetId] }, null);
   // 18:00 America/New_York on 2026-08-01 == 22:00Z
   for (const cid of [a, b]) {
     db.prepare(

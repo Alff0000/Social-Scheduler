@@ -27,7 +27,7 @@ function mkPost(assetIds: number[]): number {
     first_comment: "",
     asset_ids: assetIds,
     post_type: assetIds.length > 1 ? "carousel" : "single",
-  });
+  }, null);
 }
 
 async function post(postId: number | string, body: unknown) {
@@ -166,7 +166,7 @@ test("a text-only post cannot be turned into a media post", async () => {
     first_comment: "",
     asset_ids: [],
     post_type: "text",
-  });
+  }, null);
   const res = await post(p, { asset_ids: [mkAsset()] });
   assert.equal(res.status, 400);
   const body = await res.json();
@@ -240,7 +240,7 @@ test("can-add reports a text post, matching POST", async () => {
     first_comment: "",
     asset_ids: [],
     post_type: "text",
-  });
+  }, null);
   const body = await (await canAdd(p)).json();
   assert.equal(body.ok, false);
   assert.equal(body.code, "text_post");

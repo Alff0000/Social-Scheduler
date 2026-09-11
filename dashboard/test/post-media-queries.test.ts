@@ -25,7 +25,7 @@ function mkPost(assetIds: number[]): number {
     first_comment: "",
     asset_ids: assetIds,
     post_type: assetIds.length > 1 ? "carousel" : "single",
-  });
+  }, null);
 }
 
 function mkChannel(platform: string): number {

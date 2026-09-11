@@ -31,7 +31,7 @@ export default async function EditPostPage({
   const { id } = await params;
   const postId = Number(id);
   const post = getPost(postId);
-  if (!post) notFound();
+  if (!post || (ownerId !== null && post.owner_user_id !== ownerId)) notFound();
 
   // Read once: PostEditor needs the list, and the framing dialog needs a per-asset count of
   // the sends its framing would change.
@@ -54,9 +54,9 @@ export default async function EditPostPage({
         channels={getChannels(ownerId)}
         sends={getPostPublications(postId)}
         sendableChannels={getActiveChannels(ownerId)}
-        periods={listPeriods()}
-        timeOfDayTags={listTags("time_of_day")}
-        topicTags={listTags("topic")}
+        periods={listPeriods(ownerId)}
+        timeOfDayTags={listTags("time_of_day", ownerId)}
+        topicTags={listTags("topic", ownerId)}
         initialTargets={getPostTargets(postId)}
         initialTagIds={getPostTags(postId).map((t) => t.id)}
         initialPeriods={Object.fromEntries(

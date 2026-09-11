@@ -7,11 +7,15 @@ import {
   type BulkEditPostsInput,
 } from "@/lib/queries";
 import { parsePeriodLinks, parseTagIds } from "@/lib/content-model-validation";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
 /** Apply local Library metadata to several posts only after the full request validates. */
 export async function POST(req: NextRequest) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  const ownerId = viewer.is_admin ? null : viewer.id;
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
@@ -25,7 +29,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "post_ids must contain integers." }, { status: 400 });
   }
   const postIds = [...new Set<number>(body.post_ids)];
-  const unknownPostId = postIds.find((id) => !getPost(id));
+  const unknownPostId = postIds.find((id) => {
+    const post = getPost(id);
+    return !post || (ownerId !== null && post.owner_user_id !== ownerId);
+  });
   if (unknownPostId !== undefined) {
     return NextResponse.json({ error: `Unknown post ${unknownPostId}.` }, { status: 400 });
   }
@@ -36,7 +43,7 @@ export async function POST(req: NextRequest) {
     if (!body.tags || typeof body.tags !== "object" || Array.isArray(body.tags)) {
       return NextResponse.json({ error: "tags must contain add/remove arrays." }, { status: 400 });
     }
-    const validTagIds = new Set(listTags().map((tag) => tag.id));
+    const validTagIds = new Set(listTags(undefined, ownerId).map((tag) => tag.id));
     const add = parseTagIds(body.tags.add === undefined ? [] : body.tags.add, (id) => validTagIds.has(id));
     const remove = parseTagIds(body.tags.remove === undefined ? [] : body.tags.remove, (id) => validTagIds.has(id));
     if (add === "invalid" || remove === "invalid") {
@@ -54,10 +61,14 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const add = parsePeriodLinks(body.periods.add === undefined ? [] : body.periods.add, getPeriod);
+    const scopedGetPeriod = (pid: number) => {
+      const p = getPeriod(pid);
+      return p && (ownerId === null || p.owner_user_id === ownerId) ? p : undefined;
+    };
+    const add = parsePeriodLinks(body.periods.add === undefined ? [] : body.periods.add, scopedGetPeriod);
     const remove = parsePeriodLinks(
       body.periods.remove === undefined ? [] : body.periods.remove,
-      getPeriod
+      scopedGetPeriod
     );
     if (add === "invalid" || remove === "invalid") {
       return NextResponse.json({ error: "Invalid period add/remove list." }, { status: 400 });

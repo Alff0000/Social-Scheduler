@@ -7,6 +7,7 @@ import {
   getPost,
 } from "@/lib/queries";
 import { captionLimitError } from "@/lib/caption-limits";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,10 @@ const MAX_REPORTED = 3;
  * controls which accounts auto-fill can post a given piece of content to.
  */
 export async function POST(req: NextRequest) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  const ownerId = viewer.is_admin ? null : viewer.id;
+
   const body = await req.json();
   const postIds: number[] = Array.isArray(body.post_ids) ? body.post_ids : [];
   const channelIds: number[] = Array.isArray(body.channel_ids) ? body.channel_ids : [];
@@ -35,11 +40,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "action must be 'add' or 'remove'." }, { status: 400 });
   }
   const channels = channelIds.map((cid) => getChannel(cid));
-  const unknownIdx = channels.findIndex((c) => !c);
+  // A channel that exists but belongs to someone else answers exactly like one that does
+  // not exist at all — same "not found" the by-id routes give, never confirming the id.
+  const unknownIdx = channels.findIndex(
+    (c) => !c || (ownerId !== null && c.owner_user_id !== ownerId)
+  );
   if (unknownIdx !== -1) {
     return NextResponse.json({ error: `Unknown channel ${channelIds[unknownIdx]}.` }, { status: 400 });
   }
   const targetChannels = channels.map((c) => c!);
+  // Same rule for posts: only ids this viewer (or admin) owns are ever eligible, for
+  // both add and remove — a raw post_id/channel_id pair naming someone else's post must
+  // never be able to change that post's targets.
+  const ownedPostIds = new Set(
+    postIds.filter((id) => {
+      const post = getPost(id);
+      return post && (ownerId === null || post.owner_user_id === ownerId);
+    })
+  );
 
   // This is exactly the "recycle a good post to every channel" workflow the caption
   // limit exists for: an evergreen post fine on Instagram can be fine to LOOK at when
@@ -54,15 +72,19 @@ export async function POST(req: NextRequest) {
   // short of fixing them one at a time. Skipping the offender is the right call rather than
   // applying it anyway: the send it would create dies terminally at the worker.
   const skipped: { post_id: number; reason: string }[] = [];
-  let eligible = postIds;
+  // Owned-by-someone-else is folded into "unknown" here on purpose, same as everywhere
+  // else in this file: a post this viewer cannot see must behave exactly like one that
+  // does not exist, never like one that exists but is refused.
+  let eligible = postIds.filter((id) => ownedPostIds.has(id));
 
   if (action === "add") {
     eligible = [];
     for (const postId of postIds) {
       const post = getPost(postId);
-      // Unknown ids stay silently ignored, as they always were here — but they are no
-      // longer counted as updated either. A count has to mean posts that actually changed.
-      if (!post) continue;
+      // Unknown (or someone else's) ids stay silently ignored, as unknown ids always
+      // were here — but they are no longer counted as updated either. A count has to
+      // mean posts that actually changed.
+      if (!post || !ownedPostIds.has(postId)) continue;
       const variants = getCaptionVariants(postId).map((v) => ({ platform: v.platform, body: v.body }));
       const captionError = captionLimitError(targetChannels, variants, post.caption, post.post_type);
       if (captionError) {

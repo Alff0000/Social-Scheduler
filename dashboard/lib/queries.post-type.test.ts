@@ -50,7 +50,7 @@ function draft(assetIds: number[], postType?: string): number {
     first_comment: "",
     asset_ids: assetIds,
     ...(postType ? { post_type: postType as never } : {}),
-  });
+  }, null);
 }
 
 test("a lone video becomes a reel, not a single", () => {
@@ -95,7 +95,7 @@ test("bulk import gives a video the right type without being told", () => {
       { asset_id: imageAsset, caption: "a photo" },
     ],
     { targets: [], content_kind: "evergreen", content_status: "ready" } as never
-  );
+  , null);
 
   assert.equal(postTypeOf(ids[0]), "video");
   assert.equal(postTypeOf(ids[1]), "single");

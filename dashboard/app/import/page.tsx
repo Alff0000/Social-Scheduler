@@ -18,9 +18,9 @@ export default async function ImportPage() {
       </header>
       <BulkImport
         channels={getChannels(ownerId)}
-        periods={listPeriods()}
-        timeOfDayTags={listTags("time_of_day")}
-        topicTags={listTags("topic")}
+        periods={listPeriods(ownerId)}
+        timeOfDayTags={listTags("time_of_day", ownerId)}
+        topicTags={listTags("topic", ownerId)}
       />
     </div>
   );

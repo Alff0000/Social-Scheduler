@@ -57,7 +57,7 @@ export default async function QueueStatusPage() {
   const viewer = await getSessionUser();
   const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
   const channels = getActiveChannels(ownerId);
-  const pubs = getPublicationsOverview();
+  const pubs = getPublicationsOverview(200, ownerId);
   const worker = getWorkerStatus();
   const blocked = new Set(blockedPublicationIds(pubs));
 

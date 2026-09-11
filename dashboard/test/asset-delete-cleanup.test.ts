@@ -113,7 +113,7 @@ test("an asset that was never story-framed deletes cleanly anyway", async () => 
 
 test("an asset still referenced by a post is refused, and its files survive", async () => {
   const { id, abs } = await fullyDerivedAsset();
-  q.createDraftPost({ caption: "", first_comment: "", asset_ids: [id] });
+  q.createDraftPost({ caption: "", first_comment: "", asset_ids: [id] }, null);
 
   assert.equal((await del(id)).status, 409);
   assert.equal(await exists(abs.storage), true, "a refused delete must touch nothing");

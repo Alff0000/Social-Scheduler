@@ -6,7 +6,18 @@ import { makeTestDb } from "./helpers.ts";
 makeTestDb();
 const q = await import("../lib/queries.ts");
 const db = (await import("../lib/db.ts")).getDb();
+const { createSession } = await import("../lib/auth.ts");
 const { POST } = await import("../app/api/posts/bulk-edit/route.ts");
+
+// The route now requires a session (migrations/0034_owner_scoping.sql). This file's
+// posts are all seeded with owner_user_id NULL, so admin (which skips the ownership
+// check entirely) is what matches them — same as test/autofill-lane-surface-route.test.ts.
+const adminId = Number(
+  db
+    .prepare("INSERT INTO users (email, password_hash, is_admin) VALUES ('admin@test', 'x', 1)")
+    .run().lastInsertRowid
+);
+await createSession(adminId);
 
 let fixtureSeq = 0;
 
@@ -16,7 +27,7 @@ function makePosts(count: number): number[] {
       caption: `bulk-route-${++fixtureSeq}`,
       first_comment: "",
       asset_ids: [],
-    })
+    }, null)
   );
 }
 
@@ -36,7 +47,7 @@ async function post(body: unknown) {
 
 test("a valid batch updates all selected posts and returns actual counts", async () => {
   const postIds = makePosts(3);
-  const tag = q.createTopicTag(`route-valid-${fixtureSeq}`);
+  const tag = q.createTopicTag(`route-valid-${fixtureSeq}`, null);
 
   const response = await post({
     post_ids: postIds,
@@ -61,7 +72,7 @@ test("a valid batch updates all selected posts and returns actual counts", async
 
 test("an invalid period rejects the whole request before a valid tag is written", async () => {
   const postIds = makePosts(3);
-  const tag = q.createTopicTag(`route-atomic-${fixtureSeq}`);
+  const tag = q.createTopicTag(`route-atomic-${fixtureSeq}`, null);
   const beforeTags = linkCount("post_tags");
   const beforePeriods = linkCount("post_periods");
 
@@ -77,7 +88,7 @@ test("an invalid period rejects the whole request before a valid tag is written"
 });
 
 test("an unknown post id rejects the request without writing", async () => {
-  const tag = q.createTopicTag(`route-unknown-${++fixtureSeq}`);
+  const tag = q.createTopicTag(`route-unknown-${++fixtureSeq}`, null);
   const before = linkCount("post_tags");
 
   const response = await post({

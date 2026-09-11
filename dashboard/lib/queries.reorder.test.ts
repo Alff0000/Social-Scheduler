@@ -27,7 +27,7 @@ async function setup() {
       first_comment: "",
       asset_ids: assetIds,
       post_type: "carousel",
-    });
+    }, null);
   const orderOf = (postId: number) =>
     db
       .prepare(
@@ -133,11 +133,11 @@ test("a reorder bumps posts.updated_at", async () => {
   assert.notEqual(row.updated_at, "2000-01-01T00:00:00Z");
 });
 
-// Deviation from the brief's fixture: createChannel(input) returns the new channel's id
+// Deviation from the brief's fixture: createChannel(input, null) returns the new channel's id
 // directly (a number), not an object with an `.id` field — and CreateChannelInput has no
 // display_name/account_ref fields, only account_name (required) and timezone (required,
 // even though the column itself defaults to 'UTC'). See queries.ts's CreateChannelInput
-// and createChannel(). Also, the publications column is scheduled_at, not scheduled_for
+// and createChannel(, null). Also, the publications column is scheduled_at, not scheduled_for
 // (see migrations/0001_init.sql) — the brief's note anticipated exactly this kind of
 // mismatch and asked to adjust the fixture, not the assertions.
 test("postHasPublishingPublication only reports the in-flight status", async () => {

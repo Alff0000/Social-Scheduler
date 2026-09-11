@@ -6,7 +6,19 @@ import { makeTestDb } from "./helpers.ts";
 makeTestDb();
 const q = await import("../lib/queries.ts");
 const db = (await import("../lib/db.ts")).getDb();
+const { createSession } = await import("../lib/auth.ts");
 const { POST } = await import("../app/api/posts/targets/bulk/route.ts");
+
+// The route now requires a session (migrations/0034_owner_scoping.sql) and checks
+// ownership of every post/channel it touches. This file's fixtures are all seeded with
+// owner_user_id left NULL, so signing in as an admin (which skips that check entirely)
+// is what matches them, same as test/autofill-lane-surface-route.test.ts.
+const adminId = Number(
+  db
+    .prepare("INSERT INTO users (email, password_hash, is_admin) VALUES ('admin@test', 'x', 1)")
+    .run().lastInsertRowid
+);
+await createSession(adminId);
 
 // Bulk re-target is how a newly added account gets folded into existing content. It used to
 // pre-check every post's caption and return 400 on the FIRST one over a limit, before any
@@ -26,7 +38,7 @@ function makeChannel(platform: string): number {
 }
 
 function makePost(caption: string): number {
-  return q.createDraftPost({ caption, first_comment: "", asset_ids: [] });
+  return q.createDraftPost({ caption, first_comment: "", asset_ids: [] }, null);
 }
 
 async function post(body: unknown) {

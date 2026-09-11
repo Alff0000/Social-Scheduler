@@ -15,10 +15,10 @@ import type { Period, Tag } from "../lib/types.ts";
 const noop = () => {};
 
 const tags: Tag[] = [
-  { id: 1, name: "morning", kind: "time_of_day" },
-  { id: 2, name: "Common", kind: "topic" },
-  { id: 3, name: "Partial", kind: "topic" },
-  { id: 4, name: "Absent", kind: "topic" },
+  { id: 1, name: "morning", kind: "time_of_day", owner_user_id: null },
+  { id: 2, name: "Common", kind: "topic", owner_user_id: null },
+  { id: 3, name: "Partial", kind: "topic", owner_user_id: null },
+  { id: 4, name: "Absent", kind: "topic", owner_user_id: null },
 ];
 
 const periods: Period[] = [
@@ -33,6 +33,7 @@ const periods: Period[] = [
     start_date: null,
     end_date: null,
     created_at: "2026-01-01T00:00:00Z",
+    owner_user_id: null,
   },
   {
     id: 11,
@@ -45,6 +46,7 @@ const periods: Period[] = [
     start_date: null,
     end_date: null,
     created_at: "2026-01-01T00:00:00Z",
+    owner_user_id: null,
   },
 ];
 

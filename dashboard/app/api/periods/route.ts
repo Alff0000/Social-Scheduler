@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPeriod, listPeriods } from "@/lib/queries";
 import { hasValidOneOffPeriodDates } from "@/lib/periods";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
-export function GET() {
-  return NextResponse.json({ periods: listPeriods() });
+export async function GET() {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  return NextResponse.json({ periods: listPeriods(viewer.is_admin ? null : viewer.id) });
 }
 
 export async function POST(req: NextRequest) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const body = await req.json();
   const name = (body.name || "").trim();
   if (!name) {
@@ -41,7 +46,7 @@ export async function POST(req: NextRequest) {
       start_day: startDay,
       end_month: endMonth,
       end_day: endDay,
-    });
+    }, viewer.id);
     return NextResponse.json({ id }, { status: 201 });
   }
 
@@ -56,6 +61,6 @@ export async function POST(req: NextRequest) {
     recurs_yearly: false,
     start_date: body.start_date,
     end_date: body.end_date,
-  });
+  }, viewer.id);
   return NextResponse.json({ id }, { status: 201 });
 }

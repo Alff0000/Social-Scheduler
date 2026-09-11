@@ -24,7 +24,7 @@ export default async function OverviewPage() {
   const viewer = await getSessionUser();
   const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
   const channels = getActiveChannels(ownerId);
-  const pubs = getPublicationsOverview();
+  const pubs = getPublicationsOverview(200, ownerId);
   const worker = getWorkerStatus();
 
   const scheduledByChannel = new Map<number, number>();
@@ -87,9 +87,9 @@ export default async function OverviewPage() {
             pubs={pubs}
             // Read server-side, exactly as /library does — small, stable lists the
             // quick-edit dialog needs for its period and tag pickers.
-            periods={listPeriods()}
-            timeOfDayTags={listTags("time_of_day")}
-            topicTags={listTags("topic")}
+            periods={listPeriods(ownerId)}
+            timeOfDayTags={listTags("time_of_day", ownerId)}
+            topicTags={listTags("topic", ownerId)}
             workerOnline={worker.online}
             workerLastSeenAt={worker.lastSeenAt}
             blockedIds={blockedIds}

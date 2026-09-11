@@ -14,12 +14,15 @@ import { findConverter, convertVideo, ConvertError } from "@/lib/video-convert";
 import { converterAdvice } from "@/lib/converter-advice";
 import { IMAGE_EXT_BY_MIME, resolveUploadMime } from "@/lib/upload-mime";
 import { anyDestinationAccepts, needsConformedDerivative, type AssetLike } from "@/lib/media-limits";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
 const THUMB_MAX = 480;
 
 export async function POST(req: NextRequest) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const form = await req.formData();
   const file = form.get("file");
   if (!(file instanceof File)) {
@@ -45,7 +48,7 @@ export async function POST(req: NextRequest) {
 
   // Dedup by CONTENT HASH (not filename) — check before writing anything to disk.
   const hash = crypto.createHash("sha256").update(buf).digest("hex");
-  const existing = getAssetByHash(hash);
+  const existing = getAssetByHash(hash, viewer.id);
   if (existing) {
     // Re-derive the Reels validator's non-blocking warnings (e.g. "no audio track",
     // letterbox) on dedup too — otherwise re-uploading the same silent/landscape video
@@ -140,7 +143,7 @@ export async function POST(req: NextRequest) {
         publish_path: null,
         duration_ms: meta.duration_ms,
         has_audio: meta.has_audio ? 1 : 0,
-      });
+      }, viewer.id);
       return NextResponse.json({ asset, deduped, warnings: check.warnings });
     }
 
@@ -262,7 +265,7 @@ export async function POST(req: NextRequest) {
       height: derivMeta.height,
       duration_ms: derivMeta.duration_ms,
       has_audio: derivMeta.has_audio ? 1 : 0,
-    });
+    }, viewer.id);
 
     return NextResponse.json({
       asset,
@@ -385,7 +388,7 @@ export async function POST(req: NextRequest) {
     conform_mode: conformMode,
     needs_review: needsReview,
     story_path: storyPath,
-  });
+  }, viewer.id);
 
   return NextResponse.json({ asset, deduped });
 }

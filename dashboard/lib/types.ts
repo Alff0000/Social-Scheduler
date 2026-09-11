@@ -8,6 +8,8 @@ export interface Tag {
   id: number;
   name: string;
   kind: TagKind;
+  /** Migration 0034 — see Channel.owner_user_id's doc comment. */
+  owner_user_id: number | null;
 }
 // NOTE: 'story' here is VESTIGIAL and unused — see migration 0014's header. A Story is a
 // DESTINATION, not a content shape, and lives on Surface below. Nothing creates a post with
@@ -168,6 +170,10 @@ export interface Asset {
   cover_asset_id: number | null;
   has_audio: number;
   created_at: string;
+  /** Migration 0034 — see Channel.owner_user_id's doc comment. Dedup by content_hash is
+   *  now scoped to (content_hash, owner_user_id): two different users uploading the
+   *  identical bytes get two separate, separately-owned rows, not one shared asset. */
+  owner_user_id: number | null;
 }
 
 export interface Post {
@@ -189,11 +195,15 @@ export interface Post {
   archived_at: string | null;
   created_at: string;
   updated_at: string | null;
+  /** Migration 0034 — see Channel.owner_user_id's doc comment. */
+  owner_user_id: number | null;
 }
 
 export interface Period {
   id: number;
   name: string;
+  /** Migration 0034 — see Channel.owner_user_id's doc comment. */
+  owner_user_id: number | null;
   recurs_yearly: 0 | 1;
   start_month: number | null;
   start_day: number | null;

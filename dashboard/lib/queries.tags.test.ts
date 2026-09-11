@@ -27,8 +27,8 @@ function seedPost(db: ReturnType<typeof import("better-sqlite3")>): number {
 
 test("deleteTopicTag removes the tag and detaches it from every post", async () => {
   const { q, db, prefix } = await setup();
-  const tag = q.createTopicTag(`${prefix}-doomed`);
-  const keep = q.createTopicTag(`${prefix}-keeper`);
+  const tag = q.createTopicTag(`${prefix}-doomed`, null);
+  const keep = q.createTopicTag(`${prefix}-keeper`, null);
   const a = seedPost(db);
   const b = seedPost(db);
   q.setPostTags(a, [tag.id, keep.id]);
@@ -39,7 +39,7 @@ test("deleteTopicTag removes the tag and detaches it from every post", async () 
   assert.equal(result.deleted, true);
   assert.equal(result.postCount, 2);
   assert.equal(
-    q.listTags("topic").some((t) => t.id === tag.id),
+    q.listTags("topic", null).some((t) => t.id === tag.id),
     false,
     "tag row is gone",
   );
@@ -58,11 +58,11 @@ test("deleteTopicTag removes the tag and detaches it from every post", async () 
 
 test("deleteTopicTag refuses to delete a time-of-day band", async () => {
   const { q } = await setup();
-  const morning = q.listTags("time_of_day").find((t) => t.name === "morning")!;
+  const morning = q.listTags("time_of_day", null).find((t) => t.name === "morning")!;
 
   assert.throws(() => q.deleteTopicTag(morning.id), q.ProtectedTagError);
   assert.equal(
-    q.listTags("time_of_day").some((t) => t.id === morning.id),
+    q.listTags("time_of_day", null).some((t) => t.id === morning.id),
     true,
     "band survives the refused delete",
   );
@@ -75,7 +75,7 @@ test("deleteTopicTag reports a miss instead of throwing", async () => {
 
 test("renameTopicTag renames in place, keeping every post attached", async () => {
   const { q, db, prefix } = await setup();
-  const tag = q.createTopicTag(`${prefix}-Beech`);
+  const tag = q.createTopicTag(`${prefix}-Beech`, null);
   const a = seedPost(db);
   const b = seedPost(db);
   q.setPostTags(a, [tag.id]);
@@ -89,12 +89,12 @@ test("renameTopicTag renames in place, keeping every post attached", async () =>
     q.getPostTags(a).map((t) => t.name),
     [`${prefix}-Beach`],
   );
-  assert.equal(q.listTopicTagsWithUsage().find((t) => t.id === tag.id)?.post_count, 2);
+  assert.equal(q.listTopicTagsWithUsage(null).find((t) => t.id === tag.id)?.post_count, 2);
 });
 
 test("renameTopicTag trims and allows a case-only change", async () => {
   const { q, prefix } = await setup();
-  const tag = q.createTopicTag(`${prefix}-beach`);
+  const tag = q.createTopicTag(`${prefix}-beach`, null);
   // Names are UNIQUE COLLATE NOCASE, so the row collides with ITSELF unless excluded.
   const renamed = q.renameTopicTag(tag.id, `  ${prefix}-BEACH  `);
   assert.equal(renamed?.name, `${prefix}-BEACH`);
@@ -102,26 +102,26 @@ test("renameTopicTag trims and allows a case-only change", async () => {
 
 test("renameTopicTag rejects a name another tag already uses", async () => {
   const { q, prefix } = await setup();
-  const tag = q.createTopicTag(`${prefix}-dog`);
-  q.createTopicTag(`${prefix}-dogs`);
+  const tag = q.createTopicTag(`${prefix}-dog`, null);
+  q.createTopicTag(`${prefix}-dogs`, null);
 
   assert.throws(
     () => q.renameTopicTag(tag.id, `${prefix}-DOGS`),
     q.DuplicateTagNameError,
     "case-insensitive collision is still a collision",
   );
-  assert.equal(q.listTags("topic").find((t) => t.id === tag.id)?.name, `${prefix}-dog`);
+  assert.equal(q.listTags("topic", null).find((t) => t.id === tag.id)?.name, `${prefix}-dog`);
 });
 
 test("renameTopicTag rejects a time-of-day band name and renaming a band", async () => {
   const { q, prefix } = await setup();
-  const tag = q.createTopicTag(`${prefix}-topic`);
-  const morning = q.listTags("time_of_day").find((t) => t.name === "morning")!;
+  const tag = q.createTopicTag(`${prefix}-topic`, null);
+  const morning = q.listTags("time_of_day", null).find((t) => t.name === "morning")!;
 
   assert.throws(() => q.renameTopicTag(tag.id, "morning"), q.ReservedTagNameError);
   assert.throws(() => q.renameTopicTag(morning.id, "sunrise"), q.ProtectedTagError);
   assert.equal(
-    q.listTags("time_of_day").find((t) => t.id === morning.id)?.name,
+    q.listTags("time_of_day", null).find((t) => t.id === morning.id)?.name,
     "morning",
   );
 });
@@ -133,12 +133,12 @@ test("renameTopicTag returns null for a tag that isn't there", async () => {
 
 test("listTopicTagsWithUsage counts the posts carrying each tag", async () => {
   const { q, db, prefix } = await setup();
-  const used = q.createTopicTag(`${prefix}-used`);
-  const unused = q.createTopicTag(`${prefix}-unused`);
+  const used = q.createTopicTag(`${prefix}-used`, null);
+  const unused = q.createTopicTag(`${prefix}-unused`, null);
   q.setPostTags(seedPost(db), [used.id]);
   q.setPostTags(seedPost(db), [used.id]);
 
-  const rows = q.listTopicTagsWithUsage();
+  const rows = q.listTopicTagsWithUsage(null);
   const byId = new Map(rows.map((r) => [r.id, r]));
 
   assert.equal(byId.get(used.id)?.post_count, 2);

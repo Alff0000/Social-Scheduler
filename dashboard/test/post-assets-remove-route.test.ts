@@ -39,7 +39,7 @@ function mkPost(assetIds: number[]): number {
     first_comment: "",
     asset_ids: assetIds,
     post_type: assetIds.length > 1 ? "carousel" : "single",
-  });
+  }, null);
 }
 
 async function del(postId: number | string, assetId: number | string, mode?: string) {

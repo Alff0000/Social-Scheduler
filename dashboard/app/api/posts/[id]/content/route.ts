@@ -20,6 +20,7 @@ import { parseTagIds } from "@/lib/content-model-validation";
 import { FIRST_COMMENT_MAX_CHARS, captionLimitError } from "@/lib/caption-limits";
 import { editorCaptionVariants, syncedPostCaption } from "@/lib/quick-edit-captions";
 import { parseTargets } from "@/lib/story-fanout";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -43,10 +44,12 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
   const postId = Number(id);
   const post = getPost(postId);
-  if (!post) {
+  if (!post || (!viewer.is_admin && post.owner_user_id !== viewer.id)) {
     return NextResponse.json({ error: "Post not found." }, { status: 404 });
   }
   return NextResponse.json({
@@ -85,10 +88,13 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  const ownerId = viewer.is_admin ? null : viewer.id;
   const { id } = await params;
   const postId = Number(id);
   const post = getPost(postId);
-  if (!post) {
+  if (!post || (ownerId !== null && post.owner_user_id !== ownerId)) {
     return NextResponse.json({ error: "Post not found." }, { status: 404 });
   }
   const body = await req.json();
@@ -139,9 +145,10 @@ export async function PATCH(
     if (parsed === "invalid") {
       return NextResponse.json({ error: "Invalid targets." }, { status: 400 });
     }
-    const badChannelIds = [...new Set(parsed.map((t) => t.channel_id))].filter(
-      (cid) => !getChannel(cid)
-    );
+    const badChannelIds = [...new Set(parsed.map((t) => t.channel_id))].filter((cid) => {
+      const ch = getChannel(cid);
+      return !ch || (ownerId !== null && ch.owner_user_id !== ownerId);
+    });
     if (badChannelIds.length > 0) {
       return NextResponse.json(
         { error: `Unknown channel(s): ${badChannelIds.join(", ")}.` },
@@ -173,7 +180,8 @@ export async function PATCH(
           { status: 400 }
         );
       }
-      if (!getPeriod(periodId)) {
+      const period = getPeriod(periodId);
+      if (!period || (ownerId !== null && period.owner_user_id !== ownerId)) {
         return NextResponse.json(
           { error: `Unknown period ${periodId}.` },
           { status: 400 }
@@ -231,7 +239,7 @@ export async function PATCH(
 
   let tagIds: number[] | undefined;
   if ("tag_ids" in body) {
-    const validTagIds = new Set(listTags().map((t) => t.id));
+    const validTagIds = new Set(listTags(undefined, ownerId).map((t) => t.id));
     const parsed = parseTagIds(body.tag_ids, (tid) => validTagIds.has(tid));
     if (parsed === "invalid") {
       return NextResponse.json({ error: "Invalid tag_ids." }, { status: 400 });
@@ -260,7 +268,7 @@ export async function PATCH(
     updatePostContentModel(postId, contentFields);
   }
   if (newTargets !== undefined) {
-    setPostTargets(postId, newTargets);
+    setPostTargets(postId, newTargets, ownerId);
   }
   if (periodLinks !== undefined) {
     setPostPeriods(postId, periodLinks);

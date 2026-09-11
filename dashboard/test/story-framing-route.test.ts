@@ -165,7 +165,7 @@ test("scheduled sends are counted for both story and feed publications", async (
     account_name: `sf-ch${seq}`,
     timezone: "UTC",
   } as Parameters<typeof q.createChannel>[0], null);
-  const postId = q.createDraftPost({ caption: "", first_comment: "", asset_ids: [id] });
+  const postId = q.createDraftPost({ caption: "", first_comment: "", asset_ids: [id] }, null);
 
   // A story send names its slide; a feed send has asset_id NULL and covers every asset on
   // the post. Counting only the first would under-report exactly the sends most likely
@@ -189,7 +189,7 @@ test("already-posted sends are not counted — framing cannot change them", asyn
     account_name: `sf-ch-posted${seq}`,
     timezone: "UTC",
   } as Parameters<typeof q.createChannel>[0], null);
-  const postId = q.createDraftPost({ caption: "", first_comment: "", asset_ids: [id] });
+  const postId = q.createDraftPost({ caption: "", first_comment: "", asset_ids: [id] }, null);
   db.prepare(
     "INSERT INTO publications (post_id, channel_id, scheduled_at, status, surface, asset_id) " +
       "VALUES (?,?,?,'posted','story',?)"

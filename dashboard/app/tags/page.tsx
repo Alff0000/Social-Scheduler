@@ -1,12 +1,15 @@
 import { listTags, listTopicTagsWithUsage } from "@/lib/queries";
 import { PageHeader } from "@/components/ui";
 import { TagManager } from "@/components/tag-manager";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export default function TagsPage() {
-  const topicTags = listTopicTagsWithUsage();
-  const bandTags = listTags("time_of_day");
+export default async function TagsPage() {
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
+  const topicTags = listTopicTagsWithUsage(ownerId);
+  const bandTags = listTags("time_of_day", ownerId);
   // The picker orders the bands this way too — alphabetical would read as arbitrary.
   const bandOrder = ["morning", "afternoon", "evening", "anytime"];
   const bands = [...bandTags].sort(

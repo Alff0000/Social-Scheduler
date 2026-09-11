@@ -25,7 +25,7 @@ async function setup(channelTz: string) {
       .prepare("INSERT INTO assets (content_hash, media_kind, storage_path) VALUES (?, 'image', ?)")
       .run(`${prefix}-hash`, `a/${prefix}.jpg`).lastInsertRowid
   );
-  const postId = q.createDraftPost({ caption: "", first_comment: "", asset_ids: [assetId] });
+  const postId = q.createDraftPost({ caption: "", first_comment: "", asset_ids: [assetId] }, null);
 
   /** Insert a publication with an explicit status/hold, returning its id. */
   const mkPub = (scheduledAt: string, status: string, isHeld = 0) =>

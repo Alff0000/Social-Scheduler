@@ -42,7 +42,7 @@ async function setup() {
       first_comment: "",
       asset_ids: assetIds,
       post_type: "carousel",
-    });
+    }, null);
 
   /** Slides of a post as [asset_id, sort_order] pairs, ordered. */
   const slidesOf = (postId: number) =>
@@ -182,7 +182,7 @@ test("each extracted post gets its own COPY of the content model", async () => {
     targets: [{ channel_id: channel, surface: "story" }],
     tag_ids: [tag],
     caption_variants: [{ platform: null, body: "sunset", sort_order: 0 }],
-  });
+  }, null);
 
   const res = q.extractSlidesFromCarousel(original, [a[2]]);
   assert.equal(res.ok, true);
@@ -220,7 +220,7 @@ test("the original keeps its own publications and caption", async () => {
     first_comment: "",
     asset_ids: a,
     post_type: "carousel",
-  });
+  }, null);
   db.prepare(
     "INSERT INTO publications (post_id, channel_id, scheduled_at, status) VALUES (?, ?, '2026-01-01T00:00:00Z', 'failed')"
   ).run(original, mkChannel("ig"));
@@ -365,7 +365,7 @@ test("the database has no broken references afterwards", async () => {
     post_type: "carousel",
     targets: [{ channel_id: mkChannel("ig"), surface: "feed" }],
     tag_ids: [mkTag("t")],
-  });
+  }, null);
 
   q.extractSlidesFromCarousel(original, [a[1], a[3]]);
 

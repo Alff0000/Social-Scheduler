@@ -56,7 +56,7 @@ async function setup() {
       first_comment: "",
       asset_ids: assetIds,
       post_type: "carousel",
-    });
+    }, null);
 
   return { q, db, mkAsset, mkChannel, mkTag, mkPeriod, mkCarousel };
 }
@@ -149,7 +149,7 @@ test("each new post gets its own COPY of caption, variants, targets, tags and se
     tag_ids: [tag],
     period_links: [{ periodId, mode: "green" }],
     caption_variants: [{ platform: null, body: "sunset", sort_order: 0 }],
-  });
+  }, null);
 
   const res = q.unmergeCarousel(original);
   assert.equal(res.ok, true);
@@ -193,7 +193,7 @@ test("the original keeps everything it had — only its slides and type change",
     post_type: "carousel",
     targets: [{ channel_id: channel, surface: "feed" }],
     caption_variants: [{ platform: null, body: "kept", sort_order: 0 }],
-  });
+  }, null);
 
   q.unmergeCarousel(original);
 
@@ -217,7 +217,7 @@ test("editing a child's caption afterwards does not change the original", async 
     first_comment: "",
     asset_ids: [mkAsset(1), mkAsset(2)],
     post_type: "carousel",
-  });
+  }, null);
   const res = q.unmergeCarousel(original);
   assert.equal(res.ok, true);
   if (!res.ok) return;
@@ -410,7 +410,7 @@ test("the database has no broken references afterwards", async () => {
     post_type: "carousel",
     targets: [{ channel_id: mkChannel("ig"), surface: "feed" }],
     tag_ids: [mkTag("t")],
-  });
+  }, null);
   q.unmergeCarousel(original);
 
   assert.deepEqual(db.pragma("foreign_key_check"), [], "no dangling references");

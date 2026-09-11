@@ -14,13 +14,13 @@ test("listPosts includes complete recurring and one-off period windows", async (
     start_day: 1,
     end_month: 5,
     end_day: 31,
-  });
+  }, null);
   const holidays = q.createPeriod({
     name: "Holiday Blackout",
     recurs_yearly: false,
     start_date: "2026-12-20",
     end_date: "2027-01-02",
-  });
+  }, null);
   const postId = q.createDraftPost({
     caption: "Seasonal post",
     first_comment: "",
@@ -30,9 +30,9 @@ test("listPosts includes complete recurring and one-off period windows", async (
       { periodId: spring, mode: "green" },
       { periodId: holidays, mode: "blackout" },
     ],
-  });
+  }, null);
 
-  const post = q.listPosts().find((row) => row.id === postId);
+  const post = q.listPosts(undefined, "active", null).find((row) => row.id === postId);
   assert.deepEqual(post?.periods, [
     {
       id: holidays,
@@ -65,25 +65,25 @@ test("listPosts includes complete recurring and one-off period windows", async (
     recurs_yearly: false,
     start_date: "2026-02-30",
     end_date: "2026-03-02",
-  });
+  }, null);
   const malformedPostId = q.createDraftPost({
     caption: "Malformed seasonal post",
     first_comment: "",
     post_type: "text",
     asset_ids: [],
     period_links: [{ periodId: malformed, mode: "green" }],
-  });
+  }, null);
   const livePostId = q.createDraftPost({
     caption: "Unaffected post",
     first_comment: "",
     post_type: "text",
     asset_ids: [],
-  });
+  }, null);
   q.updatePostContentModel(malformedPostId, { content_status: "ready" });
   q.updatePostContentModel(livePostId, { content_status: "ready" });
 
   const statuses = q
-    .listPosts()
+    .listPosts(undefined, "active", null)
     .filter((row) => row.id === malformedPostId || row.id === livePostId)
     .sort((a, b) => a.id - b.id)
     .map((row) => librarySeasonStatus(row.content_status, row.periods, "2026-08-03"));

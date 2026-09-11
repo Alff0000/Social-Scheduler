@@ -68,7 +68,7 @@ function send({
 
 /** Captions in queue order — the thing a human actually reads down the page. */
 function order(): string[] {
-  return q.getPublicationsOverview().map((r) => r.post_caption ?? "");
+  return q.getPublicationsOverview(200, null).map((r) => r.post_caption ?? "");
 }
 
 test("posted sends read newest first, by when they actually went out", () => {
@@ -186,7 +186,7 @@ test("the slides of one Story keep slide order when their times tie", () => {
   );
 
   const slideIds = q
-    .getPublicationsOverview()
+    .getPublicationsOverview(200, null)
     .filter((r) => r.post_id === pid)
     .map((r) => r.id);
 

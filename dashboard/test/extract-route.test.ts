@@ -26,7 +26,7 @@ function mkCarousel(slides = 3) {
     first_comment: "",
     asset_ids: ids,
     post_type: "carousel",
-  });
+  }, null);
   return { post, ids };
 }
 

@@ -14,7 +14,7 @@ function makePosts(count: number): number[] {
       caption: `bulk-edit-${++fixtureSeq}`,
       first_comment: "",
       asset_ids: [],
-    })
+    }, null)
   );
 }
 
@@ -32,7 +32,7 @@ function tagLinkCount(postIds: number[], tagId: number): number {
 
 test("adding a tag to several posts is idempotent", () => {
   const postIds = makePosts(3);
-  const tag = q.createTopicTag(`bulk-add-${fixtureSeq}`);
+  const tag = q.createTopicTag(`bulk-add-${fixtureSeq}`, null);
 
   const first = q.bulkEditPosts({ post_ids: postIds, tags: { add: [tag.id], remove: [] } });
   const second = q.bulkEditPosts({ post_ids: postIds, tags: { add: [tag.id], remove: [] } });
@@ -44,8 +44,8 @@ test("adding a tag to several posts is idempotent", () => {
 
 test("removing one tag preserves every other tag", () => {
   const postIds = makePosts(2);
-  const removeTag = q.createTopicTag(`bulk-remove-${fixtureSeq}`);
-  const keepTag = q.createTopicTag(`bulk-keep-${fixtureSeq}`);
+  const removeTag = q.createTopicTag(`bulk-remove-${fixtureSeq}`, null);
+  const keepTag = q.createTopicTag(`bulk-keep-${fixtureSeq}`, null);
   q.bulkEditPosts({
     post_ids: postIds,
     tags: { add: [removeTag.id, keepTag.id], remove: [] },
@@ -70,7 +70,7 @@ test("period and scalar edits apply without replacing unrelated links", () => {
     start_day: 1,
     end_month: 2,
     end_day: 1,
-  });
+  }, null);
   const removedPeriod = q.createPeriod({
     name: `Remove ${fixtureSeq}`,
     recurs_yearly: true,
@@ -78,7 +78,7 @@ test("period and scalar edits apply without replacing unrelated links", () => {
     start_day: 1,
     end_month: 4,
     end_day: 1,
-  });
+  }, null);
   q.bulkEditPosts({
     post_ids: postIds,
     periods: {
@@ -114,7 +114,7 @@ test("period and scalar edits apply without replacing unrelated links", () => {
 
 test("an error after the first write rolls back the entire bulk edit", () => {
   const postIds = makePosts(3);
-  const tag = q.createTopicTag(`bulk-rollback-${fixtureSeq}`);
+  const tag = q.createTopicTag(`bulk-rollback-${fixtureSeq}`, null);
   db.exec(`
     CREATE TRIGGER fail_bulk_edit_test
     BEFORE INSERT ON post_tags

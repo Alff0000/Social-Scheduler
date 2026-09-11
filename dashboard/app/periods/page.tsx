@@ -1,11 +1,14 @@
 import { listPeriods } from "@/lib/queries";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { PeriodAdd, PeriodCard } from "@/components/period-manager";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export default function PeriodsPage() {
-  const periods = listPeriods();
+export default async function PeriodsPage() {
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
+  const periods = listPeriods(ownerId);
 
   return (
     <div>

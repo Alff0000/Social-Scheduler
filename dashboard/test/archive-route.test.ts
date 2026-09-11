@@ -26,7 +26,7 @@ const { DELETE: DELETE_POST } = await import("../app/api/posts/[id]/route.ts");
 let seq = 0;
 
 function mkPost(caption: string): number {
-  return q.createDraftPost({ caption, first_comment: "", asset_ids: [] });
+  return q.createDraftPost({ caption, first_comment: "", asset_ids: [] }, null);
 }
 
 function mkChannel(): number {
@@ -72,7 +72,8 @@ function stored(postId: number) {
   };
 }
 
-const inLibrary = (postId: number) => q.listPosts().some((p) => p.id === postId);
+const inLibrary = (postId: number) =>
+  q.listPosts(undefined, "active", null).some((p) => p.id === postId);
 
 // ---- The whole point: a way out for the post delete refuses to touch -------------------
 
@@ -178,7 +179,7 @@ test("listPosts scopes to active, archived, or both", async () => {
   await archive(gone, { archived: true });
 
   const ids = (scope?: "active" | "archived" | "all") =>
-    q.listPosts(undefined, scope).map((p) => p.id);
+    q.listPosts(undefined, scope, null).map((p) => p.id);
 
   assert.ok(ids().includes(live));
   assert.ok(!ids().includes(gone), "default scope is the Library — archived posts are absent");
@@ -192,7 +193,7 @@ test("the archived listing still carries everything a Library card renders", asy
   mkPublication(postId, "posted");
   await archive(postId, { archived: true });
 
-  const row = q.listPosts(undefined, "archived").find((p) => p.id === postId);
+  const row = q.listPosts(undefined, "archived", null).find((p) => p.id === postId);
   assert.ok(row);
   assert.equal(row.posted_count, 1, "its posting history is still readable from the archive");
   assert.ok(row.archived_at, "and the row says it is archived, so the view can badge it");

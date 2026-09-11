@@ -6,8 +6,8 @@ makeTestDb();
 const q = await import("./queries.ts");
 
 test("bulk edit context deduplicates posts and groups every metadata value", () => {
-  const commonTag = q.createTopicTag("bulk-context-common");
-  const singleTag = q.createTopicTag("bulk-context-single");
+  const commonTag = q.createTopicTag("bulk-context-common", null);
+  const singleTag = q.createTopicTag("bulk-context-single", null);
   const periodId = q.createPeriod({
     name: "Bulk context period",
     recurs_yearly: true,
@@ -15,7 +15,7 @@ test("bulk edit context deduplicates posts and groups every metadata value", () 
     start_day: 1,
     end_month: 12,
     end_day: 31,
-  });
+  }, null);
 
   const postA = q.createDraftPost({
     caption: "bulk-context-a",
@@ -29,7 +29,7 @@ test("bulk edit context deduplicates posts and groups every metadata value", () 
       { periodId, mode: "green" },
       { periodId, mode: "blackout" },
     ],
-  });
+  }, null);
   const postB = q.createDraftPost({
     caption: "bulk-context-b",
     first_comment: "",
@@ -39,7 +39,7 @@ test("bulk edit context deduplicates posts and groups every metadata value", () 
     cooldown_days: null,
     tag_ids: [commonTag.id],
     period_links: [{ periodId, mode: "green" }],
-  });
+  }, null);
   const postC = q.createDraftPost({
     caption: "bulk-context-c",
     first_comment: "",
@@ -49,7 +49,7 @@ test("bulk edit context deduplicates posts and groups every metadata value", () 
     cooldown_days: 90,
     tag_ids: [commonTag.id],
     period_links: [{ periodId, mode: "green" }],
-  });
+  }, null);
 
   assert.deepEqual(q.getBulkEditContext([postA, postB, postC, postA]), {
     post_count: 3,
@@ -89,12 +89,12 @@ test("existing post ids use one deduplicated deterministic result", () => {
     caption: "bulk-existing-a",
     first_comment: "",
     asset_ids: [],
-  });
+  }, null);
   const postB = q.createDraftPost({
     caption: "bulk-existing-b",
     first_comment: "",
     asset_ids: [],
-  });
+  }, null);
 
   assert.deepEqual(q.getExistingPostIds([postB, 999999, postA, postB]), [postA, postB]);
   assert.deepEqual(q.getExistingPostIds([]), []);

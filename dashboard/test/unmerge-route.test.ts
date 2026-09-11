@@ -25,7 +25,7 @@ function mkCarousel(slides = 2) {
     first_comment: "",
     asset_ids: Array.from({ length: slides }, mkAsset),
     post_type: "carousel",
-  });
+  }, null);
 }
 
 function call(id: string | number) {
@@ -61,7 +61,7 @@ test("a single-image post is 400", async () => {
     caption: "",
     first_comment: "",
     asset_ids: [mkAsset()],
-  });
+  }, null);
   const res = await call(post);
   assert.equal(res.status, 400);
   assert.match((await res.json()).error, /only a carousel/i);

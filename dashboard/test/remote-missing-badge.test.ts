@@ -19,7 +19,7 @@ function makeSend(over: { remote_missing_at?: string | null } = {}): number {
     db.prepare("INSERT INTO channels (platform, account_name) VALUES ('instagram', ?)")
       .run(`missing-badge-${++seq}`).lastInsertRowid
   );
-  const postId = q.createDraftPost({ caption: `p${seq}`, first_comment: "", asset_ids: [] });
+  const postId = q.createDraftPost({ caption: `p${seq}`, first_comment: "", asset_ids: [] }, null);
   db.prepare(
     `INSERT INTO publications
        (post_id, channel_id, scheduled_at, status, published_at, remote_post_id,

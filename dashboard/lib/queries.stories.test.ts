@@ -51,7 +51,7 @@ test("a story target fans out into one publication per slide, in slide order", a
     asset_ids: assetIds,
     scheduled_at: "2026-08-10T18:00:00.000Z",
     targets: [{ channel_id: ig, surface: "story" }],
-  } as Parameters<typeof q.createPostWithPublications>[0]);
+  } as Parameters<typeof q.createPostWithPublications>[0], null);
 
   const rows = pubs(postId);
   assert.equal(rows.length, 3, "3 slides -> 3 Stories");
@@ -75,7 +75,7 @@ test("a feed target stays one publication with a null asset_id", async () => {
     asset_ids: assetIds,
     scheduled_at: "2026-08-10T18:00:00.000Z",
     targets: [{ channel_id: ig, surface: "feed" }],
-  } as Parameters<typeof q.createPostWithPublications>[0]);
+  } as Parameters<typeof q.createPostWithPublications>[0], null);
 
   const rows = pubs(postId);
   assert.equal(rows.length, 1, "a feed carousel is ONE post, not one per slide");
@@ -95,7 +95,7 @@ test("feed and story on one channel produce independent sends", async () => {
       { channel_id: ig, surface: "story" },
       { channel_id: telegram, surface: "feed" },
     ],
-  } as Parameters<typeof q.createPostWithPublications>[0]);
+  } as Parameters<typeof q.createPostWithPublications>[0], null);
 
   const rows = pubs(postId);
   assert.equal(rows.filter((r) => r.surface === "feed").length, 2, "IG feed + Telegram");
@@ -108,13 +108,13 @@ test("targets round-trip with their surface", async () => {
     caption: "",
     first_comment: "",
     asset_ids: assetIds,
-  });
+  }, null);
 
   q.setPostTargets(postId, [
     { channel_id: ig, surface: "story" },
     { channel_id: ig, surface: "feed" },
     { channel_id: telegram, surface: "feed" },
-  ]);
+  ], null);
 
   assert.deepEqual(q.getPostTargets(postId), [
     { channel_id: ig, surface: "feed" },
@@ -129,13 +129,13 @@ test("removing one surface leaves the other in place", async () => {
     caption: "",
     first_comment: "",
     asset_ids: assetIds,
-  });
+  }, null);
 
   q.setPostTargets(postId, [
     { channel_id: ig, surface: "feed" },
     { channel_id: ig, surface: "story" },
-  ]);
-  q.setPostTargets(postId, [{ channel_id: ig, surface: "story" }]);
+  ], null);
+  q.setPostTargets(postId, [{ channel_id: ig, surface: "story" }], null);
 
   assert.deepEqual(q.getPostTargets(postId), [{ channel_id: ig, surface: "story" }]);
 });

@@ -7,7 +7,7 @@ makeTestDb();
 const q = await import("../lib/queries.ts");
 const db = (await import("../lib/db.ts")).getDb();
 
-const commonTag = q.createTopicTag("bulk-context-route-common");
+const commonTag = q.createTopicTag("bulk-context-route-common", null);
 const periodId = q.createPeriod({
   name: "Bulk context route period",
   recurs_yearly: true,
@@ -15,26 +15,26 @@ const periodId = q.createPeriod({
   start_day: 1,
   end_month: 12,
   end_day: 31,
-});
+}, null);
 const postA = q.createDraftPost({
   caption: "bulk-context-route-a",
   first_comment: "",
   asset_ids: [],
   tag_ids: [commonTag.id],
   period_links: [{ periodId, mode: "green" }],
-});
+}, null);
 const postB = q.createDraftPost({
   caption: "bulk-context-route-b",
   first_comment: "",
   asset_ids: [],
   tag_ids: [commonTag.id],
   period_links: [{ periodId, mode: "green" }],
-});
+}, null);
 q.createDraftPost({
   caption: "bulk-context-route-c",
   first_comment: "",
   asset_ids: [],
-});
+}, null);
 
 const { POST } = await import("../app/api/posts/bulk-edit/context/route.ts");
 

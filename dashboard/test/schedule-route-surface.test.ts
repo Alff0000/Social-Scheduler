@@ -42,7 +42,7 @@ function fixture() {
     caption: "",
     first_comment: "",
     asset_ids: [assetId],
-  });
+  }, null);
   return { ig, fb, postId, assetId };
 }
 

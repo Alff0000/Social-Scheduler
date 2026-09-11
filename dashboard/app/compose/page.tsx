@@ -25,9 +25,9 @@ export default async function ComposePage({
     color_hue: c.color_hue,
     avatar_path: c.avatar_path,
   }));
-  const timeOfDayTags = listTags("time_of_day");
-  const topicTags = listTags("topic");
-  const libraryPosts = listPosts().map((p) => ({
+  const timeOfDayTags = listTags("time_of_day", ownerId);
+  const topicTags = listTags("topic", ownerId);
+  const libraryPosts = listPosts(undefined, "active", ownerId).map((p) => ({
     id: p.id,
     first_asset_id: p.first_asset_id,
     caption: p.caption,
@@ -92,7 +92,7 @@ export default async function ComposePage({
           <ComposeSwitcher
             channels={channels}
             defaultTimezone={config.defaultTimezone}
-            periods={listPeriods()}
+            periods={listPeriods(ownerId)}
             timeOfDayTags={timeOfDayTags}
             topicTags={topicTags}
             libraryPosts={libraryPosts}

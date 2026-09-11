@@ -47,7 +47,8 @@ export default async function CalendarPage({
   // channel's local date and anything landing outside the grid simply finds no cell.
   const all = getPublicationsInRange(
     `${addDays(first, -SLACK_DAYS)}T00:00:00Z`,
-    `${addDays(last, SLACK_DAYS + 1)}T00:00:00Z`
+    `${addDays(last, SLACK_DAYS + 1)}T00:00:00Z`,
+    ownerId
   );
 
   // Filtered here rather than hidden in the grid, so the header's count describes what is

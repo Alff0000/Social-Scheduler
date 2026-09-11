@@ -6,10 +6,14 @@ import { parseCaptionVariants, parsePeriodLinks, parseTagIds } from "@/lib/conte
 import { incompatiblePostError } from "@/lib/platforms";
 import { captionLimitError } from "@/lib/caption-limits";
 import { parseTargets } from "@/lib/story-fanout";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  const ownerId = viewer.is_admin ? null : viewer.id;
   const body = await req.json();
   const assetIds: number[] = Array.isArray(body.asset_ids) ? body.asset_ids : [];
   // The composer sends `targets` (channel + surface); older callers send channel_ids,
@@ -49,16 +53,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Pick a date and time." }, { status: 400 });
   }
   const channels = channelIds.map((cid) => getChannel(cid));
-  const unknownIdx = channels.findIndex((c) => !c);
+  const unknownIdx = channels.findIndex(
+    (c) => !c || (ownerId !== null && c.owner_user_id !== ownerId)
+  );
   if (unknownIdx !== -1) {
     return NextResponse.json({ error: `Unknown channel ${channelIds[unknownIdx]}.` }, { status: 400 });
   }
   const targetChannels = channels.map((c) => c!);
 
   // Load the assets so post_type can reflect what they ACTUALLY are, not just how many
-  // there are. Mirrors the channel lookup directly above.
+  // there are. Mirrors the channel lookup directly above — including the ownership
+  // check, since an asset from someone else's library must read as "unknown" too.
   const postAssets = assetIds.map((aid) => getAsset(aid));
-  const unknownAssetIdx = postAssets.findIndex((a) => !a);
+  const unknownAssetIdx = postAssets.findIndex(
+    (a) => !a || (ownerId !== null && a.owner_user_id !== ownerId)
+  );
   if (unknownAssetIdx !== -1) {
     return NextResponse.json(
       { error: `Unknown asset ${assetIds[unknownAssetIdx]}.` },
@@ -130,12 +139,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: captionError }, { status: 400 });
   }
 
-  const periodLinks = parsePeriodLinks(body.period_links, getPeriod);
+  // A period id belonging to someone else must fail exactly like one that doesn't exist —
+  // parsePeriodLinks only ever calls this to check existence, so filtering ownership out
+  // here is enough.
+  const periodLinks = parsePeriodLinks(body.period_links, (pid) => {
+    const p = getPeriod(pid);
+    return p && (ownerId === null || p.owner_user_id === ownerId) ? p : undefined;
+  });
   if (periodLinks === "invalid") {
     return NextResponse.json({ error: "Invalid period_links." }, { status: 400 });
   }
 
-  const validTagIds = new Set(listTags().map((t) => t.id));
+  const validTagIds = new Set(listTags(undefined, ownerId).map((t) => t.id));
   const tagIds = parseTagIds(body.tag_ids, (id) => validTagIds.has(id));
   if (tagIds === "invalid") {
     return NextResponse.json({ error: "Invalid tag_ids." }, { status: 400 });
@@ -155,7 +170,7 @@ export async function POST(req: NextRequest) {
     caption_variants: captionVariants ?? undefined,
     period_links: periodLinks ?? undefined,
     tag_ids: tagIds ?? undefined,
-  });
+  }, ownerId);
 
   return NextResponse.json({ postId, publicationIds, scheduledUtc }, { status: 201 });
 }

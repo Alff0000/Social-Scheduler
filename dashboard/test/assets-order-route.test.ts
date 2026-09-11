@@ -27,7 +27,7 @@ function mkCarousel(assetIds: number[]): number {
     first_comment: "",
     asset_ids: assetIds,
     post_type: "carousel",
-  });
+  }, null);
 }
 
 function orderOf(postId: number): number[] {
@@ -161,6 +161,6 @@ test("a queued send does NOT block a reorder — spec §4", async () => {
 
 test("a single-image post can be 'reordered' to itself without error", async () => {
   const only = mkAsset();
-  const post = q.createDraftPost({ caption: "", first_comment: "", asset_ids: [only] });
+  const post = q.createDraftPost({ caption: "", first_comment: "", asset_ids: [only] }, null);
   assert.equal((await patch(post, { asset_ids: [only] })).status, 200);
 });
