@@ -1,26 +1,21 @@
-// Six self-contained themes — no separate light/dark toggle. "Claro" and "Escuro" are
-// the light/dark axis for anyone who wants a neutral look; "xxxxx Vermelho", "Roxo",
-// "Japonês" and "Neon" are fixed-mode branded looks (all dark) with their own name
-// because their identity is the color/mood, not a mode. Collapsing what used to be a
-// theme × mode matrix (7 families × 2 modes) into one flat list this small is
-// deliberate: every one of the retired families (claude/apt/fyzical/default/solarized/
-// vela) was a leftover generic name from the original fork, never asked for, and
-// diluted the choices that actually mattered.
+// Three self-contained themes, no separate light/dark toggle. All three are fixed-mode
+// branded looks (all dark) with their own name because their identity is the color/mood,
+// not a mode — the same reasoning that already ruled out a theme × mode matrix here.
 //
-// The "instavips" id itself is left as-is (it's a stored cookie/DB value, not
-// display text) — only the label shown to the user changed when the app was renamed.
-export type ThemeId = "light" | "dark" | "instavips" | "purple" | "japanese" | "neon";
+// A cookie/localStorage value from a retired theme (light/dark/purple/japanese/neon, or
+// the older claude/apt/fyzical/default/solarized/vela families) needs no special-case
+// migration: isThemeId only recognizes ids in THEMES below, so layout.tsx's
+// `isThemeId(saved) ? saved : DEFAULT_THEME` already falls back to VIP Neon for any of
+// them on its own.
+export type ThemeId = "vipneon" | "obsidian" | "glacier";
 
 export const THEMES: { id: ThemeId; label: string }[] = [
-  { id: "light", label: "Claro" },
-  { id: "dark", label: "Escuro" },
-  { id: "instavips", label: "xxxxx Vermelho" },
-  { id: "purple", label: "Roxo" },
-  { id: "japanese", label: "Japonês" },
-  { id: "neon", label: "Neon" },
+  { id: "vipneon", label: "VIP Neon" },
+  { id: "obsidian", label: "Obsidian" },
+  { id: "glacier", label: "Glacier" },
 ];
 
-export const DEFAULT_THEME: ThemeId = "instavips";
+export const DEFAULT_THEME: ThemeId = "vipneon";
 
 export const THEME_STORAGE_KEY = "ss-theme";
 

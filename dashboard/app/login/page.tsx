@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { LoginScene } from "@/components/login-scene";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -36,11 +37,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
-      <div className="w-full max-w-sm rounded-card border border-border bg-surface p-8">
+    <div className="relative flex min-h-dvh items-center justify-center px-4 py-10">
+      {/* min-h-dvh, not min-h-screen: on mobile Safari/Chrome, 100vh includes the address
+          bar that then hides itself, so the page grows after first paint and shoves the
+          card around — dvh tracks the ACTUAL visible viewport instead. */}
+      <LoginScene />
+      <div className="glass-card relative w-full max-w-sm rounded-card p-6 sm:p-8">
         <div className="mb-6 flex items-center gap-2.5">
           <span
-            className="inline-block h-6 w-6 rounded-md bg-brand"
+            className="inline-block h-6 w-6 shrink-0 rounded-md bg-brand"
             aria-hidden
             style={{
               backgroundImage:
@@ -64,9 +69,12 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-border bg-surface-sunken px-3 py-2 text-sm text-ink"
+              // text-base (16px), not text-sm: anything smaller makes iOS Safari zoom the
+              // whole page in on focus, which then has to be manually zoomed back out.
+              className="w-full rounded-lg border border-border bg-surface-sunken px-3 py-2.5 text-base text-ink sm:text-sm"
               placeholder="voce@email.com"
               autoComplete="email"
+              inputMode="email"
             />
           </div>
           <div>
@@ -77,7 +85,7 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-border bg-surface-sunken px-3 py-2 text-sm text-ink"
+              className="w-full rounded-lg border border-border bg-surface-sunken px-3 py-2.5 text-base text-ink sm:text-sm"
               placeholder="••••••••"
               autoComplete="current-password"
             />
@@ -86,7 +94,9 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={busy}
-            className="w-full rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-brand disabled:opacity-60"
+            // py-3 gives this a ~44px tap target, the accepted minimum for a comfortable
+            // touch target — py-2 (the old value) measured closer to 36px.
+            className="w-full rounded-lg bg-brand px-4 py-3 text-sm font-semibold text-on-brand disabled:opacity-60"
           >
             {busy ? "Entrando…" : "Entrar"}
           </button>
