@@ -8,6 +8,7 @@ import {
   upsertAutofillLane,
   listFolders,
 } from "@/lib/queries";
+import { getSessionUser } from "@/lib/auth";
 import { isSurface } from "@/lib/story-fanout";
 import type { Surface } from "@/lib/types";
 
@@ -17,9 +18,12 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
   const channelId = Number(id);
-  if (!getChannel(channelId)) {
+  const channel = getChannel(channelId);
+  if (!channel || (!viewer.is_admin && channel.owner_user_id !== viewer.id)) {
     return NextResponse.json({ error: "Channel not found." }, { status: 404 });
   }
   // A parsed JSON body genuinely has no known shape; every field below is validated
@@ -102,7 +106,10 @@ export async function PATCH(
   // is a membership change, not a field edit.
   if ("group_id" in body) {
     const gid = body.group_id === null || body.group_id === "" ? null : Number(body.group_id);
-    if (gid !== null && !getChannelGroup(gid)) {
+    // Not found AND wrong-owner both answer "Group not found" — same 404-style logic as
+    // the channel guard above, so this never confirms another tenant's group exists.
+    const group = gid !== null ? getChannelGroup(gid) : null;
+    if (gid !== null && (!group || group.owner_user_id !== channel.owner_user_id)) {
       return NextResponse.json({ error: "Group not found." }, { status: 400 });
     }
     setChannelGroup(channelId, gid);
@@ -113,7 +120,8 @@ export async function PATCH(
   // see Folder in lib/types.ts), not a plain column write.
   if ("folder_id" in body) {
     const fid = body.folder_id === null || body.folder_id === "" ? null : Number(body.folder_id);
-    if (fid !== null && !listFolders().some((f) => f.id === fid)) {
+    const folder = fid !== null ? listFolders(channel.owner_user_id).find((f) => f.id === fid) : null;
+    if (fid !== null && !folder) {
       return NextResponse.json({ error: "Folder not found." }, { status: 400 });
     }
     setChannelFolder(channelId, fid);

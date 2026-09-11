@@ -2,14 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { createChannel, getChannels } from "@/lib/queries";
 import { isPlatform, PLATFORMS } from "@/lib/platforms";
 import { isValidTimezone } from "@/lib/timezones";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
-export function GET() {
-  return NextResponse.json({ channels: getChannels() });
+export async function GET() {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  return NextResponse.json({ channels: getChannels(viewer.is_admin ? null : viewer.id) });
 }
 
 export async function POST(req: NextRequest) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   // A parsed JSON body genuinely has no known shape; every field below is validated
   // before use. Matches the .catch(() => ...) idiom the other routes use, and avoids an
   // explicit `any` for a value that is only ever read through those checks.
@@ -58,6 +63,6 @@ export async function POST(req: NextRequest) {
     access_token: body.access_token,
     requires_approval: !!body.requires_approval,
     color_hue: body.color_hue ?? null,
-  });
+  }, viewer.id);
   return NextResponse.json({ id }, { status: 201 });
 }

@@ -30,5 +30,9 @@ export function makeTestDb(): string {
   });
   process.env.DATABASE_PATH = dbPath;
   process.env.ASSET_STORAGE_DIR = path.join(dir, "assets");
+  // lib/auth.ts's getSessionSecret() throws without this — real installs set it in .env,
+  // but nothing in this test process ever loads that file. Fixed test-only value: never
+  // read by anything but the fake cookie jar in test/next-headers-stub.mjs.
+  process.env.SESSION_SECRET ||= "test-only-session-secret-do-not-use-in-production";
   return dbPath;
 }

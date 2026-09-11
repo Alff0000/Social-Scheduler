@@ -4,6 +4,7 @@ import { config } from "@/lib/config";
 import { getPublishReadiness } from "@/lib/publish-readiness";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { ComposeSwitcher } from "@/components/compose-switcher";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,9 @@ export default async function ComposePage({
   searchParams: Promise<{ date?: string }>;
 }) {
   const params = await searchParams;
-  const channels = getActiveChannels().map((c) => ({
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
+  const channels = getActiveChannels(ownerId).map((c) => ({
     id: c.id,
     platform: c.platform,
     account_name: c.account_name,

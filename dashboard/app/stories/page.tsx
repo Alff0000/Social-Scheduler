@@ -3,6 +3,7 @@ import { getActiveChannels, listFolders } from "@/lib/queries";
 import { supportsStory } from "@/lib/platforms";
 import { EmptyState, PageHeader } from "@/components/ui";
 import { StoryComposer } from "@/components/story-composer";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +16,10 @@ export const dynamic = "force-dynamic";
   surface fixed to 'story' and post_now always true.
 */
 
-export default function StoriesPage() {
-  const channels = getActiveChannels()
+export default async function StoriesPage() {
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
+  const channels = getActiveChannels(ownerId)
     .filter((c) => supportsStory(c.platform))
     .map((c) => ({
       id: c.id,
@@ -26,7 +29,7 @@ export default function StoriesPage() {
       avatar_path: c.avatar_path,
       folder_id: c.folder_id,
     }));
-  const folders = listFolders();
+  const folders = listFolders(ownerId);
 
   return (
     <div>

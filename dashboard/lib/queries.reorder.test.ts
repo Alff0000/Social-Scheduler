@@ -147,7 +147,7 @@ test("postHasPublishingPublication only reports the in-flight status", async () 
     platform: "instagram",
     account_name: `reorder-${setupSeq}`,
     timezone: "UTC",
-  });
+  }, null);
   const addSend = (status: string) =>
     db
       .prepare(

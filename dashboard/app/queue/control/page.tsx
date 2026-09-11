@@ -8,6 +8,7 @@ import {
 import { ChannelAvatar, EmptyState, PageHeader } from "@/components/ui";
 import { platformBadge } from "@/lib/platforms";
 import { formatInTz } from "@/lib/format";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -34,8 +35,10 @@ function paceLabel(gapsMs: number[]): string {
   return `~1 a cada ${Math.round(hours / 24)}d`;
 }
 
-export default function QueueControlPage() {
-  const channels = getActiveChannels();
+export default async function QueueControlPage() {
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
+  const channels = getActiveChannels(ownerId);
   const pubs = getPublicationsOverview();
   const blocked = new Set(blockedPublicationIds(pubs));
   const limits = getLatestPublishLimits();

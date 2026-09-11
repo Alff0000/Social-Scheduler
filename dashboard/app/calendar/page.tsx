@@ -6,6 +6,7 @@ import { addDays, monthGrid, todayInTz, weekDays, bucketByDay } from "@/lib/cale
 import { splitInTz } from "@/lib/time";
 import { FINISHED_STATUSES } from "@/lib/queue-sections";
 import { PLATFORMS } from "@/lib/platforms";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,8 @@ export default async function CalendarPage({
     platform?: string;
   }>;
 }) {
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
   const params = await searchParams;
   const view = params.view === "week" ? "week" : "month";
   const account = params.account ?? "all";
@@ -101,7 +104,7 @@ export default async function CalendarPage({
           days={days}
           sendsByDay={sendsByDay}
           gridTimezone={config.defaultTimezone}
-          channels={getActiveChannels().map((c) => ({
+          channels={getActiveChannels(ownerId).map((c) => ({
             id: c.id,
             account_name: c.account_name,
             platform: c.platform,

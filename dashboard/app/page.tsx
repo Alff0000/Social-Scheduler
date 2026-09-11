@@ -14,13 +14,16 @@ import {
 import { PageHeader } from "@/components/ui";
 import { NoChannelsYet, OverviewBody } from "@/components/overview-body";
 import { DashboardPerformance } from "@/components/dashboard-performance";
+import { getSessionUser } from "@/lib/auth";
 
 const PERFORMANCE_WINDOW_DAYS = 7;
 
 export const dynamic = "force-dynamic";
 
-export default function OverviewPage() {
-  const channels = getActiveChannels();
+export default async function OverviewPage() {
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
+  const channels = getActiveChannels(ownerId);
   const pubs = getPublicationsOverview();
   const worker = getWorkerStatus();
 

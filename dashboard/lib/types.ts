@@ -89,6 +89,10 @@ export interface Channel {
   /** Which folder (migration 0030) this account is organized under, or null for none.
    *  Purely organizational — unrelated to group_id's auto-fill coordination. */
   folder_id: number | null;
+  /** Migration 0034. Null on a row nobody has claimed yet (pre-migration data with no
+   *  users row to backfill from) — never treat null as "shared," it means invisible to
+   *  every non-admin login. See migrations/0034_owner_scoping.sql. */
+  owner_user_id: number | null;
 }
 
 /** A purely organizational grouping of accounts (migration 0030) — "which accounts
@@ -99,6 +103,8 @@ export interface Folder {
   id: number;
   name: string;
   created_at: string;
+  /** Migration 0034 — see Channel.owner_user_id's doc comment. */
+  owner_user_id: number | null;
 }
 
 /** A named set of channels that auto-fills as ONE unit — one cadence, one selection
@@ -117,6 +123,8 @@ export interface ChannelGroup {
   is_active: number;
   created_at: string;
   updated_at: string | null;
+  /** Migration 0034 — see Channel.owner_user_id's doc comment. */
+  owner_user_id: number | null;
 }
 
 /** One auto-fill lane: an owner (a channel OR a group, never both) plus a surface.

@@ -17,7 +17,7 @@ async function setup() {
 
 test("create, list, get and update a channel group", async () => {
   const { q, prefix } = await setup();
-  const id = q.createChannelGroup({ name: `${prefix}-Personal`, timezone: "America/New_York" });
+  const id = q.createChannelGroup({ name: `${prefix}-Personal`, timezone: "America/New_York" }, null);
 
   const got = q.getChannelGroup(id);
   assert.equal(got?.name, `${prefix}-Personal`);
@@ -34,17 +34,17 @@ test("create, list, get and update a channel group", async () => {
   const after = q.getChannelGroup(id);
   assert.equal(after?.autofill_enabled, 1);
   assert.equal(after?.min_queue_depth, 3);
-  assert.ok(q.listChannelGroups().some((g) => g.id === id));
+  assert.ok(q.listChannelGroups(null).some((g) => g.id === id));
 });
 
 test("assigning and clearing a channel's group", async () => {
   const { q, prefix } = await setup();
-  const gid = q.createChannelGroup({ name: `${prefix}-G`, timezone: "UTC" });
+  const gid = q.createChannelGroup({ name: `${prefix}-G`, timezone: "UTC" }, null);
   const cid = q.createChannel({
     platform: "instagram",
     account_name: `${prefix}-ig`,
     timezone: "UTC",
-  } as Parameters<typeof q.createChannel>[0]);
+  } as Parameters<typeof q.createChannel>[0], null);
 
   q.setChannelGroup(cid, gid);
   assert.equal(q.getChannel(cid)?.group_id, gid);
@@ -57,12 +57,12 @@ test("assigning and clearing a channel's group", async () => {
 
 test("deleting a group ungroups its channels and keeps their publications", async () => {
   const { q, db, prefix } = await setup();
-  const gid = q.createChannelGroup({ name: `${prefix}-Doomed`, timezone: "UTC" });
+  const gid = q.createChannelGroup({ name: `${prefix}-Doomed`, timezone: "UTC" }, null);
   const cid = q.createChannel({
     platform: "instagram",
     account_name: `${prefix}-ig`,
     timezone: "UTC",
-  } as Parameters<typeof q.createChannel>[0]);
+  } as Parameters<typeof q.createChannel>[0], null);
   q.setChannelGroup(cid, gid);
 
   const assetId = Number(
@@ -87,13 +87,13 @@ test("deleting a group ungroups its channels and keeps their publications", asyn
 
 test("changing a group's timezone rebases every member's pending sends", async () => {
   const { q, db, prefix } = await setup();
-  const gid = q.createChannelGroup({ name: `${prefix}-TZ`, timezone: "America/New_York" });
+  const gid = q.createChannelGroup({ name: `${prefix}-TZ`, timezone: "America/New_York" }, null);
   const a = q.createChannel({
     platform: "instagram", account_name: `${prefix}-a`, timezone: "America/New_York",
-  } as Parameters<typeof q.createChannel>[0]);
+  } as Parameters<typeof q.createChannel>[0], null);
   const b = q.createChannel({
     platform: "threads", account_name: `${prefix}-b`, timezone: "America/New_York",
-  } as Parameters<typeof q.createChannel>[0]);
+  } as Parameters<typeof q.createChannel>[0], null);
   q.setChannelGroup(a, gid);
   q.setChannelGroup(b, gid);
 

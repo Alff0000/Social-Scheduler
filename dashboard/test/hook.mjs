@@ -10,6 +10,12 @@ const dashboardRoot = new URL("../", import.meta.url);
 registerHooks({
   resolve(spec, ctx, next) {
     if (spec === "next/server") return next("next/server.js", ctx);
+    // The real next/headers requires an actual Next.js request scope — route-handler
+    // tests call the exported functions directly, with no such scope, so this swaps in
+    // an in-memory fake (see next-headers-stub.mjs) rather than next/headers.js itself.
+    if (spec === "next/headers") {
+      return next(new URL("./next-headers-stub.mjs", import.meta.url).href, ctx);
+    }
     if (spec.startsWith("@/")) {
       const bare = new URL(spec.slice(2), dashboardRoot);
       const ts = new URL(spec.slice(2) + ".ts", dashboardRoot);

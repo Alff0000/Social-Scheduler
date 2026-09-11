@@ -14,8 +14,21 @@ import { makeTestDb } from "./helpers.ts";
 
 makeTestDb();
 const q = await import("../lib/queries.ts");
+const db = (await import("../lib/db.ts")).getDb();
+const { createSession } = await import("../lib/auth.ts");
 const channelRoute = await import("../app/api/channels/[id]/route.ts");
 const groupRoute = await import("../app/api/channel-groups/[id]/route.ts");
+
+// These routes now require a session (see migrations/0034_owner_scoping.sql) and check
+// the caller owns the channel/group being patched. This file tests surface-selection
+// logic, not ownership, so it signs in as an admin — that bypasses the ownership check
+// entirely and lets every fixture below keep using owner_user_id: null unchanged.
+const adminId = Number(
+  db
+    .prepare("INSERT INTO users (email, password_hash, is_admin) VALUES ('admin@test', 'x', 1)")
+    .run().lastInsertRowid,
+);
+await createSession(adminId);
 
 let seq = 0;
 
@@ -46,14 +59,14 @@ function newChannel() {
     platform: "instagram",
     account_name: `lane-surface-${++seq}`,
     timezone: "America/Los_Angeles",
-  } as Parameters<typeof q.createChannel>[0]);
+  } as Parameters<typeof q.createChannel>[0], null);
 }
 
 function newGroup() {
   return q.createChannelGroup({
     name: `lane-surface-group-${++seq}`,
     timezone: "America/Los_Angeles",
-  });
+  }, null);
 }
 
 test("channel PATCH: an absent surface still means the feed lane", async () => {

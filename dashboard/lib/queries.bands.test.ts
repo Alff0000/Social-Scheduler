@@ -47,11 +47,11 @@ async function seedTwoChannels() {
   const a = q.createChannel({
     platform: "instagram", account_name: `${prefix}-a`, timezone: "UTC",
     remote_account_id: `${prefix}-a`, access_token: "tok",
-  });
+  }, null);
   const b = q.createChannel({
     platform: "instagram", account_name: `${prefix}-b`, timezone: "UTC",
     remote_account_id: `${prefix}-b`, access_token: "tok",
-  });
+  }, null);
   return { q, db, a, b };
 }
 

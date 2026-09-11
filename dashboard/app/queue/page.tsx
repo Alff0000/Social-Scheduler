@@ -10,6 +10,7 @@ import { ChannelAvatar, EmptyState, PageHeader } from "@/components/ui";
 import { WorkerStatus } from "@/components/worker-status";
 import { platformBadge } from "@/lib/platforms";
 import { exact } from "@/lib/insights";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -52,8 +53,10 @@ function timeAgo(iso: string | null): string {
   return future ? `em ${unit}` : `há ${unit}`;
 }
 
-export default function QueueStatusPage() {
-  const channels = getActiveChannels();
+export default async function QueueStatusPage() {
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
+  const channels = getActiveChannels(ownerId);
   const pubs = getPublicationsOverview();
   const worker = getWorkerStatus();
   const blocked = new Set(blockedPublicationIds(pubs));

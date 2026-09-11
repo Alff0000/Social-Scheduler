@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { upsertOAuthChannel } from "@/lib/queries";
 import { config, tiktokCredentials } from "@/lib/config";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -28,6 +29,15 @@ function back(req: NextRequest, params: Record<string, string>) {
  * browser anything to post.
  */
 export async function GET(req: NextRequest) {
+  // middleware.ts already requires a session for every route but /login, /api/auth/ and
+  // /api/public-assets/ — this callback isn't exempt, so a real browser navigation here
+  // always carries one. Read it anyway (never trust that a redirect chain preserved
+  // something middleware already checked) so the new channel is stamped to whoever is
+  // actually signed in.
+  const viewer = await getSessionUser();
+  if (!viewer) {
+    return back(req, { tiktok_error: "Sua sessão expirou. Faça login de novo e tente conectar outra vez." });
+  }
   // Read live, for the same reason as the authorize route: the key that started the
   // flow must be the key that finishes it, or the exchange fails after the user has
   // already approved.
@@ -123,7 +133,7 @@ export async function GET(req: NextRequest) {
       token_expires_at: iso(Number(tokens.expires_in ?? 86400)),
       refresh_token: tokens.refresh_token,
       refresh_token_expires_at: iso(Number(tokens.refresh_expires_in ?? 31536000)),
-    });
+    }, viewer.id);
     return back(req, {
       tiktok_connected: String(id),
       // Reconnecting is routine — the refresh token expires yearly — so the banner should

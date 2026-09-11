@@ -7,6 +7,7 @@ import {
 } from "@/lib/queries";
 import { rebaseWallClock } from "@/lib/time";
 import { isValidTimezone } from "@/lib/timezones";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -22,10 +23,12 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
   const groupId = Number(id);
   const group = getChannelGroup(groupId);
-  if (!group) {
+  if (!group || (!viewer.is_admin && group.owner_user_id !== viewer.id)) {
     return NextResponse.json({ error: "Group not found." }, { status: 404 });
   }
 

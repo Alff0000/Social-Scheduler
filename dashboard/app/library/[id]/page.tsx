@@ -16,6 +16,7 @@ import {
 } from "@/lib/queries";
 import { getPublishReadiness } from "@/lib/publish-readiness";
 import { PostEditor } from "@/components/post-editor";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,6 +26,8 @@ export default async function EditPostPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
   const { id } = await params;
   const postId = Number(id);
   const post = getPost(postId);
@@ -48,9 +51,9 @@ export default async function EditPostPage({
         scheduledSendCounts={Object.fromEntries(
           assets.map((a) => [a.id, countScheduledSendsForAsset(a.id)])
         )}
-        channels={getChannels()}
+        channels={getChannels(ownerId)}
         sends={getPostPublications(postId)}
-        sendableChannels={getActiveChannels()}
+        sendableChannels={getActiveChannels(ownerId)}
         periods={listPeriods()}
         timeOfDayTags={listTags("time_of_day")}
         topicTags={listTags("topic")}

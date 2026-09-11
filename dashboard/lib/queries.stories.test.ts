@@ -17,12 +17,12 @@ async function setup() {
     platform: "instagram",
     account_name: `${prefix}-ig`,
     timezone: "America/Los_Angeles",
-  } as Parameters<typeof q.createChannel>[0]);
+  } as Parameters<typeof q.createChannel>[0], null);
   const telegram = q.createChannel({
     platform: "telegram",
     account_name: `${prefix}-tg`,
     timezone: "America/Los_Angeles",
-  } as Parameters<typeof q.createChannel>[0]);
+  } as Parameters<typeof q.createChannel>[0], null);
 
   const assetIds = [0, 1, 2].map((n) =>
     Number(

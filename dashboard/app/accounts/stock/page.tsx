@@ -2,6 +2,7 @@ import { listFolders } from "@/lib/queries";
 import { listStockAccounts } from "@/lib/stock-queries";
 import { PageHeader } from "@/components/ui";
 import { StockManager } from "@/components/stock-manager";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -17,9 +18,11 @@ export const dynamic = "force-dynamic";
   `hasTwofa`, never the secret itself.
 */
 
-export default function StockPage() {
+export default async function StockPage() {
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
   const accounts = listStockAccounts();
-  const folders = listFolders();
+  const folders = listFolders(ownerId);
 
   return (
     <div>

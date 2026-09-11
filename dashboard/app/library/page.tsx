@@ -4,10 +4,13 @@ import { PageHeader, EmptyState } from "@/components/ui";
 import { LibraryView } from "@/components/library-view";
 import { config } from "@/lib/config";
 import { localDate } from "@/lib/periods";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export default function LibraryPage() {
+export default async function LibraryPage() {
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
   const evaluationDate = localDate(new Date(), config.defaultTimezone);
   // "all", not the default "active": the Library owns the Archived view, and one query
   // feeding both sides means switching between them costs no round trip. Compose's reuse
@@ -57,7 +60,7 @@ export default function LibraryPage() {
     has_live_send: p.live_send_count > 0,
     archived_at: p.archived_at,
   }));
-  const channels = getActiveChannels().map((c) => ({
+  const channels = getActiveChannels(ownerId).map((c) => ({
     id: c.id,
     account_name: c.account_name,
     platform: c.platform,

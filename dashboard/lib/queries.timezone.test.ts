@@ -18,7 +18,7 @@ async function setup(channelTz: string) {
     platform: "instagram",
     account_name: `${prefix}-acct`,
     timezone: channelTz,
-  } as Parameters<typeof q.createChannel>[0]);
+  } as Parameters<typeof q.createChannel>[0], null);
 
   const assetId = Number(
     db
@@ -124,7 +124,7 @@ test("only this channel's sends move", async () => {
     platform: "instagram",
     account_name: "bystander",
     timezone: "UTC",
-  } as Parameters<typeof q.createChannel>[0]);
+  } as Parameters<typeof q.createChannel>[0], null);
 
   const at = "2026-08-02T09:00:00.000Z";
   const mine = mkPub(at, "scheduled");

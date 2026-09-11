@@ -1,10 +1,13 @@
 import { getChannels, listPeriods, listTags } from "@/lib/queries";
 import { BulkImport } from "@/components/bulk-import";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export default function ImportPage() {
+export default async function ImportPage() {
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <header>
@@ -14,7 +17,7 @@ export default function ImportPage() {
         </p>
       </header>
       <BulkImport
-        channels={getChannels()}
+        channels={getChannels(ownerId)}
         periods={listPeriods()}
         timeOfDayTags={listTags("time_of_day")}
         topicTags={listTags("topic")}

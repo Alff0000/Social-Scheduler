@@ -42,16 +42,22 @@ import type { BulkEditContext } from "./bulk-edit-context";
 import type { PeriodWindow } from "./periods";
 
 // ---- Channels -------------------------------------------------------------------
-export function getChannels(): Channel[] {
+// ownerId: null means admin — every function below that takes it follows the same rule.
+// See migrations/0034_owner_scoping.sql and CLAUDE.md's multi-tenancy section. It is a
+// required parameter everywhere, deliberately not optional/defaulted: a forgotten
+// call site should be a TypeScript compile error, not a silent cross-tenant leak.
+export function getChannels(ownerId: number | null): Channel[] {
+  const where = ownerId !== null ? "WHERE owner_user_id = ?" : "";
   return getDb()
-    .prepare("SELECT * FROM channels ORDER BY is_active DESC, account_name ASC")
-    .all() as Channel[];
+    .prepare(`SELECT * FROM channels ${where} ORDER BY is_active DESC, account_name ASC`)
+    .all(...(ownerId !== null ? [ownerId] : [])) as Channel[];
 }
 
-export function getActiveChannels(): Channel[] {
+export function getActiveChannels(ownerId: number | null): Channel[] {
+  const ownerClause = ownerId !== null ? "AND owner_user_id = ?" : "";
   return getDb()
-    .prepare("SELECT * FROM channels WHERE is_active = 1 ORDER BY account_name ASC")
-    .all() as Channel[];
+    .prepare(`SELECT * FROM channels WHERE is_active = 1 ${ownerClause} ORDER BY account_name ASC`)
+    .all(...(ownerId !== null ? [ownerId] : [])) as Channel[];
 }
 
 export function getChannel(id: number): Channel | undefined {
@@ -91,16 +97,16 @@ export interface CreateChannelInput {
   color_hue?: number | null;
 }
 
-export function createChannel(input: CreateChannelInput): number {
+export function createChannel(input: CreateChannelInput, ownerUserId: number | null): number {
   const info = getDb()
     .prepare(
       `INSERT INTO channels
         (platform, account_name, business_label, timezone, remote_account_id,
          linked_page_id, access_token, token_expires_at, refresh_token,
-         refresh_token_expires_at, requires_approval, color_hue)
+         refresh_token_expires_at, requires_approval, color_hue, owner_user_id)
        VALUES (@platform, @account_name, @business_label, @timezone, @remote_account_id,
          @linked_page_id, @access_token, @token_expires_at, @refresh_token,
-         @refresh_token_expires_at, @requires_approval, @color_hue)`
+         @refresh_token_expires_at, @requires_approval, @color_hue, @owner_user_id)`
     )
     .run({
       platform: input.platform,
@@ -115,6 +121,7 @@ export function createChannel(input: CreateChannelInput): number {
       refresh_token_expires_at: input.refresh_token_expires_at ?? null,
       requires_approval: input.requires_approval ? 1 : 0,
       color_hue: input.color_hue ?? null,
+      owner_user_id: ownerUserId,
     });
   return Number(info.lastInsertRowid);
 }
@@ -132,7 +139,10 @@ export function createChannel(input: CreateChannelInput): number {
  * account across authorizations. The account NAME is deliberately not overwritten: the
  * owner may have renamed the channel, and a reconnect should not silently undo that.
  */
-export function upsertOAuthChannel(input: CreateChannelInput): {
+export function upsertOAuthChannel(
+  input: CreateChannelInput,
+  ownerUserId: number | null
+): {
   id: number;
   created: boolean;
 } {
@@ -154,7 +164,7 @@ export function upsertOAuthChannel(input: CreateChannelInput): {
     });
     return { id: existing.id, created: false };
   }
-  return { id: createChannel(input), created: true };
+  return { id: createChannel(input, ownerUserId), created: true };
 }
 
 export function updateChannel(
@@ -276,10 +286,11 @@ export function changeChannelTimezone(
 
 // ---- Channel groups ---------------------------------------------------------------
 
-export function listChannelGroups(): ChannelGroup[] {
+export function listChannelGroups(ownerId: number | null): ChannelGroup[] {
+  const where = ownerId !== null ? "WHERE owner_user_id = ?" : "";
   return getDb()
-    .prepare("SELECT * FROM channel_groups ORDER BY name COLLATE NOCASE")
-    .all() as ChannelGroup[];
+    .prepare(`SELECT * FROM channel_groups ${where} ORDER BY name COLLATE NOCASE`)
+    .all(...(ownerId !== null ? [ownerId] : [])) as ChannelGroup[];
 }
 
 export function getChannelGroup(id: number): ChannelGroup | undefined {
@@ -298,12 +309,21 @@ export function getGroupMembers(groupId: number): Channel[] {
 // Purely organizational — see Folder's doc comment in lib/types.ts for why this is a
 // separate concept from channel_groups above rather than reusing it.
 
-export function listFolders(): Folder[] {
-  return getDb().prepare("SELECT * FROM folders ORDER BY name COLLATE NOCASE").all() as Folder[];
+export function listFolders(ownerId: number | null): Folder[] {
+  const where = ownerId !== null ? "WHERE owner_user_id = ?" : "";
+  return getDb()
+    .prepare(`SELECT * FROM folders ${where} ORDER BY name COLLATE NOCASE`)
+    .all(...(ownerId !== null ? [ownerId] : [])) as Folder[];
 }
 
-export function createFolder(name: string): number {
-  const info = getDb().prepare("INSERT INTO folders (name) VALUES (?)").run(name.trim());
+export function getFolder(id: number): Folder | undefined {
+  return getDb().prepare("SELECT * FROM folders WHERE id = ?").get(id) as Folder | undefined;
+}
+
+export function createFolder(name: string, ownerUserId: number | null): number {
+  const info = getDb()
+    .prepare("INSERT INTO folders (name, owner_user_id) VALUES (?, ?)")
+    .run(name.trim(), ownerUserId);
   return info.lastInsertRowid as number;
 }
 
@@ -361,10 +381,15 @@ export function getBandCounts(
   return Object.fromEntries(rows.map((r) => [r.band, r.n]));
 }
 
-export function createChannelGroup(input: { name: string; timezone: string }): number {
+export function createChannelGroup(
+  input: { name: string; timezone: string },
+  ownerUserId: number | null
+): number {
   const info = getDb()
-    .prepare("INSERT INTO channel_groups (name, timezone) VALUES (@name, @timezone)")
-    .run({ name: input.name, timezone: input.timezone });
+    .prepare(
+      "INSERT INTO channel_groups (name, timezone, owner_user_id) VALUES (@name, @timezone, @owner_user_id)"
+    )
+    .run({ name: input.name, timezone: input.timezone, owner_user_id: ownerUserId });
   return Number(info.lastInsertRowid);
 }
 

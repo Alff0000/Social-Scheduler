@@ -30,6 +30,7 @@ import { AutofillConfig } from "@/components/autofill-config";
 import { ChannelGroups } from "@/components/channel-groups";
 import { ChannelGroupSelect } from "@/components/channel-group-select";
 import { tzAbbrev } from "@/lib/format";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -52,8 +53,10 @@ export default async function ChannelsPage({
   // The TikTok OAuth callback redirects here with an outcome. Without showing it, a failed
   // connection looks identical to a successful one that simply has not appeared yet.
   const params = await searchParams;
-  const channels = getChannels();
-  const groups = listChannelGroups().map((g) => {
+  const viewer = await getSessionUser();
+  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
+  const channels = getChannels(ownerId);
+  const groups = listChannelGroups(ownerId).map((g) => {
     const members = getGroupMembers(g.id);
     const memberIds = members.map((m) => m.id);
     // A group offers a Story lane only when one of its members can actually post a Story —

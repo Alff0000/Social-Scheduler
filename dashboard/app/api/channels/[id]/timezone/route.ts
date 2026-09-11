@@ -6,6 +6,7 @@ import {
 } from "@/lib/queries";
 import { rebaseWallClock } from "@/lib/time";
 import { isValidTimezone } from "@/lib/timezones";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -24,10 +25,12 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
   const channelId = Number(id);
   const channel = getChannel(channelId);
-  if (!channel) {
+  if (!channel || (!viewer.is_admin && channel.owner_user_id !== viewer.id)) {
     return NextResponse.json({ error: "Channel not found." }, { status: 404 });
   }
   // A grouped channel does NOT own its timezone — the group does. Rebasing one member

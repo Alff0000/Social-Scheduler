@@ -164,7 +164,7 @@ test("scheduled sends are counted for both story and feed publications", async (
     platform: "instagram",
     account_name: `sf-ch${seq}`,
     timezone: "UTC",
-  } as Parameters<typeof q.createChannel>[0]);
+  } as Parameters<typeof q.createChannel>[0], null);
   const postId = q.createDraftPost({ caption: "", first_comment: "", asset_ids: [id] });
 
   // A story send names its slide; a feed send has asset_id NULL and covers every asset on
@@ -188,7 +188,7 @@ test("already-posted sends are not counted — framing cannot change them", asyn
     platform: "instagram",
     account_name: `sf-ch-posted${seq}`,
     timezone: "UTC",
-  } as Parameters<typeof q.createChannel>[0]);
+  } as Parameters<typeof q.createChannel>[0], null);
   const postId = q.createDraftPost({ caption: "", first_comment: "", asset_ids: [id] });
   db.prepare(
     "INSERT INTO publications (post_id, channel_id, scheduled_at, status, surface, asset_id) " +

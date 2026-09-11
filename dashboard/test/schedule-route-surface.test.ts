@@ -21,7 +21,7 @@ function fixture() {
     platform: "instagram",
     account_name: `${prefix}-ig`,
     timezone: "America/Los_Angeles",
-  } as Parameters<typeof q.createChannel>[0]);
+  } as Parameters<typeof q.createChannel>[0], null);
   // Facebook, for the reel test below: Instagram's feed video IS a Reel — it has no
   // separate 'reel' surface (see PLATFORM_CAPS in worker/clients.py) — so a reel target
   // on an Instagram channel is not a combination the worker's _validate will actually
@@ -30,7 +30,7 @@ function fixture() {
     platform: "facebook",
     account_name: `${prefix}-fb`,
     timezone: "America/Los_Angeles",
-  } as Parameters<typeof q.createChannel>[0]);
+  } as Parameters<typeof q.createChannel>[0], null);
   const assetId = Number(
     db
       .prepare(

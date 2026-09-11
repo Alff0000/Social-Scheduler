@@ -43,11 +43,11 @@ test("getAggregateAccountMetrics sums across every active channel, per day", asy
   const a = q.createChannel({
     platform: "instagram", account_name: `${prefix}-a`, timezone: "UTC",
     remote_account_id: `${prefix}-a`, access_token: "tok",
-  });
+  }, null);
   const b = q.createChannel({
     platform: "instagram", account_name: `${prefix}-b`, timezone: "UTC",
     remote_account_id: `${prefix}-b`, access_token: "tok",
-  });
+  }, null);
   const today = isoDay(0);
   seedAccountMetricsRow(db, a, today, { reach: 100, views: 200, likes: 10, comments: 1 });
   seedAccountMetricsRow(db, b, today, { reach: 50, views: 80, likes: 5, comments: 2 });
@@ -72,7 +72,7 @@ test("getAggregateAccountMetrics excludes an inactive channel", async () => {
   const a = q.createChannel({
     platform: "instagram", account_name: `${prefix}-a`, timezone: "UTC",
     remote_account_id: `${prefix}-a`, access_token: "tok",
-  });
+  }, null);
   db.prepare("UPDATE channels SET is_active = 0 WHERE id = ?").run(a);
   seedAccountMetricsRow(db, a, isoDay(0), { reach: 999 });
 
@@ -85,7 +85,7 @@ test("getAggregateAccountMetrics leaves fields it never asked for as null, not z
   const a = q.createChannel({
     platform: "instagram", account_name: `${prefix}-a`, timezone: "UTC",
     remote_account_id: `${prefix}-a`, access_token: "tok",
-  });
+  }, null);
   seedAccountMetricsRow(db, a, isoDay(0), { reach: 10 });
   const row = q.getAggregateAccountMetrics(7).find((r) => r.day === isoDay(0));
   assert.equal(row!.followers_count, null);
@@ -99,11 +99,11 @@ test("getTopChannelsByReach ranks by total reach, highest first", async () => {
   const low = q.createChannel({
     platform: "instagram", account_name: `${prefix}-low`, timezone: "UTC",
     remote_account_id: `${prefix}-low`, access_token: "tok",
-  });
+  }, null);
   const high = q.createChannel({
     platform: "instagram", account_name: `${prefix}-high`, timezone: "UTC",
     remote_account_id: `${prefix}-high`, access_token: "tok",
-  });
+  }, null);
   seedAccountMetricsRow(db, low, isoDay(0), { reach: 10 });
   seedAccountMetricsRow(db, high, isoDay(0), { reach: 500 });
 
@@ -124,7 +124,7 @@ test("getTopChannelsByReach excludes a channel with no reach recorded", async ()
   const noData = q.createChannel({
     platform: "instagram", account_name: `${prefix}-empty`, timezone: "UTC",
     remote_account_id: `${prefix}-empty`, access_token: "tok",
-  });
+  }, null);
   seedAccountMetricsRow(db, noData, isoDay(0), { reach: undefined, views: 100 });
 
   const top = q.getTopChannelsByReach(7, 5);
@@ -137,7 +137,7 @@ test("getTopChannelsByReach respects the limit", async () => {
     const id = q.createChannel({
       platform: "instagram", account_name: `${prefix}-c${i}`, timezone: "UTC",
       remote_account_id: `${prefix}-c${i}`, access_token: "tok",
-    });
+    }, null);
     seedAccountMetricsRow(db, id, isoDay(0), { reach: 10 + i });
   }
   assert.equal(q.getTopChannelsByReach(7, 2).length, 2);
@@ -177,7 +177,7 @@ test("getPublicationsByHour returns all 24 hours, zero-filled where nothing post
   const a = q.createChannel({
     platform: "instagram", account_name: `${prefix}-a`, timezone: "UTC",
     remote_account_id: `${prefix}-a`, access_token: "tok",
-  });
+  }, null);
   const before = q.getPublicationsByHour(7);
   const before14 = before.find((h) => h.hour === 14)?.count ?? 0;
 
@@ -196,7 +196,7 @@ test("getPublicationsByHour ignores a publication outside the window", async () 
   const a = q.createChannel({
     platform: "instagram", account_name: `${prefix}-a`, timezone: "UTC",
     remote_account_id: `${prefix}-a`, access_token: "tok",
-  });
+  }, null);
   const before = q.getPublicationsByHour(7).reduce((sum, h) => sum + h.count, 0);
 
   const old = new Date();
@@ -212,7 +212,7 @@ test("getPublicationsByHour ignores publications that never actually posted", as
   const a = q.createChannel({
     platform: "instagram", account_name: `${prefix}-a`, timezone: "UTC",
     remote_account_id: `${prefix}-a`, access_token: "tok",
-  });
+  }, null);
   const before = q.getPublicationsByHour(7).reduce((sum, h) => sum + h.count, 0);
 
   const postId = Number(
@@ -239,7 +239,7 @@ test("getPostedTodayCount counts only today's posted publications", async () => 
   const a = q.createChannel({
     platform: "instagram", account_name: `${prefix}-a`, timezone: "UTC",
     remote_account_id: `${prefix}-a`, access_token: "tok",
-  });
+  }, null);
   const before = q.getPostedTodayCount();
 
   seedPostedPublication(db, a, new Date().toISOString());

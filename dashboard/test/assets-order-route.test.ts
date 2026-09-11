@@ -130,7 +130,7 @@ test("a post that is mid-publish is refused with 409 and is not rewritten", asyn
     platform: "instagram",
     account_name: `route-ch-${++seq}`,
     timezone: "America/Los_Angeles",
-  });
+  }, null);
   db.prepare(
     `INSERT INTO publications (post_id, channel_id, status, scheduled_at)
      VALUES (?, ?, 'publishing', '2030-01-01T00:00:00Z')`
@@ -149,7 +149,7 @@ test("a queued send does NOT block a reorder — spec §4", async () => {
     platform: "instagram",
     account_name: `route-queued-${++seq}`,
     timezone: "America/Los_Angeles",
-  });
+  }, null);
   db.prepare(
     `INSERT INTO publications (post_id, channel_id, status, scheduled_at)
      VALUES (?, ?, 'scheduled', '2030-01-01T00:00:00Z')`

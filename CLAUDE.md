@@ -22,15 +22,23 @@ Who uses it:
 
 ### Multi-tenancy is structural, not a feature
 Every clone of this repo is a **completely independent install**. There is **no shared
-backend, no hosted service, and no user-accounts/auth system.** Concretely:
+backend, no hosted service between installs.** Concretely:
 - Each install has its **own `.env`**, its **own SQLite database file**, and its **own Meta
   app credentials + per-channel tokens**.
-- Never introduce a central server, a shared database, a login system, or anything that
-  assumes multiple installs talk to each other. They must not.
-- `created_by` on a post is a **free-text label** for shared-install clarity, never an
-  identity/permission system.
+- Never introduce a central server, a shared database, or anything that assumes multiple
+  installs talk to each other. They must not.
 - Anything written to `/data` (the DB, the local asset store) is **per-install and
   gitignored**. Only code and docs are committed.
+
+**Within one install**, a `users` table (migration 0029) now gates dashboard logins, and
+every login is its own isolated tenant: its own channels, posts, media library, calendar,
+tags and periods, invisible to every other login — except `is_admin`, which sees and
+manages everyone's data on that install for oversight. This does NOT contradict the
+per-install independence above: two installs still never share anything, but one install
+can now host more than one person's data side by side. A root table's `owner_user_id`
+column (nullable — see migrations/0034 and its own comment for why) is the real,
+validated ownership relation; `created_by` on a post remains what it always was, a
+**free-text display label**, never an identity/permission check.
 
 ### Tech stack (fixed unless the owner changes it)
 - **Dashboard:** Next.js (App Router), TypeScript, running locally. Internal only — no public

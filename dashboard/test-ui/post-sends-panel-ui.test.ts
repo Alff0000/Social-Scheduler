@@ -37,6 +37,7 @@ function channel(overrides: Partial<Channel> = {}): Channel {
     avatar_refresh_requested: 0,
     avatar_error: null,
     folder_id: null,
+    owner_user_id: null,
     ...overrides,
   };
 }

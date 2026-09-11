@@ -2,14 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { createChannelGroup, listChannelGroups } from "@/lib/queries";
 import { isValidTimezone } from "@/lib/timezones";
 import { config } from "@/lib/config";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
-export function GET() {
-  return NextResponse.json({ groups: listChannelGroups() });
+export async function GET() {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  return NextResponse.json({ groups: listChannelGroups(viewer.is_admin ? null : viewer.id) });
 }
 
 export async function POST(req: NextRequest) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   // A parsed JSON body genuinely has no known shape; every field below is validated
   // before use. Matches the .catch(() => ...) idiom the other routes use, and avoids an
   // explicit `any` for a value that is only ever read through those checks.
@@ -33,7 +38,7 @@ export async function POST(req: NextRequest) {
     );
   }
   try {
-    const id = createChannelGroup({ name, timezone });
+    const id = createChannelGroup({ name, timezone }, viewer.id);
     return NextResponse.json({ id }, { status: 201 });
   } catch (err) {
     // better-sqlite3 hangs the SQLite error name off `code`. The catch binding is
