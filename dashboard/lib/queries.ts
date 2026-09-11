@@ -4,6 +4,8 @@ import { getDb, nowIso } from "./db";
 import { isBlocked } from "./format";
 import { FINISHED_STATUSES_SQL } from "./queue-sections";
 import type { DayRow } from "./insights";
+import { shiftDay } from "./insights";
+import type { DateRange } from "./date-range";
 import type {
   Asset,
   AutofillLane,
@@ -3572,14 +3574,13 @@ export function getWorkerStatus(): { online: boolean; lastSeenAt: string | null 
 // pipeline: this is a read-only summary of data the worker already syncs.
 
 /**
- * account_metrics summed across every active channel, one row per day — feeds
- * insights.ts's buildKpis() the same way a single account's own rows would, so the
- * Overview page gets the exact same "vs. the previous window" math /insights already
- * has, just aggregated. Unpopulated DayRow fields (this call never asks for them) are
- * left null rather than guessed at.
+ * account_metrics summed across every active channel, one row per day within `range` —
+ * feeds date-range.ts's buildRangeKpis() the same way a single account's own rows feed
+ * insights.ts's buildKpis(), so the Overview page gets the exact same "vs. the previous
+ * period" math /insights already has, just aggregated. Unpopulated DayRow fields (this
+ * call never asks for them) are left null rather than guessed at.
  */
-export function getAggregateAccountMetrics(days: number, ownerId: number | null): DayRow[] {
-  const since = new Date(Date.now() - days * 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+export function getAggregateAccountMetrics(range: DateRange, ownerId: number | null): DayRow[] {
   const ownerClause = ownerId === null ? "" : "AND c.owner_user_id = ?";
   const rows = getDb()
     .prepare(
@@ -3592,11 +3593,11 @@ export function getAggregateAccountMetrics(days: number, ownerId: number | null)
               SUM(am.shares) AS shares
        FROM account_metrics am
        JOIN channels c ON c.id = am.channel_id
-       WHERE c.is_active = 1 AND am.day >= ? ${ownerClause}
+       WHERE c.is_active = 1 AND am.day >= ? AND am.day <= ? ${ownerClause}
        GROUP BY am.day
        ORDER BY am.day ASC`,
     )
-    .all(...(ownerId === null ? [since] : [since, ownerId])) as {
+    .all(...(ownerId === null ? [range.start, range.end] : [range.start, range.end, ownerId])) as {
     day: string;
     reach: number | null;
     views: number | null;
@@ -3635,16 +3636,15 @@ export interface TopChannelRow {
   reach: number;
 }
 
-/** The channels with the most reach over the last `days` days — the Overview page's
- *  "top contas" ranking. Only channels with at least one metrics row in the window are
- *  returned; a brand-new or not-yet-synced channel is absent rather than shown as a 0
- *  that would misrepresent "no data yet" as "no reach". */
+/** The channels with the most reach within `range` — the Overview page's "top contas"
+ *  ranking. Only channels with at least one metrics row in the window are returned; a
+ *  brand-new or not-yet-synced channel is absent rather than shown as a 0 that would
+ *  misrepresent "no data yet" as "no reach". */
 export function getTopChannelsByReach(
-  days: number,
+  range: DateRange,
   limit: number,
   ownerId: number | null,
 ): TopChannelRow[] {
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const ownerClause = ownerId === null ? "" : "AND c.owner_user_id = ?";
   return getDb()
     .prepare(
@@ -3652,38 +3652,48 @@ export function getTopChannelsByReach(
               SUM(am.reach) AS reach
        FROM channels c
        JOIN account_metrics am ON am.channel_id = c.id
-       WHERE c.is_active = 1 AND am.day >= ? AND am.reach IS NOT NULL ${ownerClause}
+       WHERE c.is_active = 1 AND am.day >= ? AND am.day <= ? AND am.reach IS NOT NULL ${ownerClause}
        GROUP BY c.id
        HAVING reach > 0
        ORDER BY reach DESC
        LIMIT ?`,
     )
-    .all(...(ownerId === null ? [since, limit] : [since, ownerId, limit])) as TopChannelRow[];
+    .all(
+      ...(ownerId === null
+        ? [range.start, range.end, limit]
+        : [range.start, range.end, ownerId, limit]),
+    ) as TopChannelRow[];
 }
 
 /**
- * How many posts actually went out in each hour of the day, over the last `days` days —
- * the Overview page's "publicações por horário" chart. Grouped by the UTC hour in
- * published_at: channels can each carry their own timezone, so an hour here describes
- * when this INSTALL'S WORKER publishes, not necessarily local morning/afternoon/evening
- * for any one audience — a deliberate simplification for an operational, not per-account,
- * view.
+ * How many posts actually went out in each hour of the day, within `range` — the Overview
+ * page's "publicações por horário" chart. Grouped by the UTC hour in published_at:
+ * channels can each carry their own timezone, so an hour here describes when this
+ * INSTALL'S WORKER publishes, not necessarily local morning/afternoon/evening for any one
+ * audience — a deliberate simplification for an operational, not per-account, view.
  */
 export function getPublicationsByHour(
-  days: number,
+  range: DateRange,
   ownerId: number | null,
 ): { hour: number; count: number }[] {
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  // range.end is an inclusive DAY, but published_at is a full timestamp — the upper bound
+  // has to be the START of the day AFTER range.end, or every send on that last day itself
+  // would be excluded.
+  const since = `${range.start}T00:00:00.000Z`;
+  const until = `${shiftDay(range.end, 1)}T00:00:00.000Z`;
   const ownerClause = ownerId === null ? "" : "AND p.owner_user_id = ?";
   const rows = getDb()
     .prepare(
       `SELECT CAST(strftime('%H', pub.published_at) AS INTEGER) AS hour, COUNT(*) AS count
        FROM publications pub
        JOIN posts p ON p.id = pub.post_id
-       WHERE pub.status = 'posted' AND pub.published_at >= ? ${ownerClause}
+       WHERE pub.status = 'posted' AND pub.published_at >= ? AND pub.published_at < ? ${ownerClause}
        GROUP BY hour`,
     )
-    .all(...(ownerId === null ? [since] : [since, ownerId])) as { hour: number; count: number }[];
+    .all(...(ownerId === null ? [since, until] : [since, until, ownerId])) as {
+    hour: number;
+    count: number;
+  }[];
   const byHour = new Map(rows.map((r) => [r.hour, r.count]));
   return Array.from({ length: 24 }, (_, hour) => ({ hour, count: byHour.get(hour) ?? 0 }));
 }

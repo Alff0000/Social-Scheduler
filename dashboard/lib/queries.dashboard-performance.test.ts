@@ -20,6 +20,13 @@ function isoDay(offsetDays: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** A 7-day range ending today — these functions used to take a plain `days` count; now
+ *  they take an explicit calendar range (see lib/date-range.ts), so every existing "7
+ *  days" call site here becomes this. */
+function last7Days() {
+  return { start: isoDay(-6), end: isoDay(0) };
+}
+
 function seedAccountMetricsRow(
   db: ReturnType<typeof import("better-sqlite3")>,
   channelId: number,
@@ -52,7 +59,7 @@ test("getAggregateAccountMetrics sums across every active channel, per day", asy
   seedAccountMetricsRow(db, a, today, { reach: 100, views: 200, likes: 10, comments: 1 });
   seedAccountMetricsRow(db, b, today, { reach: 50, views: 80, likes: 5, comments: 2 });
 
-  const rows = q.getAggregateAccountMetrics(7, null);
+  const rows = q.getAggregateAccountMetrics(last7Days(), null);
   const row = rows.find((r) => r.day === today);
   assert.ok(row, "today's aggregate row must exist");
   assert.equal(row!.reach, 150);
@@ -66,7 +73,7 @@ test("getAggregateAccountMetrics excludes an inactive channel", async () => {
   // Every setup() in this file shares one DB (see the file-level comment), so another
   // test's active channels may already have data for today — the only assertion that
   // survives that is a BEFORE/AFTER delta, not an absolute value or "today is absent".
-  const before = q.getAggregateAccountMetrics(7, null).find((r) => r.day === isoDay(0));
+  const before = q.getAggregateAccountMetrics(last7Days(), null).find((r) => r.day === isoDay(0));
   const beforeReach = before?.reach ?? 0;
 
   const a = q.createChannel({
@@ -76,7 +83,7 @@ test("getAggregateAccountMetrics excludes an inactive channel", async () => {
   db.prepare("UPDATE channels SET is_active = 0 WHERE id = ?").run(a);
   seedAccountMetricsRow(db, a, isoDay(0), { reach: 999 });
 
-  const after = q.getAggregateAccountMetrics(7, null).find((r) => r.day === isoDay(0));
+  const after = q.getAggregateAccountMetrics(last7Days(), null).find((r) => r.day === isoDay(0));
   assert.equal(after?.reach ?? 0, beforeReach, "an inactive channel's reach must not be added in");
 });
 
@@ -87,7 +94,7 @@ test("getAggregateAccountMetrics leaves fields it never asked for as null, not z
     remote_account_id: `${prefix}-a`, access_token: "tok",
   }, null);
   seedAccountMetricsRow(db, a, isoDay(0), { reach: 10 });
-  const row = q.getAggregateAccountMetrics(7, null).find((r) => r.day === isoDay(0));
+  const row = q.getAggregateAccountMetrics(last7Days(), null).find((r) => r.day === isoDay(0));
   assert.equal(row!.followers_count, null);
   assert.equal(row!.accounts_engaged, null);
 });
@@ -111,7 +118,7 @@ test("getTopChannelsByReach ranks by total reach, highest first", async () => {
   // file share the same DB (see the file-level comment) and may plant channels with
   // even higher reach, which top[0]/top[1] would otherwise pick up instead of these.
   const mine = q
-    .getTopChannelsByReach(7, 1000, null)
+    .getTopChannelsByReach(last7Days(), 1000, null)
     .filter((c) => c.account_name === `${prefix}-low` || c.account_name === `${prefix}-high`);
   assert.equal(mine.length, 2, "both of this test's own channels must be present");
   assert.equal(mine[0].account_name, `${prefix}-high`);
@@ -127,7 +134,7 @@ test("getTopChannelsByReach excludes a channel with no reach recorded", async ()
   }, null);
   seedAccountMetricsRow(db, noData, isoDay(0), { reach: undefined, views: 100 });
 
-  const top = q.getTopChannelsByReach(7, 5, null);
+  const top = q.getTopChannelsByReach(last7Days(), 5, null);
   assert.equal(top.find((c) => c.account_name === `${prefix}-empty`), undefined);
 });
 
@@ -140,7 +147,7 @@ test("getTopChannelsByReach respects the limit", async () => {
     }, null);
     seedAccountMetricsRow(db, id, isoDay(0), { reach: 10 + i });
   }
-  assert.equal(q.getTopChannelsByReach(7, 2, null).length, 2);
+  assert.equal(q.getTopChannelsByReach(last7Days(), 2, null).length, 2);
 });
 
 // ---- getPublicationsByHour --------------------------------------------------------------
@@ -178,12 +185,12 @@ test("getPublicationsByHour returns all 24 hours, zero-filled where nothing post
     platform: "instagram", account_name: `${prefix}-a`, timezone: "UTC",
     remote_account_id: `${prefix}-a`, access_token: "tok",
   }, null);
-  const before = q.getPublicationsByHour(7, null);
+  const before = q.getPublicationsByHour(last7Days(), null);
   const before14 = before.find((h) => h.hour === 14)?.count ?? 0;
 
   seedPostedPublication(db, a, new Date().toISOString().slice(0, 11) + "14:30:00Z");
 
-  const after = q.getPublicationsByHour(7, null);
+  const after = q.getPublicationsByHour(last7Days(), null);
   assert.equal(after.length, 24, "every hour of the day must be represented");
   assert.equal(after.find((h) => h.hour === 14)?.count, before14 + 1);
   // An hour nothing in this test touched must still be a present, numeric 0 — never
@@ -197,13 +204,13 @@ test("getPublicationsByHour ignores a publication outside the window", async () 
     platform: "instagram", account_name: `${prefix}-a`, timezone: "UTC",
     remote_account_id: `${prefix}-a`, access_token: "tok",
   }, null);
-  const before = q.getPublicationsByHour(7, null).reduce((sum, h) => sum + h.count, 0);
+  const before = q.getPublicationsByHour(last7Days(), null).reduce((sum, h) => sum + h.count, 0);
 
   const old = new Date();
   old.setUTCDate(old.getUTCDate() - 30);
   seedPostedPublication(db, a, old.toISOString());
 
-  const after = q.getPublicationsByHour(7, null).reduce((sum, h) => sum + h.count, 0);
+  const after = q.getPublicationsByHour(last7Days(), null).reduce((sum, h) => sum + h.count, 0);
   assert.equal(after, before, "a 30-day-old publication must not count toward a 7-day window");
 });
 
@@ -213,7 +220,7 @@ test("getPublicationsByHour ignores publications that never actually posted", as
     platform: "instagram", account_name: `${prefix}-a`, timezone: "UTC",
     remote_account_id: `${prefix}-a`, access_token: "tok",
   }, null);
-  const before = q.getPublicationsByHour(7, null).reduce((sum, h) => sum + h.count, 0);
+  const before = q.getPublicationsByHour(last7Days(), null).reduce((sum, h) => sum + h.count, 0);
 
   const postId = Number(
     db
@@ -228,7 +235,7 @@ test("getPublicationsByHour ignores publications that never actually posted", as
      VALUES (?, ?, ?, 'failed', NULL)`,
   ).run(postId, a, new Date().toISOString());
 
-  const after = q.getPublicationsByHour(7, null).reduce((sum, h) => sum + h.count, 0);
+  const after = q.getPublicationsByHour(last7Days(), null).reduce((sum, h) => sum + h.count, 0);
   assert.equal(after, before, "a failed send with no published_at must not be counted");
 });
 

@@ -15,12 +15,17 @@ import { PageHeader } from "@/components/ui";
 import { NoChannelsYet, OverviewBody } from "@/components/overview-body";
 import { DashboardPerformance } from "@/components/dashboard-performance";
 import { getSessionUser } from "@/lib/auth";
-
-const PERFORMANCE_WINDOW_DAYS = 7;
+import { parseRangeParams, previousPeriod } from "@/lib/date-range";
 
 export const dynamic = "force-dynamic";
 
-export default async function OverviewPage() {
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const query = await searchParams;
+  const { preset, range } = parseRangeParams(query);
   const viewer = await getSessionUser();
   const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
   const channels = getActiveChannels(ownerId);
@@ -67,12 +72,14 @@ export default async function OverviewPage() {
       <div className="px-8 py-6 space-y-8">
         {channels.length > 0 ? (
           <DashboardPerformance
-            aggregateRows={getAggregateAccountMetrics(PERFORMANCE_WINDOW_DAYS, ownerId)}
-            topChannels={getTopChannelsByReach(PERFORMANCE_WINDOW_DAYS, 5, ownerId)}
-            postsByHour={getPublicationsByHour(PERFORMANCE_WINDOW_DAYS, ownerId)}
+            preset={preset}
+            range={range}
+            currentRows={getAggregateAccountMetrics(range, ownerId)}
+            previousRows={getAggregateAccountMetrics(previousPeriod(range), ownerId)}
+            topChannels={getTopChannelsByReach(range, 5, ownerId)}
+            postsByHour={getPublicationsByHour(range, ownerId)}
             activeChannelCount={channels.length}
             postedTodayCount={getPostedTodayCount(ownerId)}
-            windowDays={PERFORMANCE_WINDOW_DAYS}
           />
         ) : null}
         {channels.length > 0 ? (

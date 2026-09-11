@@ -8,12 +8,17 @@ import {
   getChannelCounts,
 } from "@/lib/insights-queries";
 import {
-  buildKpis, compact, densify, exact, formatDelta, latestMetric, windowRows,
+  compact, exact, formatDelta, latestMetric,
   type MetricKey,
 } from "@/lib/insights";
+import {
+  buildRangeKpis, denseRange, parseRangeParams, previousPeriod, rangeLabel, rangeLength,
+  rowsInRange,
+} from "@/lib/date-range";
 import { channelColor } from "@/lib/format";
 import { platformBadge, platformLabel } from "@/lib/platforms";
 import { getSessionUser } from "@/lib/auth";
+import { DateRangeFilter } from "@/components/date-range-filter";
 
 export const dynamic = "force-dynamic";
 
@@ -108,7 +113,14 @@ function sinceLabel(iso: string | null): string {
   return `há ${Math.floor(hours / 24)}d`;
 }
 
-export default async function InsightsPage() {
+export default async function InsightsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const query = await searchParams;
+  const { preset, range } = parseRangeParams(query);
+  const previous = previousPeriod(range);
   const viewer = await getSessionUser();
   const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
   const channels = getInsightsChannels(ownerId);
@@ -123,6 +135,11 @@ export default async function InsightsPage() {
       />
 
       <div className="px-8 py-6 space-y-8">
+        {supported.length > 0 ? (
+          <div className="flex justify-end">
+            <DateRangeFilter preset={preset} start={range.start} end={range.end} />
+          </div>
+        ) : null}
         {supported.length === 0 ? (
           <EmptyState title="Nenhuma conta com estatísticas ainda">
             Conecte uma conta Instagram ou Threads em{" "}
@@ -136,22 +153,32 @@ export default async function InsightsPage() {
             <div className="grid gap-4 lg:grid-cols-2">
               {supported.map((channel) => {
                 const color = channelColor(channel.id, channel.color_hue);
-                const days = getAccountDays(channel.id);
+                // Fetched wide enough to cover both the selected range AND the equal-length
+                // period before it, however far back a custom range reaches — the 400-day
+                // default only covers about the last 13 months.
+                const daysNeeded = rangeLength({ start: previous.start, end: range.end });
+                const allDays = getAccountDays(channel.id, Math.max(daysNeeded, 400));
+                const currentRows = rowsInRange(allDays, range);
+                const previousRows = rowsInRange(allDays, previous);
                 const counts = getChannelCounts(channel.id);
                 const metrics = CARD_METRICS[channel.platform] ?? CARD_METRICS.instagram;
-                const kpis = buildKpis(days, metrics, 30);
-                const followers = latestMetric(days, "followers_count");
+                const kpis = buildRangeKpis(currentRows, previousRows, metrics, range);
+                // The headline follower count is a snapshot of right now, not scoped to
+                // whatever range is selected — "seguidores" answers "how many today", same
+                // question regardless of which period the KPI row below is showing.
+                const followers = latestMetric(allDays, "followers_count");
                 const deltaSpec = FOLLOWER_DELTA[channel.platform] ?? {
                   key: "follows_gained" as MetricKey,
                   kind: "flow" as const,
                 };
-                const followerDelta = buildKpis(
-                  days,
+                const followerDelta = buildRangeKpis(
+                  currentRows,
+                  previousRows,
                   [{ ...deltaSpec, label: "New" }],
-                  30,
+                  range,
                 )[0];
                 const sparkKey = SPARK_KEY[channel.platform];
-                const spark = densify(windowRows(days, 30), 30).map((d) => ({
+                const spark = denseRange(currentRows, range).map((d) => ({
                   day: d.day,
                   value: sparkKey ? d[sparkKey] : (d.reach ?? d.views),
                 }));
@@ -198,7 +225,7 @@ export default async function InsightsPage() {
                         <Sparkline
                           points={spark}
                           color={color.fg}
-                          label={`Tendência de 30 dias de ${channel.account_name}`}
+                          label={`Tendência ${rangeLabel(preset, range)} de ${channel.account_name}`}
                         />
                       </div>
 
@@ -207,8 +234,8 @@ export default async function InsightsPage() {
                         {kpis.map((kpi, index) => {
                           const delta = formatDelta(kpi.delta);
                           // Same honesty rule as the detail page: a metric the platform
-                          // only reports for a day or two must not sit under a "30 days"
-                          // heading as though it covered the month.
+                          // only reports for a day or two must not sit under the selected
+                          // range's heading as though it covered the whole period.
                           const partial =
                             kpi.value !== null && kpi.daysWithData < kpi.windowDays;
                           return (
@@ -256,7 +283,7 @@ export default async function InsightsPage() {
                           <>
                             {" · "}
                             <span className="data">+{followerDelta.value}</span> novos
-                            seguidores em 30d
+                            seguidores {rangeLabel(preset, range)}
                           </>
                         )}
                       </span>

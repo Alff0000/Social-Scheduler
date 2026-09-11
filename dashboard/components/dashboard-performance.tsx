@@ -1,7 +1,15 @@
-import { buildKpis, compact, exact, formatDelta, type DayRow, type MetricKey } from "@/lib/insights";
+import { compact, exact, formatDelta, type DayRow, type MetricKey } from "@/lib/insights";
+import {
+  buildRangeKpis,
+  denseRange,
+  rangeLabel,
+  type DateRange,
+  type RangePreset,
+} from "@/lib/date-range";
 import { channelColor } from "@/lib/format";
 import { ChannelAvatar } from "@/components/ui";
 import { HBarList, Sparkline } from "@/components/charts";
+import { DateRangeFilter } from "@/components/date-range-filter";
 import type { TopChannelRow } from "@/lib/queries";
 
 const KPI_METRICS: { key: MetricKey; label: string; kind: "flow" }[] = [
@@ -65,23 +73,27 @@ function KpiTile({
 }
 
 export function DashboardPerformance({
-  aggregateRows,
+  preset,
+  range,
+  currentRows,
+  previousRows,
   topChannels,
   postsByHour,
   activeChannelCount,
   postedTodayCount,
-  windowDays,
 }: {
-  aggregateRows: DayRow[];
+  preset: RangePreset;
+  range: DateRange;
+  currentRows: DayRow[];
+  previousRows: DayRow[];
   topChannels: TopChannelRow[];
   postsByHour: { hour: number; count: number }[];
   activeChannelCount: number;
   postedTodayCount: number;
-  windowDays: number;
 }) {
-  const kpis = buildKpis(aggregateRows, KPI_METRICS, windowDays);
-  const pointsFor = (key: MetricKey) =>
-    aggregateRows.slice(-14).map((r) => ({ day: r.day, value: r[key] }));
+  const kpis = buildRangeKpis(currentRows, previousRows, KPI_METRICS, range);
+  const dense = denseRange(currentRows, range);
+  const pointsFor = (key: MetricKey) => dense.map((r) => ({ day: r.day, value: r[key] }));
 
   const maxReach = Math.max(...topChannels.map((c) => c.reach), 1);
   const maxHourCount = Math.max(...postsByHour.map((h) => h.count), 1);
@@ -95,7 +107,10 @@ export function DashboardPerformance({
 
   return (
     <section className="space-y-4">
-      <h2 className="font-display text-sm font-semibold text-ink">Desempenho</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-display text-sm font-semibold text-ink">Desempenho</h2>
+        <DateRangeFilter preset={preset} start={range.start} end={range.end} />
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-card border border-border bg-surface p-4">
@@ -140,7 +155,7 @@ export function DashboardPerformance({
       <div className="grid gap-3 lg:grid-cols-2">
         <div className="rounded-card border border-border bg-surface p-4">
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">
-            Top contas — alcance em {windowDays} dias
+            Top contas — alcance {rangeLabel(preset, range)}
           </h3>
           {topChannels.length === 0 ? (
             <p className="text-xs text-muted">Sem dados de alcance ainda.</p>
@@ -182,7 +197,7 @@ export function DashboardPerformance({
 
         <div className="rounded-card border border-border bg-surface p-4">
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">
-            Publicações por horário — últimos {windowDays} dias
+            Publicações por horário — {rangeLabel(preset, range)}
           </h3>
           <HBarList
             rows={hourRows}
