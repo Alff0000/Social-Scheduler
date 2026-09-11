@@ -5,6 +5,7 @@ import {
   postHasLiveSend,
 } from "@/lib/queries";
 import { checkCanAddMedia } from "@/lib/post-media-edit";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -31,10 +32,12 @@ export const runtime = "nodejs";
  * would have returned, so the strip can render it verbatim either way.
  */
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
   const postId = Number(id);
   const post = Number.isInteger(postId) ? getPost(postId) : undefined;
-  if (!post) {
+  if (!post || (!viewer.is_admin && post.owner_user_id !== viewer.id)) {
     return NextResponse.json({ error: "Post not found." }, { status: 404 });
   }
 

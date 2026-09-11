@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { deletePost } from "@/lib/queries";
+import { deletePost, getPost } from "@/lib/queries";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -7,8 +8,15 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
-  const result = deletePost(Number(id));
+  const postId = Number(id);
+  const post = getPost(postId);
+  if (!post || (!viewer.is_admin && post.owner_user_id !== viewer.id)) {
+    return NextResponse.json({ error: "Post not found." }, { status: 404 });
+  }
+  const result = deletePost(postId);
 
   if (result === "not_found") {
     return NextResponse.json({ error: "Post not found." }, { status: 404 });

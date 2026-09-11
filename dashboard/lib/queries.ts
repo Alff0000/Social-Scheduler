@@ -2427,13 +2427,22 @@ export class IncompatiblePostTargetError extends Error {
  * A story entry fans out to one publication PER SLIDE here rather than at the call site,
  * so every route that schedules through this path gets the rule for free and none of them
  * can forget it. See lib/story-fanout.ts. */
-export function bulkCreatePublications(entries: BulkEntry[]): number {
+export function bulkCreatePublications(
+  entries: BulkEntry[],
+  ownerUserId: number | null,
+): number {
   if (entries.length === 0) return 0;
   const db = getDb();
   for (const entry of entries) {
     const post = getPost(entry.post_id);
     const channel = getChannel(entry.channel_id);
     if (!post || !channel) continue; // let the transaction below hit the FK constraint
+    // Same invariant as createPostWithPublications/setPostTargets: a post and every
+    // channel it is sent to must belong to one tenant. Skipped for admin, who is trusted
+    // to schedule across owners.
+    if (ownerUserId !== null && (post.owner_user_id !== ownerUserId || channel.owner_user_id !== ownerUserId)) {
+      throw new CrossOwnerTargetError(entry.channel_id);
+    }
     const incompatible = incompatibleChannelsForPostType(post.post_type, [channel]);
     if (incompatible.length > 0) {
       throw new IncompatiblePostTargetError(

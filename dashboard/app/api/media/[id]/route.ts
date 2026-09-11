@@ -8,6 +8,7 @@ import { needsStoryCanvas, renderStoryCanvas, type StoryMode } from "@/lib/story
 import { conformImage, type ConformMode } from "@/lib/conform";
 import { needsFeedConform } from "@/lib/feed-geometry";
 import { serveFile } from "@/lib/serve-file";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -16,9 +17,11 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
   const asset = getAsset(Number(id));
-  if (!asset) {
+  if (!asset || (!viewer.is_admin && asset.owner_user_id !== viewer.id)) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
   const variant = req.nextUrl.searchParams.get("variant");

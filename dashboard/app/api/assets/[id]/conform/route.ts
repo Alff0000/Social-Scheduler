@@ -4,6 +4,7 @@ import path from "node:path";
 import { config } from "@/lib/config";
 import { getAsset, updateAssetConform } from "@/lib/queries";
 import { conformImage, type ConformMode } from "@/lib/conform";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,8 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const body = await req.json().catch(() => null);
   const mode = body?.mode;
   if (typeof mode !== "string" || !VALID_MODES.has(mode as ConformMode)) {
@@ -24,7 +27,7 @@ export async function POST(
 
   const { id } = await params;
   const asset = getAsset(Number(id));
-  if (!asset) {
+  if (!asset || (!viewer.is_admin && asset.owner_user_id !== viewer.id)) {
     return NextResponse.json({ error: "Asset not found." }, { status: 404 });
   }
   // conformImage() runs sharp, which cannot decode video — refuse before touching the

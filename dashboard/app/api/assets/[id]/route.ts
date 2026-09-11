@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { assetFilePaths, unlinkInsideStore } from "@/lib/asset-files";
 import { deleteAsset, getAsset } from "@/lib/queries";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -8,12 +9,14 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
 
   // Read the paths BEFORE the row disappears — after the DELETE there is nothing to
   // read them from.
   const asset = getAsset(Number(id));
-  if (!asset) {
+  if (!asset || (!viewer.is_admin && asset.owner_user_id !== viewer.id)) {
     return NextResponse.json({ error: "Asset not found." }, { status: 404 });
   }
 

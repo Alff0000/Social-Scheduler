@@ -11,6 +11,7 @@ import {
 import { intervalSlots } from "@/lib/scheduling";
 import { incompatiblePostError } from "@/lib/platforms";
 import { captionLimitError } from "@/lib/caption-limits";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,10 @@ export const runtime = "nodejs";
  * post i lands in slot i.
  */
 export async function POST(req: NextRequest) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  const ownerId = viewer.is_admin ? null : viewer.id;
+
   const body = await req.json();
   const postIds: number[] = Array.isArray(body.post_ids) ? body.post_ids : [];
   const channelIds: number[] = Array.isArray(body.channel_ids) ? body.channel_ids : [];
@@ -44,14 +49,20 @@ export async function POST(req: NextRequest) {
   }
 
   const channels = channelIds.map((cid) => getChannel(cid));
-  const unknownChannelIdx = channels.findIndex((c) => !c);
+  // A channel that exists but belongs to someone else answers exactly like one that does
+  // not exist at all — same convention as posts/targets/bulk/route.ts.
+  const unknownChannelIdx = channels.findIndex(
+    (c) => !c || (ownerId !== null && c.owner_user_id !== ownerId)
+  );
   if (unknownChannelIdx !== -1) {
     return NextResponse.json({ error: `Unknown channel ${channelIds[unknownChannelIdx]}.` }, { status: 400 });
   }
   const targetChannels = channels.map((c) => c!);
 
   const posts = postIds.map((pid) => getPost(pid));
-  const unknownPostIdx = posts.findIndex((p) => !p);
+  const unknownPostIdx = posts.findIndex(
+    (p) => !p || (ownerId !== null && p.owner_user_id !== ownerId)
+  );
   if (unknownPostIdx !== -1) {
     return NextResponse.json({ error: `Unknown post ${postIds[unknownPostIdx]}.` }, { status: 400 });
   }
@@ -84,7 +95,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const created = bulkCreatePublications(entries);
+    const created = bulkCreatePublications(entries, ownerId);
     return NextResponse.json({ created }, { status: 201 });
   } catch (err) {
     if (err instanceof IncompatiblePostTargetError) {

@@ -36,7 +36,18 @@ q.createDraftPost({
   asset_ids: [],
 }, null);
 
+const { createSession } = await import("../lib/auth.ts");
 const { POST } = await import("../app/api/posts/bulk-edit/context/route.ts");
+
+// The route now requires a session (migrations/0034_owner_scoping.sql). This file's
+// posts are all seeded with owner_user_id NULL, so admin (which skips the ownership
+// check entirely) is what matches them — same as test/bulk-edit-route.test.ts.
+const adminId = Number(
+  db
+    .prepare("INSERT INTO users (email, password_hash, is_admin) VALUES ('admin@test', 'x', 1)")
+    .run().lastInsertRowid,
+);
+await createSession(adminId);
 
 function readStoredRows() {
   return {

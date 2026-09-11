@@ -12,6 +12,7 @@ import { intervalSlots } from "@/lib/scheduling";
 import { incompatiblePostError } from "@/lib/platforms";
 import { captionLimitError } from "@/lib/caption-limits";
 import { parseTargets } from "@/lib/story-fanout";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -20,10 +21,14 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  const ownerId = viewer.is_admin ? null : viewer.id;
+
   const { id } = await params;
   const postId = Number(id);
   const post = getPost(postId);
-  if (!post) {
+  if (!post || (ownerId !== null && post.owner_user_id !== ownerId)) {
     return NextResponse.json({ error: "Post not found." }, { status: 404 });
   }
 
@@ -71,7 +76,11 @@ export async function POST(
   }
 
   const channels = channelIds.map((cid) => getChannel(cid));
-  const unknownIdx = channels.findIndex((c) => !c);
+  // A channel that exists but belongs to someone else answers exactly like one that does
+  // not exist at all — same convention as posts/targets/bulk/route.ts.
+  const unknownIdx = channels.findIndex(
+    (c) => !c || (ownerId !== null && c.owner_user_id !== ownerId)
+  );
   if (unknownIdx !== -1) {
     return NextResponse.json({ error: `Unknown channel ${channelIds[unknownIdx]}.` }, { status: 400 });
   }
@@ -120,7 +129,7 @@ export async function POST(
   }
 
   try {
-    const created = bulkCreatePublications(entries);
+    const created = bulkCreatePublications(entries, ownerId);
     return NextResponse.json({ created }, { status: 201 });
   } catch (err) {
     if (err instanceof IncompatiblePostTargetError) {

@@ -12,6 +12,7 @@ import {
   removePostAsset,
 } from "@/lib/queries";
 import { checkRemoveAsset } from "@/lib/post-media-edit";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -34,11 +35,13 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; assetId: string }> }
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id, assetId: rawAssetId } = await params;
   const postId = Number(id);
   const assetId = Number(rawAssetId);
   const post = Number.isInteger(postId) ? getPost(postId) : undefined;
-  if (!post) {
+  if (!post || (!viewer.is_admin && post.owner_user_id !== viewer.id)) {
     return NextResponse.json({ error: "Post not found." }, { status: 404 });
   }
   if (!Number.isInteger(assetId)) {

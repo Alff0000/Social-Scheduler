@@ -4,6 +4,7 @@ import { config } from "@/lib/config";
 import { getChannel } from "@/lib/queries";
 import { resolveInsideStore } from "@/lib/asset-files";
 import { avatarContentType } from "@/lib/avatar-files";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -21,9 +22,14 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
   const channel = getChannel(Number(id));
-  if (!channel?.avatar_path) {
+  if (!channel || (!viewer.is_admin && channel.owner_user_id !== viewer.id)) {
+    return NextResponse.json({ error: "No avatar." }, { status: 404 });
+  }
+  if (!channel.avatar_path) {
     return NextResponse.json({ error: "No avatar." }, { status: 404 });
   }
 

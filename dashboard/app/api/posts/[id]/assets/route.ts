@@ -13,6 +13,7 @@ import {
 } from "@/lib/queries";
 import { checkAssetOrder } from "@/lib/asset-order";
 import { checkAddAssets } from "@/lib/post-media-edit";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -30,9 +31,12 @@ export const runtime = "nodejs";
  * public_url, no content_hash. This is a browser-facing read.
  */
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
   const postId = Number(id);
-  if (!Number.isInteger(postId) || !getPost(postId)) {
+  const post = Number.isInteger(postId) ? getPost(postId) : undefined;
+  if (!post || (!viewer.is_admin && post.owner_user_id !== viewer.id)) {
     return NextResponse.json({ error: "Post not found." }, { status: 404 });
   }
   return NextResponse.json({
@@ -58,9 +62,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
  * Everything is checked before anything is written.
  */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
   const postId = Number(id);
-  if (!Number.isInteger(postId) || !getPost(postId)) {
+  const post = Number.isInteger(postId) ? getPost(postId) : undefined;
+  if (!post || (!viewer.is_admin && post.owner_user_id !== viewer.id)) {
     return NextResponse.json({ error: "Post not found." }, { status: 404 });
   }
 
@@ -108,10 +115,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
  * deliberately knows none of that; it only links ids that are already in the library.
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await params;
   const postId = Number(id);
   const post = Number.isInteger(postId) ? getPost(postId) : undefined;
-  if (!post) {
+  if (!post || (!viewer.is_admin && post.owner_user_id !== viewer.id)) {
     return NextResponse.json({ error: "Post not found." }, { status: 404 });
   }
 
@@ -125,11 +134,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   // Resolve every id to a real asset BEFORE any rule runs, so "asset 999 doesn't exist"
-  // is reported as itself rather than as a confusing type or compatibility error.
+  // is reported as itself rather than as a confusing type or compatibility error. An
+  // asset that exists but belongs to someone else answers exactly the same way — same
+  // convention as posts/targets/bulk/route.ts's channel check.
   const incoming = [];
   for (const assetId of raw as number[]) {
     const asset = getAsset(assetId);
-    if (!asset) {
+    if (!asset || (!viewer.is_admin && asset.owner_user_id !== viewer.id)) {
       return NextResponse.json(
         { error: `There's no file with id ${assetId} in the library.`, code: "bad_body" },
         { status: 400 }

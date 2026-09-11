@@ -5,6 +5,7 @@ import { config } from "@/lib/config";
 import { getAsset, updateAssetStoryFraming } from "@/lib/queries";
 import { needsStoryCanvas, renderStoryCanvas, type StoryMode } from "@/lib/story-canvas";
 import { passthroughJpeg } from "@/lib/conform";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -22,6 +23,8 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const body = await req.json().catch(() => null);
   const mode = body?.mode;
   // Reject rather than default: a guessed framing is how a Story ends up looking like an
@@ -35,7 +38,7 @@ export async function POST(
 
   const { id } = await params;
   const asset = getAsset(Number(id));
-  if (!asset) {
+  if (!asset || (!viewer.is_admin && asset.owner_user_id !== viewer.id)) {
     return NextResponse.json({ error: "Asset not found." }, { status: 404 });
   }
   // sharp cannot decode video. Mirrors the same guard in /api/assets/[id]/conform — the
