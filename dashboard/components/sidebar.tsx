@@ -125,7 +125,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
           <MenuGlyph />
         </button>
         <span className="font-display text-[15px] font-semibold tracking-tight text-ink">
-          InstaVips
+          xxxxx
         </span>
       </div>
 
@@ -160,7 +160,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
             }}
           />
           <span className="font-display text-[15px] font-semibold tracking-tight text-ink">
-            InstaVips
+            xxxxx
           </span>
         </div>
         <p className="mt-1.5 text-[11px] leading-tight text-faint">

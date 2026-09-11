@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
-  InstaVips design tokens — six self-contained themes (Claro / Escuro / InstaVips
+  xxxxx design tokens — six self-contained themes (Claro / Escuro / xxxxx
   Vermelho / Roxo / Japonês / Neon), no separate light/dark toggle. See lib/themes.ts
   for why the old theme × mode matrix (7 families × 2 modes, most of them unused
   leftovers from the original fork) collapsed into this flat list.
@@ -27,7 +27,7 @@
   All four re-verified for WCAG AA text contrast against their own canvas/surface.
 */
 @theme {
-  /* ---- InstaVips Vermelho (also the bare default, before data-theme is known) ---- */
+  /* ---- xxxxx Vermelho (also the bare default, before data-theme is known) ---- */
   --color-canvas: #0a0a0c;
   --color-surface: #141318;
   --color-surface-sunken: #1c1b21;

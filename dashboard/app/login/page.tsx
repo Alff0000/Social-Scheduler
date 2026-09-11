@@ -48,7 +48,7 @@ export default function LoginPage() {
             }}
           />
           <span className="font-display text-[15px] font-semibold tracking-tight text-ink">
-            InstaVips
+            xxxxx
           </span>
         </div>
         <h1 className="font-display text-lg font-semibold text-ink">Entrar</h1>

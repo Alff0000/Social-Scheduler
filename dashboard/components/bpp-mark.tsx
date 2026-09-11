@@ -33,7 +33,7 @@ export function BppMark({
     return (
       <span
         className="text-[10px] text-faint"
-        title="Só posts na sua Agendamento em Massa podem ser republicados — este foi publicado fora do InstaVips, então não há legenda ou imagem para reenviar."
+        title="Só posts na sua Agendamento em Massa podem ser republicados — este foi publicado fora do xxxxx, então não há legenda ou imagem para reenviar."
       >
         fora da biblioteca
       </span>
