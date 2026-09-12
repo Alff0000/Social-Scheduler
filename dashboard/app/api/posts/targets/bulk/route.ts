@@ -22,7 +22,7 @@ const MAX_REPORTED = 3;
  */
 export async function POST(req: NextRequest) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const ownerId = viewer.is_admin ? null : viewer.id;
 
   const body = await req.json();
@@ -31,13 +31,13 @@ export async function POST(req: NextRequest) {
   const action = body.action;
 
   if (postIds.length === 0) {
-    return NextResponse.json({ error: "Select at least one post." }, { status: 400 });
+    return NextResponse.json({ error: "Selecione ao menos um post." }, { status: 400 });
   }
   if (channelIds.length === 0) {
-    return NextResponse.json({ error: "Select at least one channel." }, { status: 400 });
+    return NextResponse.json({ error: "Selecione ao menos uma conta." }, { status: 400 });
   }
   if (action !== "add" && action !== "remove") {
-    return NextResponse.json({ error: "action must be 'add' or 'remove'." }, { status: 400 });
+    return NextResponse.json({ error: "action deve ser 'add' ou 'remove'." }, { status: 400 });
   }
   const channels = channelIds.map((cid) => getChannel(cid));
   // A channel that exists but belongs to someone else answers exactly like one that does
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     (c) => !c || (ownerId !== null && c.owner_user_id !== ownerId)
   );
   if (unknownIdx !== -1) {
-    return NextResponse.json({ error: `Unknown channel ${channelIds[unknownIdx]}.` }, { status: 400 });
+    return NextResponse.json({ error: `Conta desconhecida ${channelIds[unknownIdx]}.` }, { status: 400 });
   }
   const targetChannels = channels.map((c) => c!);
   // Same rule for posts: only ids this viewer (or admin) owns are ever eligible, for

@@ -12,7 +12,7 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const ownerId = viewer.is_admin ? null : viewer.id;
   const body = await req.json();
   const assetIds: number[] = Array.isArray(body.asset_ids) ? body.asset_ids : [];
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   // which can only have meant feed targets.
   const parsedTargets = parseTargets(body.targets, body.channel_ids);
   if (parsedTargets === "invalid") {
-    return NextResponse.json({ error: "Invalid targets." }, { status: 400 });
+    return NextResponse.json({ error: "Destinos inválidos." }, { status: 400 });
   }
   // Channel-level checks below are per ACCOUNT, so dedupe: one Instagram account
   // picked for both Feed and Story is still a single channel to validate.
@@ -36,28 +36,28 @@ export async function POST(req: NextRequest) {
   if (isText) {
     if (assetIds.length > 0) {
       return NextResponse.json(
-        { error: "A text-only post can't have images." },
+        { error: "Um post só de texto não pode ter imagens." },
         { status: 400 }
       );
     }
     if (!caption) {
-      return NextResponse.json({ error: "Write a caption for the text post." }, { status: 400 });
+      return NextResponse.json({ error: "Escreva uma legenda para o post de texto." }, { status: 400 });
     }
   } else if (assetIds.length === 0) {
-    return NextResponse.json({ error: "Add at least one image." }, { status: 400 });
+    return NextResponse.json({ error: "Adicione ao menos uma imagem." }, { status: 400 });
   }
   if (channelIds.length === 0) {
-    return NextResponse.json({ error: "Select at least one channel." }, { status: 400 });
+    return NextResponse.json({ error: "Selecione ao menos uma conta." }, { status: 400 });
   }
   if (!postNow && !localTime) {
-    return NextResponse.json({ error: "Pick a date and time." }, { status: 400 });
+    return NextResponse.json({ error: "Escolha uma data e um horário." }, { status: 400 });
   }
   const channels = channelIds.map((cid) => getChannel(cid));
   const unknownIdx = channels.findIndex(
     (c) => !c || (ownerId !== null && c.owner_user_id !== ownerId)
   );
   if (unknownIdx !== -1) {
-    return NextResponse.json({ error: `Unknown channel ${channelIds[unknownIdx]}.` }, { status: 400 });
+    return NextResponse.json({ error: `Conta desconhecida ${channelIds[unknownIdx]}.` }, { status: 400 });
   }
   const targetChannels = channels.map((c) => c!);
 
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
   );
   if (unknownAssetIdx !== -1) {
     return NextResponse.json(
-      { error: `Unknown asset ${assetIds[unknownAssetIdx]}.` },
+      { error: `Arquivo desconhecido ${assetIds[unknownAssetIdx]}.` },
       { status: 400 }
     );
   }
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
   // compose time with a clear reason, rather than terminally in the worker later.
   if (!isText && chosenAssets.length > 1 && chosenAssets.some((a) => a.media_kind === "video")) {
     return NextResponse.json(
-      { error: "A carousel can only contain images. Post a video as its own Reel." },
+      { error: "Um carrossel só pode conter imagens. Publique um vídeo como Reel próprio." },
       { status: 400 }
     );
   }
@@ -114,21 +114,21 @@ export async function POST(req: NextRequest) {
     try {
       scheduledUtc = zonedTimeToUtc(localTime, timeZone);
     } catch {
-      return NextResponse.json({ error: "Invalid date/time." }, { status: 400 });
+      return NextResponse.json({ error: "Data/hora inválida." }, { status: 400 });
     }
   }
 
   let contentKind: ContentKind | undefined;
   if (body.content_kind !== undefined) {
     if (body.content_kind !== "evergreen" && body.content_kind !== "one_time") {
-      return NextResponse.json({ error: "Invalid content_kind." }, { status: 400 });
+      return NextResponse.json({ error: "content_kind inválido." }, { status: 400 });
     }
     contentKind = body.content_kind;
   }
 
   const captionVariants = parseCaptionVariants(body.caption_variants);
   if (captionVariants === "invalid") {
-    return NextResponse.json({ error: "Invalid caption_variants." }, { status: 400 });
+    return NextResponse.json({ error: "caption_variants inválido." }, { status: 400 });
   }
 
   // Same check content/route.ts's PATCH does before saving — a caption that's fine to
@@ -147,13 +147,13 @@ export async function POST(req: NextRequest) {
     return p && (ownerId === null || p.owner_user_id === ownerId) ? p : undefined;
   });
   if (periodLinks === "invalid") {
-    return NextResponse.json({ error: "Invalid period_links." }, { status: 400 });
+    return NextResponse.json({ error: "period_links inválido." }, { status: 400 });
   }
 
   const validTagIds = new Set(listTags(undefined, ownerId).map((t) => t.id));
   const tagIds = parseTagIds(body.tag_ids, (id) => validTagIds.has(id));
   if (tagIds === "invalid") {
-    return NextResponse.json({ error: "Invalid tag_ids." }, { status: 400 });
+    return NextResponse.json({ error: "tag_ids inválido." }, { status: 400 });
   }
 
   const { postId, publicationIds } = createPostWithPublications({

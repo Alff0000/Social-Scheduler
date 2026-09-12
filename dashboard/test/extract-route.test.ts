@@ -66,7 +66,7 @@ test("extracting a slide returns 200 and every resulting post id", async () => {
 test("a missing post is 404", async () => {
   const res = await call(999999, { asset_ids: [1] });
   assert.equal(res.status, 404);
-  assert.match((await res.json()).error, /no longer exists/i);
+  assert.match((await res.json()).error, /não existe mais/i);
 });
 
 test("a non-numeric id is 400", async () => {
@@ -91,7 +91,7 @@ test("selecting nothing is 400 with a readable message", async () => {
   const { post } = mkCarousel(3);
   const res = await call(post, { asset_ids: [] });
   assert.equal(res.status, 400);
-  assert.match((await res.json()).error, /at least one/i);
+  assert.match((await res.json()).error, /ao menos uma/i);
 });
 
 test("selecting every slide is 400 and names the other action", async () => {
@@ -114,5 +114,5 @@ test("a queued send is 409", async () => {
 
   const res = await call(post, { asset_ids: [ids[1]] });
   assert.equal(res.status, 409);
-  assert.match((await res.json()).error, /cancel or hold/i);
+  assert.match((await res.json()).error, /cancele ou coloque/i);
 });

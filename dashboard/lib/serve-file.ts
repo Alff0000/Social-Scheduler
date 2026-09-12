@@ -33,7 +33,7 @@ export async function serveFile(
   const base = path.resolve(config.assetStorageDir);
   const abs = path.resolve(base, rel);
   if (!abs.startsWith(base + path.sep)) {
-    return NextResponse.json({ error: "Invalid path." }, { status: 400 });
+    return NextResponse.json({ error: "Caminho inválido." }, { status: 400 });
   }
 
   try {
@@ -96,6 +96,6 @@ export async function serveFile(
       },
     });
   } catch {
-    return NextResponse.json({ error: "File missing on disk." }, { status: 404 });
+    return NextResponse.json({ error: "Arquivo ausente no disco." }, { status: 404 });
   }
 }

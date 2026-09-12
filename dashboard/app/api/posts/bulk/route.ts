@@ -22,7 +22,7 @@ export const runtime = "nodejs";
  */
 export async function POST(req: NextRequest) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const ownerId = viewer.is_admin ? null : viewer.id;
 
   const body = await req.json();
@@ -33,19 +33,19 @@ export async function POST(req: NextRequest) {
   const startDate: string = body.start_date || ""; // "YYYY-MM-DD"
 
   if (postIds.length === 0) {
-    return NextResponse.json({ error: "Select at least one post." }, { status: 400 });
+    return NextResponse.json({ error: "Selecione ao menos um post." }, { status: 400 });
   }
   if (channelIds.length === 0) {
-    return NextResponse.json({ error: "Select at least one channel." }, { status: 400 });
+    return NextResponse.json({ error: "Selecione ao menos uma conta." }, { status: 400 });
   }
   if (!Number.isFinite(everyDays) || everyDays < 1) {
-    return NextResponse.json({ error: "Frequency must be at least 1 day." }, { status: 400 });
+    return NextResponse.json({ error: "A frequência deve ser de ao menos 1 dia." }, { status: 400 });
   }
   if (!/^\d{2}:\d{2}$/.test(time)) {
-    return NextResponse.json({ error: "Enter a time as HH:MM." }, { status: 400 });
+    return NextResponse.json({ error: "Digite um horário no formato HH:MM." }, { status: 400 });
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
-    return NextResponse.json({ error: "Pick a start date." }, { status: 400 });
+    return NextResponse.json({ error: "Escolha uma data de início." }, { status: 400 });
   }
 
   const channels = channelIds.map((cid) => getChannel(cid));
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     (c) => !c || (ownerId !== null && c.owner_user_id !== ownerId)
   );
   if (unknownChannelIdx !== -1) {
-    return NextResponse.json({ error: `Unknown channel ${channelIds[unknownChannelIdx]}.` }, { status: 400 });
+    return NextResponse.json({ error: `Conta desconhecida ${channelIds[unknownChannelIdx]}.` }, { status: 400 });
   }
   const targetChannels = channels.map((c) => c!);
 
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     (p) => !p || (ownerId !== null && p.owner_user_id !== ownerId)
   );
   if (unknownPostIdx !== -1) {
-    return NextResponse.json({ error: `Unknown post ${postIds[unknownPostIdx]}.` }, { status: 400 });
+    return NextResponse.json({ error: `Post desconhecido ${postIds[unknownPostIdx]}.` }, { status: 400 });
   }
   // Per post, not just per post_type: two carousels can share a post_type but differ in
   // asset count, and this route never checked carousel size against maxCarousel at all

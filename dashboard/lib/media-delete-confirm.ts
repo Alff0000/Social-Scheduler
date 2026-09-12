@@ -32,14 +32,14 @@ export function deleteBlockReasons(u: UsageCounts): string[] {
   const reasons: string[] = [];
   if (u.otherPosts > 0) {
     reasons.push(
-      u.otherPosts === 1 ? "another post uses it" : `${u.otherPosts} other posts use it`
+      u.otherPosts === 1 ? "outro post usa este arquivo" : `${u.otherPosts} outros posts usam este arquivo`
     );
   }
   if (u.sends > 0) {
-    reasons.push("a scheduled or failed send still references it");
+    reasons.push("um envio agendado ou que falhou ainda usa este arquivo");
   }
   if (u.covers > 0) {
-    reasons.push("it's a Reel's cover image");
+    reasons.push("é a capa de um Reel");
   }
   return reasons;
 }
@@ -47,8 +47,8 @@ export function deleteBlockReasons(u: UsageCounts): string[] {
 function joinList(items: string[]): string {
   if (items.length === 0) return "";
   if (items.length === 1) return items[0];
-  if (items.length === 2) return `${items[0]}, and ${items[1]}`;
-  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+  if (items.length === 2) return `${items[0]} e ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")} e ${items[items.length - 1]}`;
 }
 
 export interface DeleteBlockState {
@@ -72,13 +72,13 @@ export function deleteBlockState(usage: UsageCounts | null, usageError: boolean)
   if (usageError) {
     return {
       blocked: true,
-      message: "Couldn't check where else this file is used, so deleting it outright isn't offered here.",
+      message: "Não foi possível checar onde mais esse arquivo é usado, então excluir por completo não está disponível aqui.",
     };
   }
   if (usage === null) {
-    return { blocked: true, message: "Checking whether this file is used elsewhere…" };
+    return { blocked: true, message: "Checando se esse arquivo é usado em outro lugar…" };
   }
   const reasons = deleteBlockReasons(usage);
   if (reasons.length === 0) return { blocked: false, message: null };
-  return { blocked: true, message: `Can't delete the file entirely — ${joinList(reasons)}.` };
+  return { blocked: true, message: `Não é possível excluir o arquivo por completo — ${joinList(reasons)}.` };
 }

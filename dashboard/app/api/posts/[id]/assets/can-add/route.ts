@@ -33,12 +33,12 @@ export const runtime = "nodejs";
  */
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const postId = Number(id);
   const post = Number.isInteger(postId) ? getPost(postId) : undefined;
   if (!post || (!viewer.is_admin && post.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Post not found." }, { status: 404 });
+    return NextResponse.json({ error: "Post não encontrado." }, { status: 404 });
   }
 
   const gate = checkCanAddMedia(

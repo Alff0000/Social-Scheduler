@@ -13,16 +13,16 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const accountId = Number(id);
   const account = getStockAccount(accountId);
   if (!account || (!viewer.is_admin && account.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Account not found." }, { status: 404 });
+    return NextResponse.json({ error: "Conta não encontrada." }, { status: 404 });
   }
   const secrets = revealStockSecrets(accountId);
   if (!secrets) {
-    return NextResponse.json({ error: "Account not found." }, { status: 404 });
+    return NextResponse.json({ error: "Conta não encontrada." }, { status: 404 });
   }
   return NextResponse.json(secrets);
 }

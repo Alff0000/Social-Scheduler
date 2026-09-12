@@ -16,25 +16,25 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const groupId = Number(id);
   const group = getChannelGroup(groupId);
   if (!group || (!viewer.is_admin && group.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Group not found." }, { status: 404 });
+    return NextResponse.json({ error: "Grupo não encontrado." }, { status: 404 });
   }
   // A parsed JSON body genuinely has no known shape; every field below is validated
   // before use. Matches the .catch(() => ...) idiom the other routes use, and avoids an
   // explicit `any` for a value that is only ever read through those checks.
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 });
+    return NextResponse.json({ error: "O corpo da requisição precisa ser um JSON válido." }, { status: 400 });
   }
   // `timezone` is intentionally NOT accepted here — it goes through
   // POST /api/channel-groups/[id]/timezone, which also rebases every member's queue.
   if ("timezone" in body) {
     return NextResponse.json(
-      { error: "Change the timezone via POST /api/channel-groups/[id]/timezone." },
+      { error: "Altere o fuso horário via POST /api/channel-groups/[id]/timezone." },
       { status: 400 }
     );
   }
@@ -42,7 +42,7 @@ export async function PATCH(
   if (typeof body.name === "string") {
     const name = body.name.trim();
     if (!name) {
-      return NextResponse.json({ error: "Group name cannot be empty." }, { status: 400 });
+      return NextResponse.json({ error: "O nome do grupo não pode ficar vazio." }, { status: 400 });
     }
     fields.name = name;
   }
@@ -85,7 +85,7 @@ export async function PATCH(
         ? String((err as { code: unknown }).code ?? "")
         : "";
     if (code.includes("SQLITE_CONSTRAINT")) {
-      return NextResponse.json({ error: "Another group already has that name." }, { status: 400 });
+      return NextResponse.json({ error: "Já existe outro grupo com esse nome." }, { status: 400 });
     }
     throw err;
   }
@@ -97,18 +97,18 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const groupId = Number(id);
   const group = getChannelGroup(groupId);
   if (!group || (!viewer.is_admin && group.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Group not found." }, { status: 404 });
+    return NextResponse.json({ error: "Grupo não encontrado." }, { status: 404 });
   }
   // Members are returned to solo auto-fill by ON DELETE SET NULL. Nothing is published,
   // unpublished, or unscheduled — a group is a scheduling convenience, not an owner.
   const ok = deleteChannelGroup(groupId);
   if (!ok) {
-    return NextResponse.json({ error: "Group not found." }, { status: 404 });
+    return NextResponse.json({ error: "Grupo não encontrado." }, { status: 404 });
   }
   return NextResponse.json({ ok: true });
 }

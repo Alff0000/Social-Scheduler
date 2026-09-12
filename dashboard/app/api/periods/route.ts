@@ -7,17 +7,17 @@ export const runtime = "nodejs";
 
 export async function GET() {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   return NextResponse.json({ periods: listPeriods(viewer.is_admin ? null : viewer.id) });
 }
 
 export async function POST(req: NextRequest) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const body = await req.json();
   const name = (body.name || "").trim();
   if (!name) {
-    return NextResponse.json({ error: "Name is required." }, { status: 400 });
+    return NextResponse.json({ error: "O nome é obrigatório." }, { status: 400 });
   }
   // Default to yearly (matches the periods.recurs_yearly column default).
   const recursYearly = body.recurs_yearly !== false;
@@ -29,13 +29,13 @@ export async function POST(req: NextRequest) {
     const endDay = Number(body.end_day);
     if (![startMonth, endMonth].every((m) => Number.isInteger(m) && m >= 1 && m <= 12)) {
       return NextResponse.json(
-        { error: "start_month/end_month must be 1-12." },
+        { error: "start_month/end_month deve ser de 1 a 12." },
         { status: 400 }
       );
     }
     if (![startDay, endDay].every((d) => Number.isInteger(d) && d >= 1 && d <= 31)) {
       return NextResponse.json(
-        { error: "start_day/end_day must be 1-31." },
+        { error: "start_day/end_day deve ser de 1 a 31." },
         { status: 400 }
       );
     }
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
   if (!hasValidOneOffPeriodDates(body)) {
     return NextResponse.json(
-      { error: "One-off periods require valid start_date/end_date calendar dates." },
+      { error: "Períodos avulsos exigem datas de início e fim válidas." },
       { status: 400 }
     );
   }

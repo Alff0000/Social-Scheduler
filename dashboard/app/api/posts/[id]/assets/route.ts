@@ -32,12 +32,12 @@ export const runtime = "nodejs";
  */
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const postId = Number(id);
   const post = Number.isInteger(postId) ? getPost(postId) : undefined;
   if (!post || (!viewer.is_admin && post.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Post not found." }, { status: 404 });
+    return NextResponse.json({ error: "Post não encontrado." }, { status: 404 });
   }
   return NextResponse.json({
     assets: getPostAssets(postId).map((a) => ({
@@ -63,18 +63,18 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
  */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const postId = Number(id);
   const post = Number.isInteger(postId) ? getPost(postId) : undefined;
   if (!post || (!viewer.is_admin && post.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Post not found." }, { status: 404 });
+    return NextResponse.json({ error: "Post não encontrado." }, { status: 404 });
   }
 
   const body = await req.json().catch(() => null);
   if (body === null || typeof body !== "object") {
     return NextResponse.json(
-      { error: "Expected a JSON body with asset_ids.", code: "bad_body" },
+      { error: "Esperado um corpo em JSON com asset_ids.", code: "bad_body" },
       { status: 400 }
     );
   }
@@ -92,7 +92,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (postHasPublishingPublication(postId)) {
     return NextResponse.json(
       {
-        error: "This post is being published right now. Try again once that send finishes.",
+        error: "Esse post está sendo publicado agora. Tente de novo quando esse envio terminar.",
         code: "publishing",
       },
       { status: 409 }
@@ -116,19 +116,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const postId = Number(id);
   const post = Number.isInteger(postId) ? getPost(postId) : undefined;
   if (!post || (!viewer.is_admin && post.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Post not found." }, { status: 404 });
+    return NextResponse.json({ error: "Post não encontrado." }, { status: 404 });
   }
 
   const body = await req.json().catch(() => null);
   const raw = (body as { asset_ids?: unknown } | null)?.asset_ids;
   if (!Array.isArray(raw) || !raw.every((v) => Number.isInteger(v))) {
     return NextResponse.json(
-      { error: "Expected a JSON body with asset_ids as whole numbers.", code: "bad_body" },
+      { error: "Esperado um corpo em JSON com asset_ids como números inteiros.", code: "bad_body" },
       { status: 400 }
     );
   }
@@ -182,7 +182,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (result === "has_live") {
     return NextResponse.json(
       {
-        error: "This post went live while you were editing it, so nothing was changed.",
+        error: "Esse post foi publicado enquanto você editava, então nada foi alterado.",
         code: "live_send",
       },
       { status: 409 }

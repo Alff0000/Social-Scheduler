@@ -10,19 +10,19 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
 
   // Read the paths BEFORE the row disappears — after the DELETE there is nothing to
   // read them from.
   const asset = getAsset(Number(id));
   if (!asset || (!viewer.is_admin && asset.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Asset not found." }, { status: 404 });
+    return NextResponse.json({ error: "Arquivo não encontrado." }, { status: 404 });
   }
 
   const result = deleteAsset(Number(id));
   if (result === "not_found") {
-    return NextResponse.json({ error: "Asset not found." }, { status: 404 });
+    return NextResponse.json({ error: "Arquivo não encontrado." }, { status: 404 });
   }
   if (result === "in_use") {
     return NextResponse.json(

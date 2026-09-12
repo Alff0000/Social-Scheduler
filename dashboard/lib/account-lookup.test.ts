@@ -106,7 +106,7 @@ test("a 190 cannot tell a bad token from the wrong platform, and says so", () =>
   const result = parseLookup("instagram", 401, body, TOKEN);
   assert.equal(result.ok, false);
   const error = (result as { error: string }).error;
-  assert.match(error, /expired|invalid/i);
+  assert.match(error, /expirou|inválido/i);
   assert.match(error, /Instagram/, "must name the platform that was actually tried");
 });
 
@@ -121,7 +121,7 @@ test("a working Facebook token that manages no Pages gets its own explanation", 
 test("a 200 with no id is a failure, not an account called undefined", () => {
   const result = parseLookup("threads", 200, { something_else: true }, TOKEN);
   assert.equal(result.ok, false);
-  assert.match((result as { error: string }).error, /unexpected|could not/i);
+  assert.match((result as { error: string }).error, /inesperada|não foi possível/i);
 });
 
 test("Meta's own message is passed through so nothing is swallowed", () => {
@@ -221,8 +221,8 @@ test("a Page token sent to the Pages list is explained, not relayed as Meta's gi
     const result = parseLookup("facebook", 400, body, TOKEN);
     assert.equal(result.ok, false, message);
     const error = (result as { error: string }).error;
-    assert.match(error, /Page token/, message);
-    assert.match(error, /USER token/, message);
+    assert.match(error, /token de Page/, message);
+    assert.match(error, /token de USUÁRIO/, message);
     assert.ok(!error.includes("nonexisting field"), "Meta's wording should not be relayed");
   }
 });

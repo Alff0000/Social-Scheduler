@@ -25,11 +25,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const mediaId = Number(id);
   if (!Number.isInteger(mediaId)) {
-    return NextResponse.json({ error: "Invalid id." }, { status: 400 });
+    return NextResponse.json({ error: "Id inválido." }, { status: 400 });
   }
 
   // Joined to channels for the ownership check in one query, rather than a second
@@ -44,17 +44,17 @@ export async function GET(
     .get(mediaId) as { thumbnail_path: string | null; owner_user_id: number | null } | undefined;
 
   if (!row || (!viewer.is_admin && row.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "No thumbnail." }, { status: 404 });
+    return NextResponse.json({ error: "Sem miniatura." }, { status: 404 });
   }
   if (!row.thumbnail_path) {
-    return NextResponse.json({ error: "No thumbnail." }, { status: 404 });
+    return NextResponse.json({ error: "Sem miniatura." }, { status: 404 });
   }
 
   // Guards against a stored path escaping the asset store via traversal — the value
   // comes from our own worker, but a serving route should not depend on that.
   const abs = resolveInsideStore(config.assetStorageDir, row.thumbnail_path);
   if (!abs) {
-    return NextResponse.json({ error: "Invalid path." }, { status: 400 });
+    return NextResponse.json({ error: "Caminho inválido." }, { status: 400 });
   }
 
   try {
@@ -69,6 +69,6 @@ export async function GET(
       },
     });
   } catch {
-    return NextResponse.json({ error: "File missing on disk." }, { status: 404 });
+    return NextResponse.json({ error: "Arquivo ausente no disco." }, { status: 404 });
   }
 }

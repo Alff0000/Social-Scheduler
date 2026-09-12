@@ -1773,7 +1773,7 @@ export function mergePostsIntoCarousel(
         ok: false,
         problem: {
           code: "no_assets",
-          message: "Those posts have no photos to merge.",
+          message: "Esses posts não têm fotos para mesclar.",
           status: 400,
         },
       };
@@ -2832,6 +2832,26 @@ export function reschedulePublication(id: number, scheduledAtUtc: string): boole
   return info.changes > 0;
 }
 
+/** Bring a canceled send back to life, at a new date/time — the only path back for the
+ *  Cancelados section, which otherwise had no action at all (a canceled send couldn't be
+ *  edited, rescheduled, or resumed; the only way back was duplicating the post from the
+ *  Library). Deliberately its own function rather than widening reschedulePublication's
+ *  WHERE clause: that one only ever moves a send within the statuses it is already in,
+ *  and giving it a silent status-flipping side effect would be a surprising thing for
+ *  every OTHER caller of "reschedule" to have to reason about. next_retry_at is cleared
+ *  the same way cancelPublication clears it — a fresh scheduled send has nothing to
+ *  retry yet. */
+export function restoreCanceledPublication(id: number, scheduledAtUtc: string): boolean {
+  const info = getDb()
+    .prepare(
+      `UPDATE publications
+       SET status = 'scheduled', scheduled_at = @at, next_retry_at = NULL, updated_at = @now
+       WHERE id = @id AND status = 'canceled'`
+    )
+    .run({ id, at: scheduledAtUtc, now: nowIso() });
+  return info.changes > 0;
+}
+
 export function holdPublication(id: number): boolean {
   const info = getDb()
     .prepare(
@@ -3130,7 +3150,7 @@ export function getTag(id: number): Tag | undefined {
 export function renameTopicTag(tagId: number, name: string): Tag | null {
   const db = getDb();
   const clean = name.trim();
-  if (!clean) throw new Error("Tag name cannot be empty.");
+  if (!clean) throw new Error("O nome da etiqueta não pode ficar vazio.");
 
   const tag = getTag(tagId);
   if (!tag) return null;

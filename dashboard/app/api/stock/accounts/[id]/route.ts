@@ -15,16 +15,16 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const accountId = Number(id);
   const account = getStockAccount(accountId);
   if (!account || (!viewer.is_admin && account.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Account not found." }, { status: 404 });
+    return NextResponse.json({ error: "Conta não encontrada." }, { status: 404 });
   }
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 });
+    return NextResponse.json({ error: "O corpo da requisição precisa ser um JSON válido." }, { status: 400 });
   }
   if ("is_used" in body) {
     setStockAccountUsed(accountId, Boolean(body.is_used));
@@ -32,7 +32,7 @@ export async function PATCH(
   if ("folder_id" in body) {
     const fid = body.folder_id === null || body.folder_id === "" ? null : Number(body.folder_id);
     if (fid !== null && !listFolders(viewer.is_admin ? null : viewer.id).some((f) => f.id === fid)) {
-      return NextResponse.json({ error: "Folder not found." }, { status: 400 });
+      return NextResponse.json({ error: "Pasta não encontrada." }, { status: 400 });
     }
     setStockAccountFolder(accountId, fid);
   }
@@ -44,16 +44,16 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const accountId = Number(id);
   const account = getStockAccount(accountId);
   if (!account || (!viewer.is_admin && account.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Account not found." }, { status: 404 });
+    return NextResponse.json({ error: "Conta não encontrada." }, { status: 404 });
   }
   const ok = deleteStockAccount(accountId);
   if (!ok) {
-    return NextResponse.json({ error: "Account not found." }, { status: 404 });
+    return NextResponse.json({ error: "Conta não encontrada." }, { status: 404 });
   }
   return NextResponse.json({ ok: true });
 }

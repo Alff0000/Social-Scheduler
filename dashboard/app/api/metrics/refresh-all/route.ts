@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 
 export async function POST() {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const requested = requestMetricsRefreshAll(viewer.is_admin ? null : viewer.id);
   return NextResponse.json({ requested });
 }

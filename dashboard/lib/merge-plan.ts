@@ -61,7 +61,7 @@ export function planMerge(
 ): MergeResult {
   // Guard 1: a merge is meaningless below two posts — catch it before any lookup work.
   if (req.post_ids.length < 2) {
-    return problem("too_few_posts", "Select at least two posts to merge.", 400);
+    return problem("too_few_posts", "Selecione ao menos dois posts para mesclar.", 400);
   }
 
   // Guard 2: every selected id must resolve to a candidate the caller actually loaded.
@@ -72,7 +72,7 @@ export function planMerge(
   for (const id of req.post_ids) {
     const c = byId.get(id);
     if (!c) {
-      return problem("post_not_found", "One of those posts no longer exists.", 404);
+      return problem("post_not_found", "Um desses posts não existe mais.", 404);
     }
     selected.push(c);
   }
@@ -118,7 +118,7 @@ export function planMerge(
   if (!sameLength || !sameMembers) {
     return problem(
       "asset_order_mismatch",
-      "Every photo in the selected posts must appear exactly once.",
+      "Cada foto nos posts selecionados deve aparecer exatamente uma vez.",
       400,
     );
   }
@@ -129,7 +129,7 @@ export function planMerge(
   if (expected.length !== expectedSet.size) {
     return problem(
       "duplicate_asset",
-      "The same photo appears in more than one of those posts.",
+      "A mesma foto aparece em mais de um desses posts.",
       409,
     );
   }

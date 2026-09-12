@@ -16,20 +16,20 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const postId = Number(id);
   if (!Number.isInteger(postId)) {
-    return NextResponse.json({ error: "Invalid post id." }, { status: 400 });
+    return NextResponse.json({ error: "Id de post inválido." }, { status: 400 });
   }
   const post = getPost(postId);
   if (!post || (!viewer.is_admin && post.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Post not found." }, { status: 404 });
+    return NextResponse.json({ error: "Post não encontrado." }, { status: 404 });
   }
   const body = await req.json().catch(() => ({}));
   const isBpp = Boolean(body.is_bpp);
   if (!setPostBpp(postId, isBpp)) {
-    return NextResponse.json({ error: "Post not found." }, { status: 404 });
+    return NextResponse.json({ error: "Post não encontrado." }, { status: 404 });
   }
   return NextResponse.json({ ok: true, is_bpp: isBpp });
 }

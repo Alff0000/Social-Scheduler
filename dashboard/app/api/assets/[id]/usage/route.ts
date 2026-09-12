@@ -22,16 +22,16 @@ export const runtime = "nodejs";
  */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const assetId = Number(id);
   const postId = Number(req.nextUrl.searchParams.get("post_id"));
   if (!Number.isInteger(assetId) || !Number.isInteger(postId)) {
-    return NextResponse.json({ error: "Bad ids." }, { status: 400 });
+    return NextResponse.json({ error: "Ids inválidos." }, { status: 400 });
   }
   const asset = getAsset(assetId);
   if (!asset || (!viewer.is_admin && asset.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Asset not found." }, { status: 404 });
+    return NextResponse.json({ error: "Arquivo não encontrado." }, { status: 404 });
   }
   const otherRefs = countOtherAssetReferences(assetId);
   return NextResponse.json({

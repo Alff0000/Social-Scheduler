@@ -26,15 +26,15 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const postId = Number(id);
   if (!Number.isInteger(postId)) {
-    return NextResponse.json({ error: "Invalid post id." }, { status: 400 });
+    return NextResponse.json({ error: "Id de post inválido." }, { status: 400 });
   }
   const post = getPost(postId);
   if (!post || (!viewer.is_admin && post.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Post not found." }, { status: 404 });
+    return NextResponse.json({ error: "Post não encontrado." }, { status: 404 });
   }
 
   const body = (await req.json().catch(() => ({}))) as {
@@ -49,7 +49,7 @@ export async function POST(
   // presence check.)
   if (typeof body.archived !== "boolean") {
     return NextResponse.json(
-      { error: "Missing or invalid 'archived' — expected true or false." },
+      { error: "Campo 'archived' ausente ou inválido — esperado true ou false." },
       { status: 400 }
     );
   }
@@ -58,19 +58,19 @@ export async function POST(
   const also: { content_status?: ContentStatus; content_kind?: ContentKind } = {};
   if (body.content_status !== undefined && body.content_status !== null) {
     if (!CONTENT_STATUSES.includes(body.content_status as ContentStatus)) {
-      return NextResponse.json({ error: "Unknown content status." }, { status: 400 });
+      return NextResponse.json({ error: "Status de conteúdo desconhecido." }, { status: 400 });
     }
     also.content_status = body.content_status as ContentStatus;
   }
   if (body.content_kind !== undefined && body.content_kind !== null) {
     if (!CONTENT_KINDS.includes(body.content_kind as ContentKind)) {
-      return NextResponse.json({ error: "Unknown content kind." }, { status: 400 });
+      return NextResponse.json({ error: "Tipo de conteúdo desconhecido." }, { status: 400 });
     }
     also.content_kind = body.content_kind as ContentKind;
   }
 
   if (setPostArchived(postId, archived, also) === "not_found") {
-    return NextResponse.json({ error: "Post not found." }, { status: 404 });
+    return NextResponse.json({ error: "Post não encontrado." }, { status: 404 });
   }
   return NextResponse.json({ ok: true, archived });
 }

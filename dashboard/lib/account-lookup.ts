@@ -90,12 +90,12 @@ export function lookupUnavailableReason(
   const base = versions.graphBase.replace(/\/+$/, "");
   if (base === INSTAGRAM_LOGIN_HOST) return null;
   return (
-    `This install is on the Facebook-Login path (META_GRAPH_BASE is ${base}), where an ` +
-    `Instagram id is not readable from the token — it belongs to a linked Page. Look it ` +
-    `up with:\n\n` +
+    `Essa instalação está no caminho Facebook-Login (META_GRAPH_BASE é ${base}), onde o ` +
+    `id do Instagram não é lido a partir do token — ele pertence a uma Page vinculada. ` +
+    `Busque com:\n\n` +
     `    GET /{page-id}?fields=instagram_business_account\n\n` +
-    `and paste the id it returns. (On the Instagram-Login path — META_GRAPH_BASE set to ` +
-    `${INSTAGRAM_LOGIN_HOST} — this button works directly.)`
+    `e cole o id retornado. (No caminho Instagram-Login — META_GRAPH_BASE definido como ` +
+    `${INSTAGRAM_LOGIN_HOST} — esse botão funciona direto.)`
   );
 }
 
@@ -191,7 +191,7 @@ export function parseLookup(
 ): LookupResult {
   const endpointExists = supportsIdLookup(platform);
   if (!endpointExists) {
-    return { ok: false, error: `${platformLabel(platform)} has no account-id lookup.` };
+    return { ok: false, error: `${platformLabel(platform)} não tem busca de id de conta.` };
   }
 
   const label = platformLabel(platform);
@@ -210,10 +210,10 @@ export function parseLookup(
       return {
         ok: false,
         error:
-          `That token was rejected for ${label}. Either it is invalid or expired, or it ` +
-          `belongs to a different platform — a valid token for another network returns ` +
-          `this exact same error. Check the platform selector above matches the token, ` +
-          `then try a freshly generated one.`,
+          `Esse token foi recusado para ${label}. Ou ele é inválido/expirou, ou pertence a ` +
+          `outra plataforma — um token válido de outra rede retorna exatamente esse mesmo ` +
+          `erro. Confira se o seletor de plataforma acima bate com o token, e depois tente ` +
+          `um token gerado na hora.`,
       };
     }
 
@@ -232,24 +232,24 @@ export function parseLookup(
       return {
         ok: false,
         error:
-          `That looks like a Page token. Listing Pages needs the USER token from the ` +
-          `Graph API Explorer — a Page token only knows about itself. (The Page token is ` +
-          `the right thing to store in Access token; it is just not what finds the id.)`,
+          `Isso parece um token de Page. Listar Pages exige o token de USUÁRIO do ` +
+          `Graph API Explorer — um token de Page só conhece a si mesma. (O token de Page é ` +
+          `o certo pra guardar em Access token; só não é o que acha o id.)`,
       };
     }
 
     return {
       ok: false,
       error: rawMessage
-        ? `${label} refused the lookup: ${scrub(rawMessage, token)}`
-        : `${label} refused the lookup (HTTP ${status}).`,
+        ? `${label} recusou a busca: ${scrub(rawMessage, token)}`
+        : `${label} recusou a busca (HTTP ${status}).`,
     };
   }
 
   if (returnsList(platform)) {
     const data = Array.isArray(record.data) ? record.data : null;
     if (data === null) {
-      return { ok: false, error: `${label} returned an unexpected response with no account list.` };
+      return { ok: false, error: `${label} retornou uma resposta inesperada, sem lista de contas.` };
     }
     const accounts = data.map(readAccount).filter((a): a is FoundAccount => a !== null);
     if (accounts.length === 0) {
@@ -258,9 +258,9 @@ export function parseLookup(
       return {
         ok: false,
         error:
-          `That token works, but it does not administer any Facebook Pages. Generate it ` +
-          `with the pages_show_list permission (and pages_manage_posts, which publishing ` +
-          `needs later), then try again.`,
+          `Esse token funciona, mas não administra nenhuma Page do Facebook. Gere um novo ` +
+          `com a permissão pages_show_list (e pages_manage_posts, que a publicação vai ` +
+          `precisar depois), e tente de novo.`,
       };
     }
     return { ok: true, accounts };
@@ -268,7 +268,7 @@ export function parseLookup(
 
   const account = readAccount(record);
   if (!account) {
-    return { ok: false, error: `${label} returned an unexpected response — could not find an id in it.` };
+    return { ok: false, error: `${label} retornou uma resposta inesperada — não foi possível achar um id nela.` };
   }
   return { ok: true, accounts: [account] };
 }
@@ -290,7 +290,7 @@ export async function lookupAccounts(
 ): Promise<LookupResult> {
   const spec = lookupEndpoint(platform, versions);
   if (!spec) {
-    return { ok: false, error: `${platformLabel(platform)} has no account-id lookup.` };
+    return { ok: false, error: `${platformLabel(platform)} não tem busca de id de conta.` };
   }
 
   // Checked BEFORE the request, not after: on the Facebook-Login path the call would
@@ -310,10 +310,10 @@ export async function lookupAccounts(
     status = response.status;
     body = await response.json().catch(() => ({}));
   } catch (err) {
-    const reason = err instanceof Error && err.name === "TimeoutError" ? "timed out" : "failed";
+    const reason = err instanceof Error && err.name === "TimeoutError" ? "expirou" : "falhou";
     return {
       ok: false,
-      error: `The request to ${platformLabel(platform)} ${reason}. Check your internet connection and try again.`,
+      error: `A requisição para ${platformLabel(platform)} ${reason}. Verifique sua conexão com a internet e tente de novo.`,
     };
   }
 

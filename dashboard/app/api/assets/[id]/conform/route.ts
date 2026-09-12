@@ -15,12 +15,12 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const body = await req.json().catch(() => null);
   const mode = body?.mode;
   if (typeof mode !== "string" || !VALID_MODES.has(mode as ConformMode)) {
     return NextResponse.json(
-      { error: "mode must be 'crop' or 'pad'." },
+      { error: "mode deve ser 'crop' ou 'pad'." },
       { status: 400 }
     );
   }
@@ -28,7 +28,7 @@ export async function POST(
   const { id } = await params;
   const asset = getAsset(Number(id));
   if (!asset || (!viewer.is_admin && asset.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Asset not found." }, { status: 404 });
+    return NextResponse.json({ error: "Arquivo não encontrado." }, { status: 404 });
   }
   // conformImage() runs sharp, which cannot decode video — refuse before touching the
   // file. Same precedent as /api/assets/[id]/cover's mirror-image guard (video-only route
@@ -37,7 +37,7 @@ export async function POST(
   // every caller getting that right.
   if (asset.media_kind === "video") {
     return NextResponse.json(
-      { error: "Only an image can be cropped or padded." },
+      { error: "Só uma imagem pode ser cortada ou preenchida." },
       { status: 409 }
     );
   }

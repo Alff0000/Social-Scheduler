@@ -11,15 +11,15 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const asset = getAsset(Number(id));
   if (!asset || (!viewer.is_admin && asset.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Asset not found." }, { status: 404 });
+    return NextResponse.json({ error: "Arquivo não encontrado." }, { status: 404 });
   }
   if (asset.media_kind !== "video") {
     return NextResponse.json(
-      { error: "Only a video has a cover frame." },
+      { error: "Só um vídeo tem quadro de capa." },
       { status: 409 }
     );
   }
@@ -28,7 +28,7 @@ export async function POST(
   const ms = body?.cover_frame_ms;
   if (typeof ms !== "number" || !Number.isInteger(ms) || ms < 0) {
     return NextResponse.json(
-      { error: "cover_frame_ms must be a non-negative integer (milliseconds)." },
+      { error: "cover_frame_ms deve ser um inteiro não negativo (milissegundos)." },
       { status: 400 }
     );
   }
@@ -37,7 +37,7 @@ export async function POST(
   if (asset.duration_ms !== null && ms > asset.duration_ms) {
     return NextResponse.json(
       {
-        error: `That frame is past the end of the video (${(asset.duration_ms / 1000).toFixed(1)}s).`,
+        error: `Esse quadro está além do fim do vídeo (${(asset.duration_ms / 1000).toFixed(1)}s).`,
       },
       { status: 400 }
     );

@@ -21,20 +21,20 @@ export async function POST(req: Request) {
   try {
     payload = await req.json();
   } catch {
-    return NextResponse.json({ error: "Expected a JSON body." }, { status: 400 });
+    return NextResponse.json({ error: "Esperado um corpo em JSON." }, { status: 400 });
   }
 
   const { platform, token } = (payload ?? {}) as { platform?: unknown; token?: unknown };
 
   if (typeof platform !== "string" || !supportsIdLookup(platform)) {
     return NextResponse.json(
-      { error: "That platform cannot look up an account id from a token." },
+      { error: "Essa plataforma não permite descobrir o id da conta a partir de um token." },
       { status: 400 }
     );
   }
 
   if (typeof token !== "string" || token.trim() === "") {
-    return NextResponse.json({ error: "Paste an access token first." }, { status: 400 });
+    return NextResponse.json({ error: "Cole um access token primeiro." }, { status: 400 });
   }
 
   const result = await lookupAccounts(platform, token.trim(), {

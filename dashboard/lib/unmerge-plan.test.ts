@@ -151,7 +151,7 @@ test("a carousel with a queued send is refused, with its OWN message", () => {
   if (r.ok) return;
   assert.equal(r.problem.status, 409);
   assert.equal(r.problem.code, "send_queued");
-  assert.match(r.problem.message, /queue/i, "must point the owner at queue control");
+  assert.match(r.problem.message, /fila/i, "must point the owner at queue control");
 });
 
 test("published beats queued — the unresolvable problem is the one reported", () => {

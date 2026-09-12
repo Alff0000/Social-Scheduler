@@ -95,7 +95,7 @@ test("rejects asset_order that omits a slide", () => {
   );
   assert.equal(r.ok, false);
   if (r.ok) return;
-  assert.match(r.problem.message, /every photo/i);
+  assert.match(r.problem.message, /cada foto/i);
 });
 
 test("absorbing into an existing carousel keeps it a carousel", () => {

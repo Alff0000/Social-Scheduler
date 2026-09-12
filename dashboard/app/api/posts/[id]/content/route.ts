@@ -45,12 +45,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const postId = Number(id);
   const post = getPost(postId);
   if (!post || (!viewer.is_admin && post.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Post not found." }, { status: 404 });
+    return NextResponse.json({ error: "Post não encontrado." }, { status: 404 });
   }
   return NextResponse.json({
     // Falls back to posts.caption when this post has no variant rows — the same choice the
@@ -89,13 +89,13 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const ownerId = viewer.is_admin ? null : viewer.id;
   const { id } = await params;
   const postId = Number(id);
   const post = getPost(postId);
   if (!post || (ownerId !== null && post.owner_user_id !== ownerId)) {
-    return NextResponse.json({ error: "Post not found." }, { status: 404 });
+    return NextResponse.json({ error: "Post não encontrado." }, { status: 404 });
   }
   const body = await req.json();
 
@@ -107,7 +107,7 @@ export async function PATCH(
   if ("content_kind" in body) {
     if (body.content_kind !== "one_time" && body.content_kind !== "evergreen") {
       return NextResponse.json(
-        { error: "content_kind must be one_time or evergreen." },
+        { error: "content_kind deve ser one_time ou evergreen." },
         { status: 400 }
       );
     }
@@ -116,7 +116,7 @@ export async function PATCH(
   if ("content_status" in body) {
     if (!["draft", "ready", "retired"].includes(body.content_status)) {
       return NextResponse.json(
-        { error: "content_status must be draft, ready, or retired." },
+        { error: "content_status deve ser draft, ready ou retired." },
         { status: 400 }
       );
     }
@@ -129,7 +129,7 @@ export async function PATCH(
       const n = Number(body.cooldown_days);
       if (!Number.isInteger(n) || n < 0) {
         return NextResponse.json(
-          { error: "cooldown_days must be a non-negative integer or null." },
+          { error: "cooldown_days deve ser um inteiro não negativo ou null." },
           { status: 400 }
         );
       }
@@ -143,7 +143,7 @@ export async function PATCH(
   if ("targets" in body || "target_channel_ids" in body) {
     const parsed = parseTargets(body.targets, body.target_channel_ids);
     if (parsed === "invalid") {
-      return NextResponse.json({ error: "Invalid targets." }, { status: 400 });
+      return NextResponse.json({ error: "Destinos inválidos." }, { status: 400 });
     }
     const badChannelIds = [...new Set(parsed.map((t) => t.channel_id))].filter((cid) => {
       const ch = getChannel(cid);
@@ -151,7 +151,7 @@ export async function PATCH(
     });
     if (badChannelIds.length > 0) {
       return NextResponse.json(
-        { error: `Unknown channel(s): ${badChannelIds.join(", ")}.` },
+        { error: `Conta(s) desconhecida(s): ${badChannelIds.join(", ")}.` },
         { status: 400 }
       );
     }
@@ -161,7 +161,7 @@ export async function PATCH(
   let periodLinks: { periodId: number; mode: PeriodMode }[] | undefined;
   if ("period_links" in body) {
     if (!Array.isArray(body.period_links)) {
-      return NextResponse.json({ error: "period_links must be an array." }, { status: 400 });
+      return NextResponse.json({ error: "period_links deve ser uma lista." }, { status: 400 });
     }
     const links: { periodId: number; mode: PeriodMode }[] = [];
     const seen = new Set<string>();
@@ -169,21 +169,21 @@ export async function PATCH(
       const mode = link?.mode;
       if (mode !== "green" && mode !== "blackout") {
         return NextResponse.json(
-          { error: "period_links[].mode must be green or blackout." },
+          { error: "period_links[].mode deve ser green ou blackout." },
           { status: 400 }
         );
       }
       const periodId = Number(link.periodId ?? link.period_id);
       if (!Number.isInteger(periodId)) {
         return NextResponse.json(
-          { error: "period_links[].periodId is required." },
+          { error: "period_links[].periodId é obrigatório." },
           { status: 400 }
         );
       }
       const period = getPeriod(periodId);
       if (!period || (ownerId !== null && period.owner_user_id !== ownerId)) {
         return NextResponse.json(
-          { error: `Unknown period ${periodId}.` },
+          { error: `Período desconhecido ${periodId}.` },
           { status: 400 }
         );
       }
@@ -199,7 +199,7 @@ export async function PATCH(
   if ("caption_variants" in body) {
     if (!Array.isArray(body.caption_variants)) {
       return NextResponse.json(
-        { error: "caption_variants must be an array." },
+        { error: "caption_variants deve ser uma lista." },
         { status: 400 }
       );
     }
@@ -212,7 +212,7 @@ export async function PATCH(
     );
     if (variants.some((v: { body: string }) => !v.body)) {
       return NextResponse.json(
-        { error: "Caption variants cannot be empty." },
+        { error: "As variações de legenda não podem ficar vazias." },
         { status: 400 }
       );
     }
@@ -242,7 +242,7 @@ export async function PATCH(
     const validTagIds = new Set(listTags(undefined, ownerId).map((t) => t.id));
     const parsed = parseTagIds(body.tag_ids, (tid) => validTagIds.has(tid));
     if (parsed === "invalid") {
-      return NextResponse.json({ error: "Invalid tag_ids." }, { status: 400 });
+      return NextResponse.json({ error: "tag_ids inválido." }, { status: 400 });
     }
     tagIds = parsed ?? [];
   }

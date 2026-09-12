@@ -22,11 +22,11 @@ const THUMB_MAX = 480;
 
 export async function POST(req: NextRequest) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const form = await req.formData();
   const file = form.get("file");
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "No file provided." }, { status: 400 });
+    return NextResponse.json({ error: "Nenhum arquivo enviado." }, { status: 400 });
   }
   // Read the bytes BEFORE deciding what this file is. `file.type` is supplied by the
   // browser from the OS, not read from the file — on Windows it comes from the registry,
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   const videoExt = mime ? REEL_MIME_TYPES[mime] : undefined;
   if (!mime || (!imageExt && !videoExt)) {
     return NextResponse.json(
-      { error: "Only JPEG, PNG or WebP images, and MP4 or MOV video, are supported." },
+      { error: "Só são aceitas imagens JPEG, PNG ou WebP, e vídeos MP4 ou MOV." },
       { status: 415 }
     );
   }
@@ -182,7 +182,7 @@ export async function POST(req: NextRequest) {
         // purely about signal-to-noise for the 422 body.
         console.error("Video conversion failed:", err.message);
         return NextResponse.json(
-          { error: "Converting this video failed — it may be corrupt or in an unsupported format." },
+          { error: "A conversão desse vídeo falhou — ele pode estar corrompido ou em um formato não suportado." },
           { status: 422 }
         );
       }
@@ -205,7 +205,7 @@ export async function POST(req: NextRequest) {
         err instanceof VideoParseError ? err.message : String(err)
       );
       return NextResponse.json(
-        { error: "Converting this video didn't produce a usable file. Please try a different video." },
+        { error: "A conversão desse vídeo não gerou um arquivo utilizável. Tente outro vídeo." },
         { status: 422 }
       );
     }

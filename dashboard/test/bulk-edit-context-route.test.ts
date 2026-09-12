@@ -82,12 +82,12 @@ async function postRaw(body: string) {
 test("malformed JSON and invalid bodies return 400", async () => {
   const malformed = await postRaw("{");
   assert.equal(malformed.status, 400);
-  assert.deepEqual(await malformed.json(), { error: "Invalid request body." });
+  assert.deepEqual(await malformed.json(), { error: "Corpo da requisição inválido." });
 
   for (const body of [null, [], "bad"]) {
     const response = await post(body);
     assert.equal(response.status, 400);
-    assert.deepEqual(await response.json(), { error: "Invalid request body." });
+    assert.deepEqual(await response.json(), { error: "Corpo da requisição inválido." });
   }
 });
 
@@ -95,7 +95,7 @@ test("post_ids must be a non-empty array", async () => {
   for (const body of [{}, { post_ids: null }, { post_ids: [] }]) {
     const response = await post(body);
     assert.equal(response.status, 400);
-    assert.deepEqual(await response.json(), { error: "Select at least one post." });
+    assert.deepEqual(await response.json(), { error: "Selecione ao menos um post." });
   }
 });
 
@@ -103,7 +103,7 @@ test("every post id must be an integer", async () => {
   for (const invalidId of ["bad", 1.5, null]) {
     const response = await post({ post_ids: [postA, invalidId] });
     assert.equal(response.status, 400);
-    assert.deepEqual(await response.json(), { error: "post_ids must contain integers." });
+    assert.deepEqual(await response.json(), { error: "post_ids deve conter apenas números inteiros." });
   }
 });
 
@@ -111,7 +111,7 @@ test("an unknown post id is rejected before context is returned", async () => {
   const response = await post({ post_ids: [postA, 999999] });
 
   assert.equal(response.status, 400);
-  assert.deepEqual(await response.json(), { error: "Unknown post 999999." });
+  assert.deepEqual(await response.json(), { error: "Post desconhecido 999999." });
 });
 
 test("a duplicate selection returns deduplicated context without writing links", async () => {

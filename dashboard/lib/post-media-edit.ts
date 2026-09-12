@@ -248,7 +248,7 @@ export function checkRemoveAsset(
     return fail("live_send", LIVE_SEND_MESSAGE, 409);
   }
   if (!ctx.slides.some((s) => s.asset_id === assetId)) {
-    return fail("not_on_post", "That file isn't on this post.", 404);
+    return fail("not_on_post", "Esse arquivo não está nesse post.", 404);
   }
   if (ctx.slides.length === 1) {
     return fail(

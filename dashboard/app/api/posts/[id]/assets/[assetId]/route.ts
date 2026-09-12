@@ -36,16 +36,16 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; assetId: string }> }
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id, assetId: rawAssetId } = await params;
   const postId = Number(id);
   const assetId = Number(rawAssetId);
   const post = Number.isInteger(postId) ? getPost(postId) : undefined;
   if (!post || (!viewer.is_admin && post.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Post not found." }, { status: 404 });
+    return NextResponse.json({ error: "Post não encontrado." }, { status: 404 });
   }
   if (!Number.isInteger(assetId)) {
-    return NextResponse.json({ error: "That file isn't on this post." }, { status: 404 });
+    return NextResponse.json({ error: "Esse arquivo não está nesse post." }, { status: 404 });
   }
 
   const mode = req.nextUrl.searchParams.get("mode") === "everywhere" ? "everywhere" : "post";
@@ -86,7 +86,7 @@ export async function DELETE(
   if (result === "has_live") {
     return NextResponse.json(
       {
-        error: "This post went live while you were editing it, so nothing was changed.",
+        error: "Esse post foi publicado enquanto você editava, então nada foi alterado.",
         code: "live_send",
       },
       { status: 409 }
@@ -124,7 +124,7 @@ export async function DELETE(
     // removed out from under us in the gap between that read and this write (another
     // request, or the worker). Same voice as that check's message, since to the user it is
     // the same fact: the file isn't on this post (any more).
-    return NextResponse.json({ error: "That file isn't on this post." }, { status: 404 });
+    return NextResponse.json({ error: "Esse arquivo não está nesse post." }, { status: 404 });
   }
 
   // Rows are gone — now the files, and only now. A failed row delete must never leave

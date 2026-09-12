@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
   // already approved.
   const { clientKey, clientSecret } = tiktokCredentials();
   if (!clientKey || !clientSecret) {
-    return back(req, { tiktok_error: "TIKTOK_CLIENT_KEY/SECRET are not set in .env." });
+    return back(req, { tiktok_error: "TIKTOK_CLIENT_KEY/SECRET não estão configurados no .env." });
   }
 
   const code = req.nextUrl.searchParams.get("code");
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
   // could be walked into this install's database.
   if (!code || !state || !expectedState || state !== expectedState || !verifier) {
     return back(req, {
-      tiktok_error: "That TikTok sign-in didn't match this browser session. Try Connect again.",
+      tiktok_error: "Esse login do TikTok não corresponde a essa sessão do navegador. Tente conectar de novo.",
     });
   }
 
@@ -143,6 +143,6 @@ export async function GET(req: NextRequest) {
   } catch {
     // Deliberately no error detail: a fetch failure's message can carry the request, and
     // the request body holds the client secret and the code.
-    return back(req, { tiktok_error: "Couldn't reach TikTok to finish signing in." });
+    return back(req, { tiktok_error: "Não foi possível contatar o TikTok para concluir o login." });
   }
 }

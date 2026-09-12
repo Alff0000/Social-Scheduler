@@ -24,14 +24,14 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const body = await req.json().catch(() => null);
   const mode = body?.mode;
   // Reject rather than default: a guessed framing is how a Story ends up looking like an
   // accident, and the owner never finds out which choice they got.
   if (typeof mode !== "string" || !VALID_MODES.has(mode as StoryMode)) {
     return NextResponse.json(
-      { error: "mode must be 'blurred' or 'crop'." },
+      { error: "mode deve ser 'blurred' ou 'crop'." },
       { status: 400 }
     );
   }
@@ -39,13 +39,13 @@ export async function POST(
   const { id } = await params;
   const asset = getAsset(Number(id));
   if (!asset || (!viewer.is_admin && asset.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Asset not found." }, { status: 404 });
+    return NextResponse.json({ error: "Arquivo não encontrado." }, { status: 404 });
   }
   // sharp cannot decode video. Mirrors the same guard in /api/assets/[id]/conform — the
   // route must not depend on every caller gating this correctly.
   if (asset.media_kind === "video") {
     return NextResponse.json(
-      { error: "Only an image can be given a story canvas." },
+      { error: "Só uma imagem pode receber um quadro de story." },
       { status: 409 }
     );
   }

@@ -6,20 +6,20 @@ export const runtime = "nodejs";
 
 export async function GET() {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   return NextResponse.json({ folders: listFolders(viewer.is_admin ? null : viewer.id) });
 }
 
 export async function POST(req: NextRequest) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 });
+    return NextResponse.json({ error: "O corpo da requisição precisa ser um JSON válido." }, { status: 400 });
   }
   const name = (body.name || "").trim();
   if (!name) {
-    return NextResponse.json({ error: "Folder name is required." }, { status: 400 });
+    return NextResponse.json({ error: "O nome da pasta é obrigatório." }, { status: 400 });
   }
   try {
     const id = createFolder(name, viewer.id);

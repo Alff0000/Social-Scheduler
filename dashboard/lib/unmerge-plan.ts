@@ -77,7 +77,7 @@ function checkRestructurable(candidate: UnmergeCandidate | undefined): UnmergePr
   // Guard 1: a stale link or a post deleted between page load and submit fails here, as a
   // 404, rather than later as a confusing undefined.
   if (!candidate) {
-    return { code: "post_not_found", message: "That post no longer exists.", status: 404 };
+    return { code: "post_not_found", message: "Esse post não existe mais.", status: 404 };
   }
 
   // Guard 2: only a carousel has slides to separate. A single, reel, story or text post has
@@ -85,7 +85,7 @@ function checkRestructurable(candidate: UnmergeCandidate | undefined): UnmergePr
   if (candidate.post_type !== "carousel") {
     return {
       code: "not_a_carousel",
-      message: "Only a carousel can be split up.",
+      message: "Só um carrossel pode ser dividido.",
       status: 400,
     };
   }
@@ -95,7 +95,7 @@ function checkRestructurable(candidate: UnmergeCandidate | undefined): UnmergePr
   if (candidate.slides.length < 2) {
     return {
       code: "too_few_slides",
-      message: "That carousel only has one photo — there's nothing to split.",
+      message: "Esse carrossel só tem uma foto — não há nada para dividir.",
       status: 400,
     };
   }
@@ -122,7 +122,7 @@ function checkRestructurable(candidate: UnmergeCandidate | undefined): UnmergePr
   if (candidate.has_queued_publication) {
     return {
       code: "send_queued",
-      message: "That carousel has a send in the queue. Cancel or hold that send first.",
+      message: "Esse carrossel tem um envio na fila. Cancele ou coloque esse envio em espera primeiro.",
       status: 409,
     };
   }
@@ -164,7 +164,7 @@ export function planExtractSlides(
   if (!candidate) {
     return {
       ok: false,
-      problem: { code: "post_not_found", message: "That post no longer exists.", status: 404 },
+      problem: { code: "post_not_found", message: "Esse post não existe mais.", status: 404 },
     };
   }
 
@@ -178,7 +178,7 @@ export function planExtractSlides(
       ok: false,
       problem: {
         code: "no_slides_selected",
-        message: "Pick at least one photo to pull out.",
+        message: "Escolha ao menos uma foto para separar.",
         status: 400,
       },
     };
@@ -192,7 +192,7 @@ export function planExtractSlides(
       ok: false,
       problem: {
         code: "slide_not_in_post",
-        message: "One of those photos is no longer in this carousel. Reload and try again.",
+        message: "Uma dessas fotos não está mais nesse carrossel. Recarregue a página e tente de novo.",
         status: 400,
       },
     };
@@ -238,7 +238,7 @@ export function planUnmerge(candidate: UnmergeCandidate | undefined): UnmergeRes
   if (blocked) return { ok: false, problem: blocked };
   // checkRestructurable returning null proves candidate is defined; TypeScript can't see
   // through the helper, so this narrows it back for the body below.
-  if (!candidate) return problem("post_not_found", "That post no longer exists.", 404);
+  if (!candidate) return problem("post_not_found", "Esse post não existe mais.", 404);
 
   return {
     ok: true,

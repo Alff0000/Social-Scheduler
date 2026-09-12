@@ -27,15 +27,15 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const asset = getAsset(Number(id));
   if (!asset || (!viewer.is_admin && asset.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Asset not found." }, { status: 404 });
+    return NextResponse.json({ error: "Arquivo não encontrado." }, { status: 404 });
   }
   if (asset.media_kind !== "video") {
     return NextResponse.json(
-      { error: "Only a video has a Reels cover." },
+      { error: "Só um vídeo tem capa de Reels." },
       { status: 409 }
     );
   }
@@ -43,7 +43,7 @@ export async function POST(
   const form = await req.formData();
   const file = form.get("file");
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "No file provided." }, { status: 400 });
+    return NextResponse.json({ error: "Nenhum arquivo enviado." }, { status: 400 });
   }
 
   const buf = Buffer.from(await file.arrayBuffer());
@@ -58,7 +58,7 @@ export async function POST(
     conformed = await conformCover(buf);
   } catch {
     return NextResponse.json(
-      { error: "That file isn't a readable image (JPEG, PNG, or WebP)." },
+      { error: "Esse arquivo não é uma imagem legível (JPEG, PNG ou WebP)." },
       { status: 422 }
     );
   }
@@ -125,15 +125,15 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const asset = getAsset(Number(id));
   if (!asset || (!viewer.is_admin && asset.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Asset not found." }, { status: 404 });
+    return NextResponse.json({ error: "Arquivo não encontrado." }, { status: 404 });
   }
   if (asset.media_kind !== "video") {
     return NextResponse.json(
-      { error: "Only a video has a Reels cover." },
+      { error: "Só um vídeo tem capa de Reels." },
       { status: 409 }
     );
   }

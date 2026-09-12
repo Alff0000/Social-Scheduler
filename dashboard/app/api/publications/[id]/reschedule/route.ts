@@ -11,12 +11,12 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const pubId = Number(id);
   const pub = getPublication(pubId);
   if (!pub) {
-    return NextResponse.json({ error: "Publication not found." }, { status: 404 });
+    return NextResponse.json({ error: "Envio não encontrado." }, { status: 404 });
   }
 
   const body = await req.json().catch(() => ({}));
@@ -24,22 +24,22 @@ export async function POST(
   const time: string = body.time || "";
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    return NextResponse.json({ error: "Pick a date." }, { status: 400 });
+    return NextResponse.json({ error: "Escolha uma data." }, { status: 400 });
   }
   if (!/^\d{2}:\d{2}$/.test(time)) {
-    return NextResponse.json({ error: "Enter a time as HH:MM." }, { status: 400 });
+    return NextResponse.json({ error: "Digite um horário no formato HH:MM." }, { status: 400 });
   }
 
   const channel = getChannel(pub.channel_id);
   if (!channel || (!viewer.is_admin && channel.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Publication not found." }, { status: 404 });
+    return NextResponse.json({ error: "Envio não encontrado." }, { status: 404 });
   }
 
   const scheduledAtUtc = intervalSlots(date, time, 1, 1, channel.timezone)[0];
   const ok = reschedulePublication(pubId, scheduledAtUtc);
   if (!ok) {
     return NextResponse.json(
-      { error: "Only a scheduled or awaiting-approval send can be rescheduled." },
+      { error: "Só um envio agendado ou aguardando aprovação pode ser reagendado." },
       { status: 409 }
     );
   }

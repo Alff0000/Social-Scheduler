@@ -59,7 +59,7 @@ test("splitting a carousel returns 200 and every resulting post id", async () =>
 test("a missing post is 404 with a readable message", async () => {
   const res = await call(999999);
   assert.equal(res.status, 404);
-  assert.match((await res.json()).error, /no longer exists/i);
+  assert.match((await res.json()).error, /não existe mais/i);
 });
 
 test("a non-numeric id is 400, not a crash", async () => {
@@ -75,7 +75,7 @@ test("a single-image post is 400", async () => {
   }, null);
   const res = await call(post);
   assert.equal(res.status, 400);
-  assert.match((await res.json()).error, /only a carousel/i);
+  assert.match((await res.json()).error, /só um carrossel/i);
 });
 
 test("a queued send is 409, and the message names the fix", async () => {
@@ -91,5 +91,5 @@ test("a queued send is 409, and the message names the fix", async () => {
 
   const res = await call(original);
   assert.equal(res.status, 409);
-  assert.match((await res.json()).error, /cancel or hold/i);
+  assert.match((await res.json()).error, /cancele ou coloque/i);
 });

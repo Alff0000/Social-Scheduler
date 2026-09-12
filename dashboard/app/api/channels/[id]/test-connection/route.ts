@@ -21,11 +21,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const channel = getChannel(Number(id));
   if (!channel || (!viewer.is_admin && channel.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Channel not found." }, { status: 404 });
+    return NextResponse.json({ error: "Conta não encontrada." }, { status: 404 });
   }
   if (!channel.access_token) {
     return NextResponse.json({ ok: false, error: "Nenhum access token configurado." });

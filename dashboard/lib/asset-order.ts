@@ -18,13 +18,13 @@ export type AssetOrderCheck =
 
 export function checkAssetOrder(current: number[], proposed: unknown): AssetOrderCheck {
   if (!Array.isArray(proposed)) {
-    return { ok: false, code: "not_an_array", error: "asset_ids must be an array." };
+    return { ok: false, code: "not_an_array", error: "asset_ids deve ser uma lista." };
   }
   if (proposed.length === 0) {
-    return { ok: false, code: "empty", error: "asset_ids must not be empty." };
+    return { ok: false, code: "empty", error: "asset_ids não pode ficar vazio." };
   }
   if (!proposed.every((value) => Number.isInteger(value))) {
-    return { ok: false, code: "not_integers", error: "asset_ids must be whole numbers." };
+    return { ok: false, code: "not_integers", error: "asset_ids deve conter apenas números inteiros." };
   }
 
   const next = proposed as number[];

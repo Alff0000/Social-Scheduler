@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const ownerId = viewer.is_admin ? null : viewer.id;
   const body = await req.json();
   const assetIds: number[] = Array.isArray(body.asset_ids) ? body.asset_ids : [];
@@ -21,21 +21,21 @@ export async function POST(req: NextRequest) {
   if (isText) {
     if (assetIds.length > 0) {
       return NextResponse.json(
-        { error: "A text-only post can't have images." },
+        { error: "Um post só de texto não pode ter imagens." },
         { status: 400 }
       );
     }
     if (!caption) {
-      return NextResponse.json({ error: "Write a caption for the text post." }, { status: 400 });
+      return NextResponse.json({ error: "Escreva uma legenda para o post de texto." }, { status: 400 });
     }
   } else if (assetIds.length === 0) {
-    return NextResponse.json({ error: "Add at least one image." }, { status: 400 });
+    return NextResponse.json({ error: "Adicione ao menos uma imagem." }, { status: 400 });
   }
 
   let contentKind: ContentKind | undefined;
   if (body.content_kind !== undefined) {
     if (body.content_kind !== "evergreen" && body.content_kind !== "one_time") {
-      return NextResponse.json({ error: "Invalid content_kind." }, { status: 400 });
+      return NextResponse.json({ error: "content_kind inválido." }, { status: 400 });
     }
     contentKind = body.content_kind;
   }
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   let contentStatus: ContentStatus | undefined;
   if (body.content_status !== undefined) {
     if (body.content_status !== "draft" && body.content_status !== "ready") {
-      return NextResponse.json({ error: "Invalid content_status." }, { status: 400 });
+      return NextResponse.json({ error: "content_status inválido." }, { status: 400 });
     }
     contentStatus = body.content_status;
   }
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
   // target_channel_ids, which can only have meant feed targets.
   const parsedTargets = parseTargets(body.targets, body.target_channel_ids);
   if (parsedTargets === "invalid") {
-    return NextResponse.json({ error: "Invalid targets." }, { status: 400 });
+    return NextResponse.json({ error: "Destinos inválidos." }, { status: 400 });
   }
   let targetChannelIds: number[] | undefined;
   if (body.targets !== undefined || body.target_channel_ids !== undefined) {
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     for (const cid of targetChannelIds) {
       const ch = getChannel(cid);
       if (!ch || (ownerId !== null && ch.owner_user_id !== ownerId)) {
-        return NextResponse.json({ error: `Unknown channel ${cid}.` }, { status: 400 });
+        return NextResponse.json({ error: `Conta desconhecida ${cid}.` }, { status: 400 });
       }
     }
   }
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
   );
   if (unknownAssetIdx !== -1) {
     return NextResponse.json(
-      { error: `Unknown asset ${assetIds[unknownAssetIdx]}.` },
+      { error: `Arquivo desconhecido ${assetIds[unknownAssetIdx]}.` },
       { status: 400 }
     );
   }
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
   // compose time with a clear reason, rather than terminally in the worker later.
   if (!isText && chosenAssets.length > 1 && chosenAssets.some((a) => a.media_kind === "video")) {
     return NextResponse.json(
-      { error: "A carousel can only contain images. Post a video as its own Reel." },
+      { error: "Um carrossel só pode conter imagens. Publique um vídeo como Reel próprio." },
       { status: 400 }
     );
   }
@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
 
   const captionVariants = parseCaptionVariants(body.caption_variants);
   if (captionVariants === "invalid") {
-    return NextResponse.json({ error: "Invalid caption_variants." }, { status: 400 });
+    return NextResponse.json({ error: "caption_variants inválido." }, { status: 400 });
   }
 
   if (targetChannels.length > 0) {
@@ -140,13 +140,13 @@ export async function POST(req: NextRequest) {
     return p && (ownerId === null || p.owner_user_id === ownerId) ? p : undefined;
   });
   if (periodLinks === "invalid") {
-    return NextResponse.json({ error: "Invalid period_links." }, { status: 400 });
+    return NextResponse.json({ error: "period_links inválido." }, { status: 400 });
   }
 
   const validTagIds = new Set(listTags(undefined, ownerId).map((t) => t.id));
   const tagIds = parseTagIds(body.tag_ids, (id) => validTagIds.has(id));
   if (tagIds === "invalid") {
-    return NextResponse.json({ error: "Invalid tag_ids." }, { status: 400 });
+    return NextResponse.json({ error: "tag_ids inválido." }, { status: 400 });
   }
 
   const postId = createDraftPost({

@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   try {
     payload = await req.json();
   } catch {
-    return NextResponse.json({ error: "Expected a JSON body." }, { status: 400 });
+    return NextResponse.json({ error: "Esperado um corpo em JSON." }, { status: 400 });
   }
 
   const { action, token, pageId } = (payload ?? {}) as {
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   };
 
   if (typeof token !== "string" || token.trim() === "") {
-    return NextResponse.json({ error: "Paste your user token first." }, { status: 400 });
+    return NextResponse.json({ error: "Cole seu token de usuário primeiro." }, { status: 400 });
   }
 
   const metaConfig: MetaAppConfig = {
@@ -53,11 +53,11 @@ export async function POST(req: Request) {
 
   if (action === "select") {
     if (typeof pageId !== "string" || pageId.trim() === "") {
-      return NextResponse.json({ error: "No Page was chosen." }, { status: 400 });
+      return NextResponse.json({ error: "Nenhuma Page foi escolhida." }, { status: 400 });
     }
     const result = await selectPage(token.trim(), pageId.trim(), metaConfig);
     return NextResponse.json(result);
   }
 
-  return NextResponse.json({ error: "Unknown action." }, { status: 400 });
+  return NextResponse.json({ error: "Ação desconhecida." }, { status: 400 });
 }

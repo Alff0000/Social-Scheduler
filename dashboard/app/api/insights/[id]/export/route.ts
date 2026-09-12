@@ -28,15 +28,15 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const channelId = Number(id);
   if (!Number.isInteger(channelId)) {
-    return NextResponse.json({ error: "Invalid channel id." }, { status: 400 });
+    return NextResponse.json({ error: "Id de conta inválido." }, { status: 400 });
   }
   const channel = getInsightsChannel(channelId);
   if (!channel || (!viewer.is_admin && channel.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Channel not found." }, { status: 404 });
+    return NextResponse.json({ error: "Conta não encontrada." }, { status: 404 });
   }
 
   const rangeParam = req.nextUrl.searchParams.get("range") ?? "30d";

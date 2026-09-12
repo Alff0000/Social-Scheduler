@@ -13,12 +13,12 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const periodId = Number(id);
   const current = getPeriod(periodId);
   if (!current || (!viewer.is_admin && current.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Period not found." }, { status: 404 });
+    return NextResponse.json({ error: "Período não encontrado." }, { status: 404 });
   }
   const body = await req.json();
   const fields: Record<string, unknown> = {};
@@ -26,7 +26,7 @@ export async function PATCH(
   if (typeof body.name === "string") {
     const name = body.name.trim();
     if (!name) {
-      return NextResponse.json({ error: "Name cannot be empty." }, { status: 400 });
+      return NextResponse.json({ error: "O nome não pode ficar vazio." }, { status: 400 });
     }
     fields.name = name;
   }
@@ -54,7 +54,7 @@ export async function PATCH(
   if ("start_date" in body) {
     if (!isIsoCalendarDate(body.start_date)) {
       return NextResponse.json(
-        { error: "start_date must be a valid YYYY-MM-DD calendar date." },
+        { error: "start_date deve ser uma data válida no formato AAAA-MM-DD." },
         { status: 400 }
       );
     }
@@ -63,7 +63,7 @@ export async function PATCH(
   if ("end_date" in body) {
     if (!isIsoCalendarDate(body.end_date)) {
       return NextResponse.json(
-        { error: "end_date must be a valid YYYY-MM-DD calendar date." },
+        { error: "end_date deve ser uma data válida no formato AAAA-MM-DD." },
         { status: 400 }
       );
     }
@@ -92,7 +92,7 @@ export async function PATCH(
   } else {
     if (!hasValidOneOffPeriodDates(merged)) {
       return NextResponse.json(
-        { error: "One-off periods require valid start_date/end_date calendar dates." },
+        { error: "Períodos avulsos exigem datas de início e fim válidas." },
         { status: 400 }
       );
     }
@@ -107,16 +107,16 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const periodId = Number(id);
   const current = getPeriod(periodId);
   if (!current || (!viewer.is_admin && current.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Period not found." }, { status: 404 });
+    return NextResponse.json({ error: "Período não encontrado." }, { status: 404 });
   }
   const ok = deletePeriod(periodId);
   if (!ok) {
-    return NextResponse.json({ error: "Period not found." }, { status: 404 });
+    return NextResponse.json({ error: "Período não encontrado." }, { status: 404 });
   }
   return NextResponse.json({ ok: true });
 }

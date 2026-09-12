@@ -19,19 +19,19 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const channelId = Number(id);
   const channel = getChannel(channelId);
   if (!channel || (!viewer.is_admin && channel.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Channel not found." }, { status: 404 });
+    return NextResponse.json({ error: "Conta não encontrada." }, { status: 404 });
   }
   // A parsed JSON body genuinely has no known shape; every field below is validated
   // before use. Matches the .catch(() => ...) idiom the other routes use, and avoids an
   // explicit `any` for a value that is only ever read through those checks.
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 });
+    return NextResponse.json({ error: "O corpo da requisição precisa ser um JSON válido." }, { status: 400 });
   }
   if (
     "color_hue" in body &&
@@ -39,7 +39,7 @@ export async function PATCH(
     (!Number.isInteger(body.color_hue) || body.color_hue < 0 || body.color_hue > 360)
   ) {
     return NextResponse.json(
-      { error: "color_hue must be null or an integer between 0 and 360." },
+      { error: "color_hue deve ser nulo ou um número inteiro entre 0 e 360." },
       { status: 400 }
     );
   }
@@ -49,7 +49,7 @@ export async function PATCH(
     // "" satisfies the column's NOT NULL and then renders as a blank chip with nothing
     // left to click, so the only way back would be SQL. Refuse it here.
     if (!name) {
-      return NextResponse.json({ error: "Account name can't be empty." }, { status: 400 });
+      return NextResponse.json({ error: "O nome da conta não pode ficar vazio." }, { status: 400 });
     }
     fields.account_name = name;
   }
@@ -58,7 +58,7 @@ export async function PATCH(
   // POST /api/channels/[id]/timezone, which also rebases the pending queue.
   if ("timezone" in body) {
     return NextResponse.json(
-      { error: "Change the timezone via POST /api/channels/[id]/timezone." },
+      { error: "Altere o fuso horário via POST /api/channels/[id]/timezone." },
       { status: 400 }
     );
   }
@@ -110,7 +110,7 @@ export async function PATCH(
     // the channel guard above, so this never confirms another tenant's group exists.
     const group = gid !== null ? getChannelGroup(gid) : null;
     if (gid !== null && (!group || group.owner_user_id !== channel.owner_user_id)) {
-      return NextResponse.json({ error: "Group not found." }, { status: 400 });
+      return NextResponse.json({ error: "Grupo não encontrado." }, { status: 400 });
     }
     setChannelGroup(channelId, gid);
   }
@@ -122,7 +122,7 @@ export async function PATCH(
     const fid = body.folder_id === null || body.folder_id === "" ? null : Number(body.folder_id);
     const folder = fid !== null ? listFolders(channel.owner_user_id).find((f) => f.id === fid) : null;
     if (fid !== null && !folder) {
-      return NextResponse.json({ error: "Folder not found." }, { status: 400 });
+      return NextResponse.json({ error: "Pasta não encontrada." }, { status: 400 });
     }
     setChannelFolder(channelId, fid);
   }

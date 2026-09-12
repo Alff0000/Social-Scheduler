@@ -12,7 +12,7 @@ const KEYS = ["queue_error_enabled", "auto_report_enabled", "account_blocked_ena
 export async function PATCH(req: NextRequest) {
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 });
+    return NextResponse.json({ error: "O corpo da requisição precisa ser um JSON válido." }, { status: 400 });
   }
   const patch: Partial<Record<(typeof KEYS)[number], boolean>> = {};
   for (const key of KEYS) {

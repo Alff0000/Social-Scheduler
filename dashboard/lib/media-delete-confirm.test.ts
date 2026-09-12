@@ -25,34 +25,34 @@ test("otherPosts alone → exactly one reason, naming the post count", () => {
 test("sends alone → exactly one reason, naming a send", () => {
   const reasons = deleteBlockReasons({ ...NONE, sends: 1 });
   assert.equal(reasons.length, 1);
-  assert.match(reasons[0], /send/);
+  assert.match(reasons[0], /envio/);
 });
 
 test("covers alone → exactly one reason, naming a Reel cover", () => {
   const reasons = deleteBlockReasons({ ...NONE, covers: 1 });
   assert.equal(reasons.length, 1);
   assert.match(reasons[0], /Reel/);
-  assert.match(reasons[0], /cover/);
+  assert.match(reasons[0], /capa/);
 });
 
 test("more than one non-zero → all applicable reasons, sensibly worded", () => {
   const reasons = deleteBlockReasons({ otherPosts: 2, sends: 1, covers: 1 });
   assert.equal(reasons.length, 3);
-  assert.match(reasons[0], /2 other posts/);
-  assert.match(reasons[1], /send/);
+  assert.match(reasons[0], /2 outros posts/);
+  assert.match(reasons[1], /envio/);
   assert.match(reasons[2], /Reel/);
 
   const state = deleteBlockState({ otherPosts: 2, sends: 1, covers: 1 }, false);
   assert.equal(state.blocked, true);
   // The message names every reason, joined into one sentence — not just the first one.
-  assert.match(state.message ?? "", /2 other posts/);
-  assert.match(state.message ?? "", /send/);
+  assert.match(state.message ?? "", /2 outros posts/);
+  assert.match(state.message ?? "", /envio/);
   assert.match(state.message ?? "", /Reel/);
 });
 
 test("each single-reason case names ONLY that reason in the combined message", () => {
   const postsOnly = deleteBlockState({ ...NONE, otherPosts: 1 }, false).message ?? "";
-  assert.doesNotMatch(postsOnly, /send/);
+  assert.doesNotMatch(postsOnly, /envio/);
   assert.doesNotMatch(postsOnly, /Reel/);
 
   const sendsOnly = deleteBlockState({ ...NONE, sends: 1 }, false).message ?? "";
@@ -61,7 +61,7 @@ test("each single-reason case names ONLY that reason in the combined message", (
 
   const coversOnly = deleteBlockState({ ...NONE, covers: 1 }, false).message ?? "";
   assert.doesNotMatch(coversOnly, /post/);
-  assert.doesNotMatch(coversOnly, /send/);
+  assert.doesNotMatch(coversOnly, /envio/);
 });
 
 test("usage lookup still in flight (usage === null) → blocked, with a stated cause", () => {
@@ -70,7 +70,7 @@ test("usage lookup still in flight (usage === null) → blocked, with a stated c
   assert.ok(state.message && state.message.length > 0);
   // Distinct wording from the error and from a reasons-based refusal, so the UI never shows
   // a dead button with no explanation while the lookup is outstanding.
-  assert.match(state.message ?? "", /checking/i);
+  assert.match(state.message ?? "", /checando/i);
 });
 
 test("usage lookup failed → blocked (fail-closed), not defaulted to available", () => {
@@ -79,5 +79,5 @@ test("usage lookup failed → blocked (fail-closed), not defaulted to available"
   const state = deleteBlockState(null, true);
   assert.equal(state.blocked, true);
   assert.ok(state.message && state.message.length > 0);
-  assert.doesNotMatch(state.message ?? "", /checking/i);
+  assert.doesNotMatch(state.message ?? "", /checando/i);
 });

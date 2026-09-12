@@ -13,7 +13,7 @@ export const runtime = "nodejs";
  */
 export async function GET(req: NextRequest) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   // A stray double comma ("1,,3") splits to an empty string, and Number("") is 0 — which
   // passes Number.isInteger — so filtering on isInteger alone would silently exclude asset
   // id 0. Require a positive integer instead; ids start at 1, so this also naturally

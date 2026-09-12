@@ -9,16 +9,16 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const appId = Number(id);
   const app = getMetaApp(appId);
   if (!app || (!viewer.is_admin && app.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "App not found." }, { status: 404 });
+    return NextResponse.json({ error: "App não encontrado." }, { status: 404 });
   }
   const ok = deleteMetaApp(appId);
   if (!ok) {
-    return NextResponse.json({ error: "App not found." }, { status: 404 });
+    return NextResponse.json({ error: "App não encontrado." }, { status: 404 });
   }
   return NextResponse.json({ ok: true });
 }

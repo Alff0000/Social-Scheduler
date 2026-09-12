@@ -8,28 +8,28 @@ export const runtime = "nodejs";
 
 export async function GET() {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   return NextResponse.json({ channels: getChannels(viewer.is_admin ? null : viewer.id) });
 }
 
 export async function POST(req: NextRequest) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   // A parsed JSON body genuinely has no known shape; every field below is validated
   // before use. Matches the .catch(() => ...) idiom the other routes use, and avoids an
   // explicit `any` for a value that is only ever read through those checks.
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 });
+    return NextResponse.json({ error: "O corpo da requisição precisa ser um JSON válido." }, { status: 400 });
   }
   const account_name = (body.account_name || "").trim();
   const platform = body.platform;
   if (!account_name) {
-    return NextResponse.json({ error: "Account name is required." }, { status: 400 });
+    return NextResponse.json({ error: "O nome da conta é obrigatório." }, { status: 400 });
   }
   if (!isPlatform(platform)) {
     return NextResponse.json(
-      { error: `Platform must be one of: ${PLATFORMS.map((p) => p.value).join(", ")}.` },
+      { error: `platform deve ser um destes: ${PLATFORMS.map((p) => p.value).join(", ")}.` },
       { status: 400 }
     );
   }
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     (!Number.isInteger(body.color_hue) || body.color_hue < 0 || body.color_hue > 360)
   ) {
     return NextResponse.json(
-      { error: "color_hue must be null or an integer between 0 and 360." },
+      { error: "color_hue deve ser nulo ou um número inteiro entre 0 e 360." },
       { status: 400 }
     );
   }

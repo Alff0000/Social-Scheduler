@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   }
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 });
+    return NextResponse.json({ error: "O corpo da requisição precisa ser um JSON válido." }, { status: 400 });
   }
   const email = String(body.email || "").trim();
   const password = String(body.password || "");

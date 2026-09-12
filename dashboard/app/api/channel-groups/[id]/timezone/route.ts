@@ -24,24 +24,24 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const viewer = await getSessionUser();
-  if (!viewer) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
   const groupId = Number(id);
   const group = getChannelGroup(groupId);
   if (!group || (!viewer.is_admin && group.owner_user_id !== viewer.id)) {
-    return NextResponse.json({ error: "Group not found." }, { status: 404 });
+    return NextResponse.json({ error: "Grupo não encontrado." }, { status: 404 });
   }
 
   let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 });
+    return NextResponse.json({ error: "O corpo da requisição precisa ser um JSON válido." }, { status: 400 });
   }
 
   const toTz = typeof body.timezone === "string" ? body.timezone.trim() : "";
   if (!toTz) {
-    return NextResponse.json({ error: "Pick a timezone." }, { status: 400 });
+    return NextResponse.json({ error: "Escolha um fuso horário." }, { status: 400 });
   }
   if (!isValidTimezone(toTz)) {
     return NextResponse.json(
