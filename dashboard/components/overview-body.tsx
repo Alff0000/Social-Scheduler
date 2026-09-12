@@ -147,11 +147,51 @@ export function OverviewBody({
 export function NoChannelsYet() {
   return (
     <EmptyState title="Nenhuma conta ainda">
-      Adicione uma conta do Instagram ou Facebook na página{" "}
-      <Link href="/channels" className="text-brand underline underline-offset-2">
-        Contas
-      </Link>{" "}
-      antes de agendar qualquer coisa.
+      <div className="space-y-3 text-left">
+        <p>
+          O caminho muda por plataforma — Instagram, Facebook e Threads pedem um
+          cadastro antes de qualquer coisa aparecer em{" "}
+          <Link href="/channels" className="text-brand underline underline-offset-2">
+            Contas
+          </Link>
+          :
+        </p>
+        <ol className="list-inside list-decimal space-y-1.5">
+          <li>
+            <strong className="text-ink-soft">Instagram, Facebook ou Threads</strong> —
+            cadastre um app em{" "}
+            <Link href="/settings/meta-apps" className="text-brand underline underline-offset-2">
+              Configurações → Apps Meta
+            </Link>
+            , gere o link de conexão em{" "}
+            <Link href="/settings/integration" className="text-brand underline underline-offset-2">
+              Configurações → Integração
+            </Link>
+            , entre com sua conta, e cole o token gerado em{" "}
+            <Link href="/channels" className="text-brand underline underline-offset-2">
+              Contas
+            </Link>
+            .
+          </li>
+          <li>
+            <strong className="text-ink-soft">TikTok</strong> — conecta direto pelo
+            botão em{" "}
+            <Link href="/channels" className="text-brand underline underline-offset-2">
+              Contas
+            </Link>
+            , sem precisar de app próprio.
+          </li>
+          <li>
+            <strong className="text-ink-soft">Discord ou Telegram</strong> — não
+            precisam de app nenhum: cole a URL do webhook (Discord) ou o token do bot
+            (Telegram) direto em{" "}
+            <Link href="/channels" className="text-brand underline underline-offset-2">
+              Contas
+            </Link>
+            .
+          </li>
+        </ol>
+      </div>
     </EmptyState>
   );
 }
