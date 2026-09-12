@@ -25,7 +25,7 @@ const NAV_GROUPS = [
   {
     group: "Conteúdo",
     items: [
-      { href: "/compose", label: "Postar Reel", hint: "Nova publicação" },
+      { href: "/compose", label: "Postar Reels", hint: "Nova publicação" },
       { href: "/stories", label: "Stories", hint: "Story avulso, na hora" },
       { href: "/import", label: "Importar", hint: "Adicionar imagens em massa" },
       { href: "/library", label: "Agendamento em Massa", hint: "Publicações e agendamento em massa" },

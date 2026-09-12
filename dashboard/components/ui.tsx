@@ -45,7 +45,10 @@ export function StatusBadge({
     <span className="inline-flex items-center gap-2">
       <span
         className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-        style={{ color, backgroundColor: `color-mix(in srgb, ${color} 12%, white)` }}
+        // Mixed into the theme's own surface color, not a literal white — every theme
+        // this app ships is dark, so tinting toward white produced a near-white pill
+        // with equally pale text on top of it, which was nearly unreadable.
+        style={{ color, backgroundColor: `color-mix(in srgb, ${color} 22%, var(--color-surface))` }}
       >
         <span
           className="h-1.5 w-1.5 rounded-full"

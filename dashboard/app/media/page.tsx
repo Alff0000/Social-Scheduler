@@ -22,7 +22,7 @@ export default async function MediaPage() {
           <EmptyState title="Nenhuma mídia ainda">
             Envie algo em{" "}
             <Link href="/compose" className="text-brand underline underline-offset-2">
-              Postar Reel
+              Postar Reels
             </Link>
             .
           </EmptyState>

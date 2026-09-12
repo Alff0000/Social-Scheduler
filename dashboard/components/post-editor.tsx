@@ -741,7 +741,7 @@ export function PostEditor({
           <h3 className="mb-1 font-display text-sm font-semibold text-ink">Arquivar post</h3>
           <p className="mb-3 text-xs text-muted">
             Oculta este post da Agendamento em Massa e do seletor de reaproveitamento do
-            Postar Reel. Nada é excluído: o post no Instagram continua no ar, e seus envios,
+            Postar Reels. Nada é excluído: o post no Instagram continua no ar, e seus envios,
             métricas e relatórios são mantidos. Você pode desarquivá-lo a qualquer momento.
           </p>
           {archiveError ? (

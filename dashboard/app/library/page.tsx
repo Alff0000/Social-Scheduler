@@ -86,7 +86,7 @@ export default async function LibraryPage() {
           <EmptyState title="Nenhuma publicação ainda">
             Crie uma em{" "}
             <Link href="/compose" className="text-brand underline underline-offset-2">
-              Postar Reel
+              Postar Reels
             </Link>{" "}
             — use "Salvar como rascunho" pra construir uma biblioteca que você pode agendar em massa aqui.
           </EmptyState>

@@ -59,6 +59,10 @@ export default async function ComposePage({
   const tomorrow = new Date(Date.now() + 86_400_000).toLocaleDateString("en-CA", {
     timeZone: config.defaultTimezone,
   });
+  // eslint-disable-next-line react-hooks/purity
+  const today = new Date(Date.now()).toLocaleDateString("en-CA", {
+    timeZone: config.defaultTimezone,
+  });
   // The calendar's empty-day "+" links here with the day it was clicked, so spotting a gap
   // and filling it is one click. Validated rather than trusted: this is a query string the
   // owner can edit, and a malformed value would reach a date input and render an empty,
@@ -68,10 +72,10 @@ export default async function ComposePage({
     : null;
   const defaultDate = fromCalendar ?? tomorrow;
   const defaultTime = "09:00";
-  // Only prefilled when a date was actually asked for. A plain visit to Compose still
-  // opens with an empty datetime, because "Pick a date and time" is a deliberate prompt —
-  // silently defaulting it is how a post goes out on a day nobody chose.
-  const defaultScheduledLocal = fromCalendar ? `${fromCalendar}T${defaultTime}` : "";
+  // A plain visit prefills today's date (at the owner's request) rather than opening
+  // empty — the time still needs picking, same 09:00 starting point the calendar's
+  // own "+" already uses.
+  const defaultScheduledLocal = `${fromCalendar ?? today}T${defaultTime}`;
 
   return (
     <div>

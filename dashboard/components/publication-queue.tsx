@@ -216,6 +216,7 @@ export function PublicationQueue({
   // DESTINATION, not platform: an Instagram channel has both surfaces, so this is a
   // separate axis from the platform filter above. Matches the Library's filter.
   const [destination, setDestination] = useState<"all" | "story" | "reel" | "feed">("all");
+  const [approvingAll, setApprovingAll] = useState(false);
 
   const shown = pubs.filter((p) => {
     // An empty set means no account filter at all, not "no accounts".
@@ -225,6 +226,34 @@ export function PublicationQueue({
     if (destination !== "all" && p.surface !== destination) return false;
     return true;
   });
+
+  // Scoped to whatever is currently on screen, same as the "mostrando X de Y" count
+  // beside it — approving respects the same filters the owner is already looking through,
+  // rather than reaching into rows they've filtered out of view.
+  const pendingApprovalIds = shown.filter((p) => p.status === "pending_approval").map((p) => p.id);
+
+  async function approveAll() {
+    if (pendingApprovalIds.length === 0) return;
+    if (
+      !window.confirm(
+        `Aprovar ${pendingApprovalIds.length} envio${pendingApprovalIds.length === 1 ? "" : "s"} agora? Cada um vai para a fila do worker exatamente como um "Aprovar" individual.`,
+      )
+    ) {
+      return;
+    }
+    setApprovingAll(true);
+    // One request per id, in parallel — the same endpoint the single-row Aprovar button
+    // calls, so a bulk approve can never behave differently from clicking each one by
+    // hand. A failure on one id does not stop the rest; router.refresh() afterward shows
+    // whichever ones are still pending_approval either way.
+    await Promise.all(
+      pendingApprovalIds.map((id) =>
+        fetch(`/api/publications/${id}/approve`, { method: "POST" }).catch(() => null),
+      ),
+    );
+    setApprovingAll(false);
+    startTransition(() => router.refresh());
+  }
 
   return (
     <div>
@@ -272,7 +301,19 @@ export function PublicationQueue({
           <option value="reel">Reels</option>
           <option value="feed">Só feed</option>
         </select>
-        <span className="data ml-auto text-[11px] text-muted">
+        {pendingApprovalIds.length > 0 ? (
+          <button
+            type="button"
+            onClick={approveAll}
+            disabled={approvingAll}
+            className="ml-auto rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-on-brand hover:bg-brand-ink disabled:opacity-50"
+          >
+            {approvingAll
+              ? "Aprovando…"
+              : `Aprovar todos (${pendingApprovalIds.length})`}
+          </button>
+        ) : null}
+        <span className={`data text-[11px] text-muted ${pendingApprovalIds.length > 0 ? "" : "ml-auto"}`}>
           mostrando {shown.length} de {pubs.length}
         </span>
       </div>
@@ -512,8 +553,10 @@ export function PublicationQueue({
                           className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
                           style={{
                             color: "var(--color-status-draft)",
+                            // See ui.tsx's StatusBadge for why this mixes into the theme's
+                            // own dark surface rather than white.
                             backgroundColor:
-                              "color-mix(in srgb, var(--color-status-draft) 12%, white)",
+                              "color-mix(in srgb, var(--color-status-draft) 22%, var(--color-surface))",
                           }}
                         >
                           Em espera

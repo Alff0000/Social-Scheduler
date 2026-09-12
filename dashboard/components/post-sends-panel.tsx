@@ -395,7 +395,9 @@ function SendRow({ send, postId }: { send: PostPublicationRow; postId: number })
               className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
               style={{
                 color: "var(--color-status-draft)",
-                backgroundColor: "color-mix(in srgb, var(--color-status-draft) 12%, white)",
+                // See ui.tsx's StatusBadge for why this mixes into the theme's own dark
+                // surface rather than white.
+                backgroundColor: "color-mix(in srgb, var(--color-status-draft) 22%, var(--color-surface))",
               }}
             >
               Em espera
