@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/toast";
 
 export function ChannelToggle({
   id,
@@ -9,22 +10,39 @@ export function ChannelToggle({
   value,
   labelOn,
   labelOff,
+  /**
+   * Asked (via window.confirm, matching every other destructive control in this app —
+   * tags, periods, channel groups, Meta apps, the queue's own cancel button) only on the
+   * ON -> OFF transition. Deactivating is the closest thing to "disconnect" a channel has
+   * (there is no delete route) — it silently stops the channel from ever being scheduled
+   * to again, which used to fire on a single click with no confirmation at all, unlike
+   * every other state-changing control in the app.
+   */
+  confirmOffMessage,
 }: {
   id: number;
   field: "requires_approval" | "is_active";
   value: boolean;
   labelOn: string;
   labelOff: string;
+  confirmOffMessage?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const { showToast } = useToast();
 
   async function toggle() {
-    await fetch(`/api/channels/${id}`, {
+    if (value && confirmOffMessage && !window.confirm(confirmOffMessage)) return;
+    const res = await fetch(`/api/channels/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ [field]: !value }),
     });
+    if (!res.ok) {
+      showToast("Não foi possível salvar essa alteração.", "error");
+      return;
+    }
+    showToast(!value ? `${labelOn}.` : `${labelOff}.`);
     startTransition(() => router.refresh());
   }
 

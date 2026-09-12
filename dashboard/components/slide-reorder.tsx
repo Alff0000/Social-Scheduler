@@ -61,7 +61,11 @@ export function SlideReorder({
           {onRemove ? (
             <button
               onClick={() => onRemove(slide.assetId)}
-              className="absolute right-1 top-1 z-10 hidden h-5 w-5 items-center justify-center rounded-full bg-ink/75 text-xs text-white group-hover:flex"
+              // hidden + group-hover:flex alone made this unreachable on touch — display:none
+              // blocks taps too, not just visibility, and a touch screen never fires :hover.
+              // The pointer:coarse variant keeps it always visible wherever there's no
+              // reliable hover to reveal it on, while desktop keeps the decluttered default.
+              className="absolute right-1 top-1 z-10 hidden h-5 w-5 items-center justify-center rounded-full bg-ink/75 text-xs text-white group-hover:flex [@media(pointer:coarse)]:flex"
               aria-label="Remover imagem"
             >
               ×

@@ -211,6 +211,7 @@ export default async function ChannelsPage({
                     value={c.is_active === 1}
                     labelOn="Ativa"
                     labelOff="Inativa"
+                    confirmOffMessage={`Desativar ${c.account_name}? Nada mais será agendado ou publicado nela até você reativar.`}
                   />
                 </div>
 

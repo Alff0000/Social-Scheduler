@@ -5,6 +5,7 @@ import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 import { getSessionUser } from "@/lib/auth";
 import { DEFAULT_THEME, isThemeId, THEME_STORAGE_KEY } from "@/lib/themes";
+import { ToastProvider } from "@/components/toast";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -52,10 +53,12 @@ export default async function RootLayout({
       <body className="min-h-full" suppressHydrationWarning>
         {/* flex-col below md so the sidebar's mobile top bar stacks above <main> instead
             of squeezing beside it; md:flex-row restores the original side-by-side shell. */}
-        <div className="flex min-h-screen flex-col md:flex-row">
-          {user ? <Sidebar isAdmin={user.is_admin} email={user.email} /> : null}
-          <main className="flex-1 min-w-0">{children}</main>
-        </div>
+        <ToastProvider>
+          <div className="flex min-h-screen flex-col md:flex-row">
+            {user ? <Sidebar isAdmin={user.is_admin} email={user.email} /> : null}
+            <main className="flex-1 min-w-0">{children}</main>
+          </div>
+        </ToastProvider>
       </body>
     </html>
   );

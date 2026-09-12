@@ -9,6 +9,8 @@ import { PeriodAttach } from "./period-attach";
 import { FramingButton } from "./framing-button";
 import { channelColor, videoPreviewSrc } from "@/lib/format";
 import { ChannelAvatar } from "@/components/ui";
+import { captionLength } from "@/lib/caption-length";
+import { captionLimit } from "@/lib/platforms";
 
 // `uid` is a per-tile client id: two tiles can share an assetId (re-importing a
 // deduped image), so React keys must not be the assetId.
@@ -106,6 +108,16 @@ export function BulkImport({
     if (dedup > 0) setNotice(`${dedup} imagem(ns) já existia(m) (encontrada por conteúdo) — reutilizada(s).`);
     setUploading(false);
   }
+
+  // The strictest limit among the batch's currently-selected target platforms — every
+  // image in this batch goes to the SAME targets, so one shared limit applies to all of
+  // them, same "worst case across targets" reasoning as composer.tsx's own counter. Null
+  // (no counter shown) until at least one target is picked: there is nothing to check yet.
+  const targetChannels = channels.filter((c) => targets.has(c.id));
+  const captionLimits = Array.from(new Set(targetChannels.map((c) => c.platform)))
+    .map((p) => captionLimit(p, "single"))
+    .filter((n): n is number => n !== null);
+  const strictestCaptionLimit = captionLimits.length > 0 ? Math.min(...captionLimits) : null;
 
   const setCaption = (i: number, caption: string) =>
     setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, caption } : it)));
@@ -211,13 +223,26 @@ export function BulkImport({
                     value={it.caption}
                     onChange={(e) => setCaption(i, e.target.value)}
                   />
-                  <button
-                    type="button"
-                    onClick={() => removeItem(i)}
-                    className="mt-1 text-xs text-muted hover:text-status-failed"
-                  >
-                    Remover
-                  </button>
+                  <div className="mt-1 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => removeItem(i)}
+                      className="text-xs text-muted hover:text-status-failed"
+                    >
+                      Remover
+                    </button>
+                    {strictestCaptionLimit !== null ? (
+                      <span
+                        className={`data text-[11px] ${
+                          captionLength(it.caption) > strictestCaptionLimit
+                            ? "font-medium text-status-failed"
+                            : "text-faint"
+                        }`}
+                      >
+                        {captionLength(it.caption)}/{strictestCaptionLimit}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             ))}
