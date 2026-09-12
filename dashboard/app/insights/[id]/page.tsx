@@ -271,6 +271,14 @@ export default async function ChannelInsightsPage({
               channelId={channel.id}
               pending={Boolean(channel.insights_refresh_requested)}
             />
+            {/* A plain server-rendered link, matching this page's own "every control is a
+                link" rule — the browser's normal download handling is all a CSV needs. */}
+            <a
+              href={`/api/insights/${channel.id}/export?range=${rangeKey}`}
+              className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-ink-soft hover:bg-surface-sunken"
+            >
+              Exportar CSV
+            </a>
           </div>
         </div>
         {channel.insights_error ? (
