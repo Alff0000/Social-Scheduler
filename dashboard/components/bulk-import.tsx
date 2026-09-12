@@ -47,6 +47,10 @@ export function BulkImport({
 }) {
   const [items, setItems] = useState<Item[]>([]);
   const uidRef = useRef(0);
+  // Which item started an in-grid drag reorder — a ref, not state, because dragover fires
+  // continuously while hovering and re-rendering the whole grid on every one of those
+  // events would be wasteful. Same technique as slide-reorder.tsx.
+  const dragIndex = useRef<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const [targets, setTargets] = useState<Set<number>>(new Set());
   const [kind, setKind] = useState<ContentKind>("evergreen");
@@ -122,6 +126,15 @@ export function BulkImport({
   const setCaption = (i: number, caption: string) =>
     setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, caption } : it)));
   const removeItem = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i));
+  function moveItem(from: number, to: number) {
+    if (to < 0 || to >= items.length) return;
+    setItems((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  }
   const toggleTarget = (id: number) =>
     setTargets((prev) => {
       const next = new Set(prev);
@@ -163,7 +176,14 @@ export function BulkImport({
   return (
     <div className="space-y-6">
       {/* Upload */}
-      <section className={card}>
+      <section
+        className={card}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          onFiles(e.dataTransfer.files);
+        }}
+      >
         <label className="inline-flex cursor-pointer items-center rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-ink">
           {uploading ? "Enviando…" : "Adicionar imagens"}
           <input
@@ -175,7 +195,8 @@ export function BulkImport({
           />
         </label>
         <p className="mt-2 text-xs text-muted">
-          Cada imagem vira seu próprio rascunho. A deduplicação é por conteúdo — o mesmo arquivo não é guardado duas vezes.
+          Arraste imagens pra essa área, ou use o botão acima. Cada imagem vira seu próprio
+          rascunho. A deduplicação é por conteúdo — o mesmo arquivo não é guardado duas vezes.
         </p>
         {notice ? <p className="mt-2 text-xs text-status-posted">{notice}</p> : null}
       </section>
@@ -186,9 +207,24 @@ export function BulkImport({
           <h3 className="mb-3 font-display text-sm font-semibold text-ink">
             {items.length} {items.length === 1 ? "imagem" : "imagens"} — adicione legendas (opcional)
           </h3>
+          <p className="mb-3 text-xs text-faint">
+            Arraste uma imagem para reordenar, ou use as setas — a ordem aqui é a ordem em
+            que os rascunhos são criados.
+          </p>
           <div className="grid gap-4 sm:grid-cols-2">
             {items.map((it, i) => (
-              <div key={it.uid} className="flex gap-3">
+              <div
+                key={it.uid}
+                draggable
+                onDragStart={() => (dragIndex.current = i)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragIndex.current !== null) moveItem(dragIndex.current, i);
+                  dragIndex.current = null;
+                }}
+                className="flex cursor-grab gap-3 active:cursor-grabbing"
+              >
                 <div className="shrink-0">
                   {it.mediaKind === "video" ? (
                     // No thumbnail file exists for video (no ffmpeg dependency by
@@ -224,13 +260,36 @@ export function BulkImport({
                     onChange={(e) => setCaption(i, e.target.value)}
                   />
                   <div className="mt-1 flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={() => removeItem(i)}
-                      className="text-xs text-muted hover:text-status-failed"
-                    >
-                      Remover
-                    </button>
+                    <span className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => removeItem(i)}
+                        className="text-xs text-muted hover:text-status-failed"
+                      >
+                        Remover
+                      </button>
+                      {/* Arrow fallback for touch, where there is no drag-and-drop to
+                          reorder with — same reasoning as slide-reorder.tsx's move
+                          buttons. */}
+                      <button
+                        type="button"
+                        onClick={() => moveItem(i, i - 1)}
+                        disabled={i === 0}
+                        aria-label="Mover para cima"
+                        className="rounded px-1 text-xs text-muted hover:text-ink disabled:opacity-30"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveItem(i, i + 1)}
+                        disabled={i === items.length - 1}
+                        aria-label="Mover para baixo"
+                        className="rounded px-1 text-xs text-muted hover:text-ink disabled:opacity-30"
+                      >
+                        ↓
+                      </button>
+                    </span>
                     {strictestCaptionLimit !== null ? (
                       <span
                         className={`data text-[11px] ${
