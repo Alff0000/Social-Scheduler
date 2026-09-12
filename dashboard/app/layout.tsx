@@ -53,7 +53,7 @@ export default async function RootLayout({
         {/* flex-col below md so the sidebar's mobile top bar stacks above <main> instead
             of squeezing beside it; md:flex-row restores the original side-by-side shell. */}
         <div className="flex min-h-screen flex-col md:flex-row">
-          {user ? <Sidebar isAdmin={user.is_admin} /> : null}
+          {user ? <Sidebar isAdmin={user.is_admin} email={user.email} /> : null}
           <main className="flex-1 min-w-0">{children}</main>
         </div>
       </body>

@@ -62,7 +62,7 @@ const NAV_GROUPS = [
   },
 ];
 
-export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
+export function Sidebar({ isAdmin, email }: { isAdmin: boolean; email: string }) {
   const pathname = usePathname();
   // The drawer's own state — closed by default so a fresh page load on a phone never
   // opens covering the content. md and up ignore this entirely (the aside is always
@@ -214,11 +214,8 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
         >
           Sair
         </button>
-        <p className="px-3 text-[11px] leading-relaxed text-faint">
-          O worker roda separadamente.
-          <br />
-          Os interruptores de segurança ficam no{" "}
-          <code className="data text-[10px] text-muted">.env</code>.
+        <p className="truncate px-3 text-[11px] leading-relaxed text-faint" title={email}>
+          {email}
         </p>
       </div>
       </aside>
