@@ -20,6 +20,7 @@ import { splitQueueSections } from "@/lib/queue-sections";
 import { StoryGroupHeader } from "@/components/story-group-header";
 import { MediaLightbox, type LightboxAsset } from "@/components/media-lightbox";
 import { QueueQuickEdit } from "@/components/queue-quick-edit";
+import { BulkEditModal } from "@/components/bulk-edit-modal";
 
 type StatusFilter = "all" | PublicationStatus;
 
@@ -217,6 +218,12 @@ export function PublicationQueue({
   // separate axis from the platform filter above. Matches the Library's filter.
   const [destination, setDestination] = useState<"all" | "story" | "reel" | "feed">("all");
   const [approvingAll, setApprovingAll] = useState(false);
+  // Manual multi-select, independent of "Aprovar todos" above — that button always acts on
+  // every pending_approval row currently on screen. This is for picking an arbitrary subset
+  // (or everything visible) and applying any of the four per-row actions to just those.
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkEditing, setBulkEditing] = useState(false);
 
   const shown = pubs.filter((p) => {
     // An empty set means no account filter at all, not "no accounts".
@@ -253,6 +260,84 @@ export function PublicationQueue({
     );
     setApprovingAll(false);
     startTransition(() => router.refresh());
+  }
+
+  const shownIds = new Set(shown.map((p) => p.id));
+  const allShownSelected = shown.length > 0 && shown.every((p) => selectedIds.has(p.id));
+
+  function toggleSelected(id: number) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  // Selects/deselects only what the current filters show — same reasoning as
+  // pendingApprovalIds above: acting on a row that's been filtered out of view is
+  // surprising, not helpful.
+  function toggleSelectAll() {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (allShownSelected) {
+        shown.forEach((p) => next.delete(p.id));
+      } else {
+        shown.forEach((p) => next.add(p.id));
+      }
+      return next;
+    });
+  }
+
+  // Drop any selected id that scrolled out of view once the filters changed, so "N
+  // selecionados" and the bulk actions never silently reach past what's on screen.
+  useEffect(() => {
+    setSelectedIds((current) => {
+      let changed = false;
+      const next = new Set(current);
+      for (const id of current) {
+        if (!shownIds.has(id)) {
+          next.delete(id);
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+    // shownIds is a new Set every render; comparing its serialized ids is what actually
+    // matters, and pubs/accounts/platform/status/destination cover every input that can
+    // change which rows are shown.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pubs, accounts, platform, status, destination]);
+
+  const selectedRows = pubs.filter((p) => selectedIds.has(p.id));
+  const selectedPostIds = [...new Set(selectedRows.map((p) => p.post_id))];
+
+  async function runBulk(action: "approve" | "hold" | "cancel") {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    setBulkBusy(true);
+    // Same one-request-per-id pattern as approveAll — a row this action doesn't apply to
+    // (e.g. holding an already-posted send) just 409s and is left as-is, exactly like
+    // clicking that row's own button would do.
+    await Promise.all(
+      ids.map((id) => fetch(`/api/publications/${id}/${action}`, { method: "POST" }).catch(() => null)),
+    );
+    setBulkBusy(false);
+    setSelectedIds(new Set());
+    startTransition(() => router.refresh());
+  }
+
+  async function bulkCancel() {
+    const count = selectedIds.size;
+    if (count === 0) return;
+    if (
+      !window.confirm(
+        `Cancelar ${count} envio${count === 1 ? "" : "s"} selecionado${count === 1 ? "" : "s"}? Só os agendados ou aguardando aprovação são cancelados — o resto fica como está.`,
+      )
+    ) {
+      return;
+    }
+    await runBulk("cancel");
   }
 
   return (
@@ -318,6 +403,54 @@ export function PublicationQueue({
         </span>
       </div>
 
+      {selectedIds.size > 0 ? (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface-sunken px-3 py-2">
+          <span className="text-xs font-medium text-ink-soft">
+            {selectedIds.size} selecionado{selectedIds.size === 1 ? "" : "s"}
+          </span>
+          <button
+            type="button"
+            onClick={() => runBulk("approve")}
+            disabled={bulkBusy}
+            className="rounded-md bg-brand px-2.5 py-1 text-xs font-medium text-on-brand hover:bg-brand-ink disabled:opacity-50"
+          >
+            Aprovar
+          </button>
+          <button
+            type="button"
+            onClick={() => runBulk("hold")}
+            disabled={bulkBusy}
+            className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-ink-soft hover:bg-surface disabled:opacity-50"
+          >
+            Colocar em espera
+          </button>
+          <button
+            type="button"
+            onClick={bulkCancel}
+            disabled={bulkBusy}
+            className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted hover:border-status-failed hover:text-status-failed disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={() => setBulkEditing(true)}
+            disabled={bulkBusy || selectedPostIds.length === 0}
+            className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-ink-soft hover:border-brand hover:text-brand disabled:opacity-50"
+          >
+            Editar
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedIds(new Set())}
+            disabled={bulkBusy}
+            className="ml-auto rounded-md px-2 py-1 text-xs font-medium text-faint hover:text-ink-soft disabled:opacity-50"
+          >
+            Limpar seleção
+          </button>
+        </div>
+      ) : null}
+
       {shown.length === 0 ? (
         <div className="rounded-card border border-border bg-surface px-4 py-6 text-center text-sm text-muted">
           Nenhum envio corresponde a esses filtros.
@@ -327,6 +460,15 @@ export function PublicationQueue({
           <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-faint">
+                <th className="px-4 py-2.5 font-medium">
+                  <input
+                    type="checkbox"
+                    checked={allShownSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="Selecionar todos os envios visíveis"
+                    className="align-middle"
+                  />
+                </th>
                 <th className="px-4 py-2.5 font-medium">Post</th>
                 <th className="px-4 py-2.5 font-medium">Conta</th>
                 <th className="px-4 py-2.5 font-medium">Quando</th>
@@ -342,7 +484,7 @@ export function PublicationQueue({
                   {all.length > 1 ? (
                     <tr>
                       <td
-                        colSpan={5}
+                        colSpan={6}
                         className={`border-b border-border bg-surface-sunken px-4 py-2 ${
                           sectionIndex > 0 ? "border-t-4 border-t-border" : ""
                         }`}
@@ -379,6 +521,15 @@ export function PublicationQueue({
                 <tr key={p.id} className={`border-b border-border last:border-0 align-top ${
                   group.isStoryGroup ? "bg-surface-sunken/40" : ""
                 }`}>
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(p.id)}
+                      onChange={() => toggleSelected(p.id)}
+                      aria-label={`Selecionar envio ${p.id}`}
+                      className="align-middle"
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-start gap-3">
                       {/* The whole thumbnail opens the viewer, rather than the Library's
@@ -720,6 +871,21 @@ export function PublicationQueue({
           )}
           label={openMedia.label}
           onClose={() => setOpenMedia(null)}
+        />
+      ) : null}
+
+      {bulkEditing ? (
+        <BulkEditModal
+          postIds={selectedPostIds}
+          periods={periods}
+          timeOfDayTags={timeOfDayTags}
+          topicTags={topicTags}
+          onClose={() => setBulkEditing(false)}
+          onSaved={() => {
+            setBulkEditing(false);
+            setSelectedIds(new Set());
+            startTransition(() => router.refresh());
+          }}
         />
       ) : null}
 

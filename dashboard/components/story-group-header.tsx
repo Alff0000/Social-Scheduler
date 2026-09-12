@@ -57,6 +57,8 @@ export function StoryGroupHeader({
 
   return (
     <tr className="border-b border-border bg-surface-sunken/70">
+      {/* Lines up with the queue's checkbox column — this row has nothing to select. */}
+      <td className="px-4 py-2" />
       <td colSpan={4} className="px-4 py-2">
         <span className="flex flex-wrap items-center gap-2">
           <span className="rounded-full border border-border-strong px-1.5 py-px text-[10px] font-medium text-ink-soft">
