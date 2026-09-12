@@ -16,7 +16,7 @@ import { CheckboxFilterDropdown } from "@/components/checkbox-filter-dropdown";
 import { formatInTz, tzAbbrev, videoPreviewSrc } from "@/lib/format";
 import { sendTime, formatLateness } from "@/lib/send-time";
 import { groupQueueRows, cancelableIds } from "@/lib/queue-groups";
-import { splitQueueSections } from "@/lib/queue-sections";
+import { splitQueueSections, isFinished } from "@/lib/queue-sections";
 import { StoryGroupHeader } from "@/components/story-group-header";
 import { MediaLightbox, type LightboxAsset } from "@/components/media-lightbox";
 import { QueueQuickEdit } from "@/components/queue-quick-edit";
@@ -263,7 +263,14 @@ export function PublicationQueue({
   }
 
   const shownIds = new Set(shown.map((p) => p.id));
-  const allShownSelected = shown.length > 0 && shown.every((p) => selectedIds.has(p.id));
+  // "Select all" stops at the end of the queue (scheduled/pending/failed/publishing) and
+  // never reaches into Done — a posted or canceled send is over, so pulling it into a
+  // bulk approve/hold/cancel/edit by default is never what "select all" meant. A row in
+  // Done can still be checked BY HAND (its own checkbox is unaffected by this), just not
+  // swept in by the header checkbox.
+  const selectableShown = shown.filter((p) => !isFinished(p.status));
+  const allShownSelected =
+    selectableShown.length > 0 && selectableShown.every((p) => selectedIds.has(p.id));
 
   function toggleSelected(id: number) {
     setSelectedIds((current) => {
@@ -274,16 +281,13 @@ export function PublicationQueue({
     });
   }
 
-  // Selects/deselects only what the current filters show — same reasoning as
-  // pendingApprovalIds above: acting on a row that's been filtered out of view is
-  // surprising, not helpful.
   function toggleSelectAll() {
     setSelectedIds((current) => {
       const next = new Set(current);
       if (allShownSelected) {
-        shown.forEach((p) => next.delete(p.id));
+        selectableShown.forEach((p) => next.delete(p.id));
       } else {
-        shown.forEach((p) => next.add(p.id));
+        selectableShown.forEach((p) => next.add(p.id));
       }
       return next;
     });
@@ -465,7 +469,8 @@ export function PublicationQueue({
                     type="checkbox"
                     checked={allShownSelected}
                     onChange={toggleSelectAll}
-                    aria-label="Selecionar todos os envios visíveis"
+                    aria-label="Selecionar todos os envios visíveis que ainda estão na fila"
+                    title="Seleciona só o que ainda está na fila — não inclui o que já foi postado ou cancelado"
                     className="align-middle"
                   />
                 </th>
