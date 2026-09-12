@@ -224,6 +224,20 @@ export function PublicationQueue({
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkEditing, setBulkEditing] = useState(false);
+  // Which of the two sections (queue-sections.QueueSection['key']) are collapsed. Reaching
+  // Done meant scrolling past the whole queue first whenever it was long — a large batch
+  // schedule made that the common case, not the rare one. Starts empty (both open) so the
+  // table looks exactly as it did before anyone collapses anything.
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+
+  function toggleSection(key: string) {
+    setCollapsedSections((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   const shown = pubs.filter((p) => {
     // An empty set means no account filter at all, not "no accounts".
@@ -482,7 +496,9 @@ export function PublicationQueue({
               </tr>
             </thead>
             <tbody>
-              {splitQueueSections(shown).map((section, sectionIndex, all) => (
+              {splitQueueSections(shown).map((section, sectionIndex, all) => {
+                const collapsed = collapsedSections.has(section.key);
+                return (
                 <Fragment key={section.key}>
                   {/* Only headed when both halves are on screen. A single heading over the
                       whole table says nothing the status filter has not already said. */}
@@ -494,7 +510,20 @@ export function PublicationQueue({
                           sectionIndex > 0 ? "border-t-4 border-t-border" : ""
                         }`}
                       >
-                        <span className="flex items-baseline gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleSection(section.key)}
+                          aria-expanded={!collapsed}
+                          className="flex w-full items-baseline gap-2 text-left"
+                        >
+                          {/* Rotates to point right when collapsed — a single glyph that
+                              still reads as "expand this" without needing separate art. */}
+                          <span
+                            aria-hidden
+                            className={`inline-block text-faint transition-transform ${collapsed ? "-rotate-90" : ""}`}
+                          >
+                            ▾
+                          </span>
                           <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
                             {section.title}
                           </span>
@@ -503,15 +532,17 @@ export function PublicationQueue({
                           </span>
                           {/* The two halves run in opposite directions, which looks like a
                               glitch unless something says it is deliberate. */}
-                          <span className="text-[11px] text-faint">· {section.hint}</span>
-                        </span>
+                          <span className="text-[11px] text-faint">
+                            {collapsed ? "· recolhido" : `· ${section.hint}`}
+                          </span>
+                        </button>
                       </td>
                     </tr>
                   ) : null}
                   {/* Grouped WITHIN a section, not across it: a Story whose slide 3 failed
                       while 1, 2 and 4 posted genuinely belongs to both halves, and the
                       failed slide needs to appear with the work that still needs you. */}
-                  {groupQueueRows(section.rows).map((group) => (
+                  {!collapsed && groupQueueRows(section.rows).map((group) => (
                 <Fragment key={group.key}>
                   {group.isStoryGroup ? (
                     <StoryGroupHeader
@@ -855,7 +886,8 @@ export function PublicationQueue({
                 </Fragment>
                   ))}
                 </Fragment>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
