@@ -31,7 +31,7 @@ export default async function CalendarPage({
   const viewer = await getSessionUser();
   const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
   const params = await searchParams;
-  const view = params.view === "week" ? "week" : "month";
+  const view = params.view === "week" ? "week" : params.view === "day" ? "day" : "month";
   const account = params.account ?? "all";
   const platform = params.platform ?? "all";
   const today = todayInTz(config.defaultTimezone);
@@ -39,7 +39,7 @@ export default async function CalendarPage({
   // value is user-editable in the address bar and reaches date maths directly.
   const anchor = isValidDate(params.anchor) ? params.anchor : today;
 
-  const days = view === "week" ? weekDays(anchor) : monthGrid(anchor).flat();
+  const days = view === "day" ? [anchor] : view === "week" ? weekDays(anchor) : monthGrid(anchor).flat();
   const first = days[0];
   const last = days[days.length - 1];
 

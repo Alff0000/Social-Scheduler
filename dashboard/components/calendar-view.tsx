@@ -33,6 +33,15 @@ function monthTitle(anchor: string): string {
   }).format(new Date(Date.UTC(Number(y), Number(m) - 1, 1)));
 }
 
+function dayTitle(day: string): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "UTC",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(new Date(`${day}T00:00:00Z`));
+}
+
 function rangeTitle(days: string[]): string {
   const fmt = (d: string) =>
     new Intl.DateTimeFormat("pt-BR", {
@@ -55,7 +64,7 @@ export function CalendarView({
   account,
   platform,
 }: {
-  view: "week" | "month";
+  view: "week" | "month" | "day";
   anchor: string;
   today: string;
   days: string[];
@@ -72,8 +81,10 @@ export function CalendarView({
   const [over, setOver] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const prev = view === "month" ? shiftMonth(anchor, -1) : addDays(anchor, -7);
-  const next = view === "month" ? shiftMonth(anchor, 1) : addDays(anchor, 7);
+  const prev =
+    view === "month" ? shiftMonth(anchor, -1) : view === "day" ? addDays(anchor, -1) : addDays(anchor, -7);
+  const next =
+    view === "month" ? shiftMonth(anchor, 1) : view === "day" ? addDays(anchor, 1) : addDays(anchor, 7);
 
   /**
    * Every control is a link carrying the WHOLE state, so filters survive paging and a
@@ -92,25 +103,33 @@ export function CalendarView({
   const total = Object.values(sendsByDay).reduce((n, s) => n + s.length, 0);
 
   /**
-   * Move a send to another day, keeping its time of day.
+   * Move a send to another day — or, dropped onto a specific hour row (Day view only),
+   * to that hour on that day too. `hour` is omitted for a month square or week row, which
+   * are whole-day targets with no finer position to read a time from; day view's hourly
+   * rows are the one place a drop position actually means a time, not just a date.
    *
    * Reuses the queue's own reschedule endpoint rather than a calendar-specific one: it
    * already resolves the channel's timezone and re-checks the status server-side, so a
    * drag inherits every guard instead of running beside them.
    */
-  async function drop(day: string) {
+  async function drop(day: string, hour?: number) {
     const send = dragging;
     setDragging(null);
     setOver(null);
     if (!send) return;
-    // Dropping a send where it already is asks the server to change nothing.
-    if (sendsByDay[day]?.some((s) => s.id === send.id)) return;
+    // Keeps the original minute — an hour-row drop is deliberately coarse-grained
+    // (which hour), not a request to also round the minute to :00.
+    const time = hour === undefined ? send.time : `${String(hour).padStart(2, "0")}:${send.time.split(":")[1]}`;
+    // Dropping a send where it already is (same day, same resulting time) asks the
+    // server to change nothing.
+    const alreadyOnDay = sendsByDay[day]?.some((s) => s.id === send.id) ?? false;
+    if (alreadyOnDay && time === send.time) return;
 
     setError(null);
     const res = await fetch(`/api/publications/${send.id}/reschedule`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: day, time: send.time }),
+      body: JSON.stringify({ date: day, time }),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
@@ -133,6 +152,23 @@ export function CalendarView({
     onDrop: (e: React.DragEvent) => {
       e.preventDefault();
       void drop(day);
+    },
+  });
+
+  /** Same wiring, keyed by "day#hour" so an hour row's highlight never collides with a
+   *  whole-day one. Only used by the Day view's hourly grid. */
+  const hourKey = (day: string, hour: number) => `${day}#${hour}`;
+  const hourDropProps = (day: string, hour: number) => ({
+    onDragOver: (e: React.DragEvent) => {
+      if (!dragging) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      setOver(hourKey(day, hour));
+    },
+    onDragLeave: () => setOver((d) => (d === hourKey(day, hour) ? null : d)),
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      void drop(day, hour);
     },
   });
 
@@ -254,6 +290,40 @@ export function CalendarView({
     );
   };
 
+  /**
+   * One day, as 24 hourly rows — the one view precise enough for a drop position to mean
+   * a TIME, not just a date. Month cells and week rows are whole-day targets; there is no
+   * meaningful "which hour" to read from a drop position inside either of them.
+   */
+  const HOURS = Array.from({ length: 24 }, (_, h) => h);
+  const dayGrid = (day: string) => {
+    const sends = [...(sendsByDay[day] ?? [])].sort((a, b) => a.time.localeCompare(b.time));
+    return (
+      <div className="flex flex-col">
+        {HOURS.map((hour) => {
+          const inHour = sends.filter((s) => Number(s.time.split(":")[0]) === hour);
+          const isTarget = over === hourKey(day, hour) && dragging !== null;
+          return (
+            <div
+              key={hour}
+              {...hourDropProps(day, hour)}
+              className={`flex gap-3 border-b border-border p-2 last:border-0 transition-colors ${
+                isTarget ? "bg-brand-weak ring-2 ring-inset ring-brand" : ""
+              }`}
+            >
+              <span className="data w-12 shrink-0 pt-0.5 text-[11px] text-faint">
+                {String(hour).padStart(2, "0")}h
+              </span>
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                {inHour.map((s) => chipFor(s, false))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -280,7 +350,7 @@ export function CalendarView({
           </Link>
         </div>
         <h2 className="text-base font-semibold text-ink">
-          {view === "month" ? monthTitle(anchor) : rangeTitle(days)}
+          {view === "month" ? monthTitle(anchor) : view === "day" ? dayTitle(anchor) : rangeTitle(days)}
         </h2>
         <span className="data text-[11px] text-muted">
           {total} envio{total === 1 ? "" : "s"}
@@ -312,7 +382,7 @@ export function CalendarView({
           ))}
         </select>
         <div className="ml-auto flex items-center gap-1">
-          {(["week", "month"] as const).map((v) => (
+          {(["day", "week", "month"] as const).map((v) => (
             <Link
               key={v}
               href={href({ view: v })}
@@ -322,7 +392,7 @@ export function CalendarView({
                   : "border border-border text-muted hover:text-ink"
               }`}
             >
-              {v === "week" ? "Semana" : "Mês"}
+              {v === "day" ? "Dia" : v === "week" ? "Semana" : "Mês"}
             </Link>
           ))}
         </div>
@@ -351,6 +421,8 @@ export function CalendarView({
             ))}
             {days.map((day) => monthCell(day))}
           </div>
+        ) : view === "day" ? (
+          dayGrid(days[0])
         ) : (
           <div className="flex flex-col">{days.map((day) => weekRow(day))}</div>
         )}
@@ -359,7 +431,9 @@ export function CalendarView({
       <p className="text-[11px] text-faint">
         Cada envio mostra o horário local da própria conta. Hoje é{" "}
         {gridTimezone.replace("_", " ")}.
-        {" "}Arraste um envio agendado para outro dia para movê-lo — o horário do dia permanece o mesmo.
+        {view === "day"
+          ? " Arraste um envio para outra hora para reagendá-lo — o minuto original é mantido."
+          : " Arraste um envio agendado para outro dia para movê-lo — o horário do dia permanece o mesmo. Para ajustar a hora, mude para a visão Dia."}
       </p>
     </div>
   );
