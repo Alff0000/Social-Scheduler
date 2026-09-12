@@ -10,6 +10,24 @@ import { WorkerStatus } from "@/components/worker-status";
 import type { PublicationRow } from "@/lib/queries";
 import type { Period, Tag } from "@/lib/types";
 
+function ChevronGlyph() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
 /**
  * The two Overview sections that share one piece of state: which accounts to show.
  *
@@ -51,6 +69,7 @@ export function OverviewBody({
   // Empty = every account. Same meaning an unfiltered list already had, so there is no
   // "all" sentinel that could fall out of step with the cards.
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [railCollapsed, setRailCollapsed] = useState(false);
 
   const counts = new Map(scheduledCounts);
   const nextAt = new Map(nextScheduled);
@@ -75,9 +94,23 @@ export function OverviewBody({
     <>
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-muted">
-            Filas das contas
-          </h2>
+          <button
+            type="button"
+            onClick={() => setRailCollapsed((prev) => !prev)}
+            aria-expanded={!railCollapsed}
+            title={railCollapsed ? "Clique para expandir" : "Clique para recolher"}
+            className="group/toggle flex items-center gap-2 rounded-md py-0.5 pr-2 text-left hover:bg-surface-sunken"
+          >
+            <span
+              aria-hidden
+              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border-strong bg-surface text-ink-soft transition-transform group-hover/toggle:border-brand group-hover/toggle:text-brand ${railCollapsed ? "-rotate-90" : ""}`}
+            >
+              <ChevronGlyph />
+            </span>
+            <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-muted group-hover/toggle:text-ink">
+              Filas das contas
+            </h2>
+          </button>
           <div className="flex items-center gap-3">
             {filteringLabel ? (
               // Says what the page is currently hiding. A filtered list that looks like
@@ -101,13 +134,15 @@ export function OverviewBody({
             ) : null}
           </div>
         </div>
-        <ChannelQueueRail
-          channels={channels}
-          counts={counts}
-          nextAt={nextAt}
-          selected={selected}
-          onToggle={toggle}
-        />
+        {railCollapsed ? null : (
+          <ChannelQueueRail
+            channels={channels}
+            counts={counts}
+            nextAt={nextAt}
+            selected={selected}
+            onToggle={toggle}
+          />
+        )}
       </section>
 
       <section>
