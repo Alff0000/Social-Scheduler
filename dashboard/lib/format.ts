@@ -1,6 +1,23 @@
 // Display helpers. All timestamps are stored UTC; we render them in a channel's
 // own IANA timezone (per-channel timezone is a core requirement).
 
+/** A short relative-time label ("há 3h", "em 5m") — shared by every "how long ago/until"
+ *  reading in the app (queue health, lost-channel age, etc.) rather than each page
+ *  re-deriving its own rounding. */
+export function timeAgo(iso: string | null): string {
+  if (!iso) return "—";
+  const ms = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(Math.abs(ms) / 60000);
+  const future = ms < 0;
+  const unit =
+    minutes < 60
+      ? `${minutes}m`
+      : minutes < 1440
+        ? `${Math.floor(minutes / 60)}h`
+        : `${Math.floor(minutes / 1440)}d`;
+  return future ? `em ${unit}` : `há ${unit}`;
+}
+
 /**
  * Format a date through Intl, then pin the punctuation Intl itself keeps changing.
  *

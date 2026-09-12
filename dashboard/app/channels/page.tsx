@@ -29,7 +29,9 @@ import { ChannelTimezone } from "@/components/channel-timezone";
 import { AutofillConfig } from "@/components/autofill-config";
 import { ChannelGroups } from "@/components/channel-groups";
 import { ChannelGroupSelect } from "@/components/channel-group-select";
-import { tzAbbrev } from "@/lib/format";
+import { TestConnectionButton } from "@/components/test-connection-button";
+import { ChannelSearchGrid } from "@/components/channel-search-grid";
+import { tzAbbrev, timeAgo } from "@/lib/format";
 import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -135,7 +137,7 @@ export default async function ChannelsPage({
             defaultTimezone={config.defaultTimezone}
             bandTimes={config.bandTimes}
           />
-          <div className="grid gap-4 md:grid-cols-2">
+          <ChannelSearchGrid channels={channels}>
             {channels.map((c) => (
               <div
                 key={c.id}
@@ -172,6 +174,13 @@ export default async function ChannelsPage({
                   </div>
                   <span className="data text-[11px] text-faint">#{c.id}</span>
                 </div>
+
+                {c.lost_at ? (
+                  <p className="mt-3 rounded-lg border border-status-failed/40 bg-status-failed/10 px-3 py-2 text-xs text-status-failed">
+                    <span className="font-medium">Conexão perdida</span> ({timeAgo(c.lost_at)}) —{" "}
+                    {c.lost_reason ?? "token de acesso inválido ou revogado."}
+                  </p>
+                ) : null}
 
                 <dl className="mt-4 space-y-1.5 text-xs">
                   <Row label="Fuso horário">
@@ -213,6 +222,7 @@ export default async function ChannelsPage({
                     labelOff="Inativa"
                     confirmOffMessage={`Desativar ${c.account_name}? Nada mais será agendado ou publicado nela até você reativar.`}
                   />
+                  <TestConnectionButton channelId={c.id} />
                 </div>
 
                 <ChannelCredentials
@@ -304,7 +314,7 @@ export default async function ChannelsPage({
                 )}
               </div>
             ))}
-          </div>
+          </ChannelSearchGrid>
           </>
         )}
       </div>

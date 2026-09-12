@@ -12,6 +12,7 @@ import { ChannelAvatar, EmptyState, PageHeader } from "@/components/ui";
 import { WorkerStatus } from "@/components/worker-status";
 import { platformBadge } from "@/lib/platforms";
 import { exact } from "@/lib/insights";
+import { timeAgo } from "@/lib/format";
 import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -39,20 +40,6 @@ function statCard(label: string, value: number, tone: "ok" | "pending" | "error"
       </dd>
     </div>
   );
-}
-
-function timeAgo(iso: string | null): string {
-  if (!iso) return "—";
-  const ms = Date.now() - new Date(iso).getTime();
-  const minutes = Math.floor(Math.abs(ms) / 60000);
-  const future = ms < 0;
-  const unit =
-    minutes < 60
-      ? `${minutes}m`
-      : minutes < 1440
-        ? `${Math.floor(minutes / 60)}h`
-        : `${Math.floor(minutes / 1440)}d`;
-  return future ? `em ${unit}` : `há ${unit}`;
 }
 
 export default async function QueueStatusPage() {
