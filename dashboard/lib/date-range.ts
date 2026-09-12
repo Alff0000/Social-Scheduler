@@ -37,26 +37,47 @@ export interface DateRange {
   end: string;
 }
 
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+/**
+ * Today's calendar date IN `timeZone` — never the server process's own clock, which on
+ * this install's Docker/Railway deploy is UTC. Brasília (UTC-3) and UTC disagree on the
+ * date for 3 hours every night (21:00-24:00 America/Sao_Paulo); computing "hoje" from raw
+ * UTC asked account_metrics for a day that had not started yet in the owner's timezone —
+ * a day with zero rows, which read as "the filter isn't pulling metrics" rather than what
+ * it actually was: asking for the wrong day. `timeZone` is required, not defaulted to
+ * "UTC", so a caller can never silently reintroduce this by forgetting to pass one.
+ */
+export function todayIso(timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date()); // en-CA -> YYYY-MM-DD
 }
 
 const PRESET_KEYS = new Set(RANGE_PRESETS.map((p) => p.key));
 
 /** Read `?range=` (and, for custom, `?start=&end=`) from a page's searchParams, defaulting
  *  to "7d" — the same default window the Dashboard and Relatório hub used before this
- *  filter existed, so a bookmarked link with no query string still looks the same. */
+ *  filter existed, so a bookmarked link with no query string still looks the same.
+ *  `timeZone` should be the install's configured timezone (`config.defaultTimezone`) —
+ *  see todayIso's comment for why this can never be allowed to default to UTC. */
 export function parseRangeParams(
   query: Record<string, string | string[] | undefined>,
+  timeZone: string,
 ): { preset: RangePreset; range: DateRange } {
   const rawPreset = typeof query.range === "string" ? query.range : "7d";
   const preset: RangePreset = PRESET_KEYS.has(rawPreset as RangePreset)
     ? (rawPreset as RangePreset)
     : "7d";
-  const range = resolveDateRange(preset, {
-    start: typeof query.start === "string" ? query.start : null,
-    end: typeof query.end === "string" ? query.end : null,
-  });
+  const range = resolveDateRange(
+    preset,
+    {
+      start: typeof query.start === "string" ? query.start : null,
+      end: typeof query.end === "string" ? query.end : null,
+    },
+    timeZone,
+  );
   return { preset, range };
 }
 
@@ -70,8 +91,10 @@ export function rangeLength(range: DateRange): number {
 /**
  * Turn a preset (plus, for "custom", a caller-supplied start/end) into a concrete range.
  *
- * Always anchored to the real current date, never to the latest day any table happens to
- * have synced — see this file's header for why that distinction matters.
+ * Always anchored to the real current date IN `timeZone`, never to the latest day any
+ * table happens to have synced — see this file's header for why that distinction matters
+ * — and never to the server process's own (UTC) clock, which today's date can differ from
+ * by a full calendar day for hours at a time (see todayIso's comment).
  *
  * A custom range is defended against three ways a person can hand it back wrong: start
  * after end (swapped), and either end in the future (clamped to today — there is no data
@@ -80,9 +103,10 @@ export function rangeLength(range: DateRange): number {
  */
 export function resolveDateRange(
   preset: RangePreset,
-  custom?: { start?: string | null; end?: string | null },
+  custom: { start?: string | null; end?: string | null } | undefined,
+  timeZone: string,
 ): DateRange {
-  const today = todayIso();
+  const today = todayIso(timeZone);
   switch (preset) {
     case "today":
       return { start: today, end: today };

@@ -2,10 +2,15 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   buildRangeKpis, denseRange, parseRangeParams, previousPeriod, rangeLabel, rangeLength,
-  resolveDateRange, rowsInRange,
+  resolveDateRange, rowsInRange, todayIso as realTodayIso,
   type DateRange,
 } from "./date-range";
 import type { DayRow } from "./insights";
+
+// Every test below fixes ONE timezone and passes it explicitly, rather than letting
+// resolveDateRange default to anything — matching this repo's own config.defaultTimezone
+// default, and standing in for the install-wide timezone every real call site now passes.
+const TZ = "America/Sao_Paulo";
 
 const day = (d: string, values: Partial<DayRow> = {}): DayRow => ({
   day: d,
@@ -16,8 +21,11 @@ const day = (d: string, values: Partial<DayRow> = {}): DayRow => ({
   ...values,
 });
 
+// The tests' own notion of "today", computed the SAME way the real todayIso() is — via
+// Intl on the given zone, never via raw UTC — so a test can't pass by coincidence only
+// because it happened to run at a moment where TZ's date and UTC's date still agree.
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return realTodayIso(TZ);
 }
 
 function shiftIso(iso: string, n: number): string {
@@ -30,17 +38,17 @@ function shiftIso(iso: string, n: number): string {
 
 test("resolveDateRange 'today' is a single day: right now, not the last synced day", () => {
   const today = todayIso();
-  assert.deepEqual(resolveDateRange("today"), { start: today, end: today });
+  assert.deepEqual(resolveDateRange("today", undefined, TZ), { start: today, end: today });
 });
 
 test("resolveDateRange 'yesterday' is exactly one calendar day, excluding today", () => {
   const y = shiftIso(todayIso(), -1);
-  assert.deepEqual(resolveDateRange("yesterday"), { start: y, end: y });
+  assert.deepEqual(resolveDateRange("yesterday", undefined, TZ), { start: y, end: y });
 });
 
 test("resolveDateRange '7d' spans today and the 6 days before it", () => {
   const today = todayIso();
-  const range = resolveDateRange("7d");
+  const range = resolveDateRange("7d", undefined, TZ);
   assert.equal(range.end, today);
   assert.equal(range.start, shiftIso(today, -6));
   assert.equal(rangeLength(range), 7);
@@ -48,7 +56,7 @@ test("resolveDateRange '7d' spans today and the 6 days before it", () => {
 
 test("resolveDateRange 'month' starts on the 1st and ends today", () => {
   const today = todayIso();
-  const range = resolveDateRange("month");
+  const range = resolveDateRange("month", undefined, TZ);
   assert.equal(range.start, `${today.slice(0, 7)}-01`);
   assert.equal(range.end, today);
 });
@@ -57,7 +65,7 @@ test("resolveDateRange 'custom' passes a well-formed start/end through unchanged
   const today = todayIso();
   const start = shiftIso(today, -10);
   const end = shiftIso(today, -3);
-  assert.deepEqual(resolveDateRange("custom", { start, end }), { start, end });
+  assert.deepEqual(resolveDateRange("custom", { start, end }, TZ), { start, end });
 });
 
 test("resolveDateRange 'custom' swaps a reversed start/end rather than erroring", () => {
@@ -65,7 +73,7 @@ test("resolveDateRange 'custom' swaps a reversed start/end rather than erroring"
   const earlier = shiftIso(today, -5);
   const later = shiftIso(today, -1);
   // Handed backwards on purpose.
-  assert.deepEqual(resolveDateRange("custom", { start: later, end: earlier }), {
+  assert.deepEqual(resolveDateRange("custom", { start: later, end: earlier }, TZ), {
     start: earlier,
     end: later,
   });
@@ -74,21 +82,36 @@ test("resolveDateRange 'custom' swaps a reversed start/end rather than erroring"
 test("resolveDateRange 'custom' clamps an end in the future to today", () => {
   const today = todayIso();
   const future = shiftIso(today, 30);
-  const range = resolveDateRange("custom", { start: today, end: future });
+  const range = resolveDateRange("custom", { start: today, end: future }, TZ);
   assert.equal(range.end, today);
 });
 
 test("resolveDateRange 'custom' clamps a start in the future to today too", () => {
   const today = todayIso();
   const future = shiftIso(today, 30);
-  const range = resolveDateRange("custom", { start: future, end: future });
+  const range = resolveDateRange("custom", { start: future, end: future }, TZ);
   assert.equal(range.start, today);
   assert.equal(range.end, today);
 });
 
 test("resolveDateRange 'custom' with nothing supplied falls back to today/today", () => {
   const today = todayIso();
-  assert.deepEqual(resolveDateRange("custom", {}), { start: today, end: today });
+  assert.deepEqual(resolveDateRange("custom", {}, TZ), { start: today, end: today });
+});
+
+test("resolveDateRange 'today' uses the GIVEN timezone, never the server process's own UTC clock", (t) => {
+  // The actual bug: America/Sao_Paulo (UTC-3) and UTC disagree on the calendar date for 3
+  // hours every night. Freeze "now" at 2026-09-13T01:30:00Z -- already Sep 13 in UTC, but
+  // still Sep 12, 22:30 in Sao Paulo. A todayIso() that read raw UTC would answer "13"; the
+  // fix must answer "12", the account's own local day, exactly like account_metrics.py
+  // self-calibrates the worker's "today" instead of trusting the container's UTC clock.
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-09-13T01:30:00.000Z") });
+  try {
+    const range = resolveDateRange("today", undefined, "America/Sao_Paulo");
+    assert.deepEqual(range, { start: "2026-09-12", end: "2026-09-12" });
+  } finally {
+    t.mock.timers.reset();
+  }
 });
 
 // ---- rangeLength ------------------------------------------------------------------------
@@ -198,10 +221,10 @@ test("buildRangeKpis always compares a level metric, regardless of coverage", ()
 // ---- rangeLabel -------------------------------------------------------------------------
 
 test("rangeLabel reads naturally for each fixed preset", () => {
-  assert.equal(rangeLabel("today", resolveDateRange("today")), "hoje");
-  assert.equal(rangeLabel("yesterday", resolveDateRange("yesterday")), "ontem");
-  assert.equal(rangeLabel("7d", resolveDateRange("7d")), "nos últimos 7 dias");
-  assert.equal(rangeLabel("month", resolveDateRange("month")), "este mês");
+  assert.equal(rangeLabel("today", resolveDateRange("today", undefined, TZ)), "hoje");
+  assert.equal(rangeLabel("yesterday", resolveDateRange("yesterday", undefined, TZ)), "ontem");
+  assert.equal(rangeLabel("7d", resolveDateRange("7d", undefined, TZ)), "nos últimos 7 dias");
+  assert.equal(rangeLabel("month", resolveDateRange("month", undefined, TZ)), "este mês");
 });
 
 test("rangeLabel for a custom single day names that one day", () => {
@@ -215,23 +238,26 @@ test("rangeLabel for a custom span names both ends", () => {
 // ---- parseRangeParams -------------------------------------------------------------------
 
 test("parseRangeParams defaults to '7d' when no range is given, matching the old fixed window", () => {
-  const { preset, range } = parseRangeParams({});
+  const { preset, range } = parseRangeParams({}, TZ);
   assert.equal(preset, "7d");
   assert.equal(rangeLength(range), 7);
 });
 
 test("parseRangeParams reads a known preset from the query string", () => {
-  const { preset, range } = parseRangeParams({ range: "today" });
+  const { preset, range } = parseRangeParams({ range: "today" }, TZ);
   assert.equal(preset, "today");
   assert.equal(range.start, range.end);
 });
 
 test("parseRangeParams falls back to '7d' for an unrecognised range value", () => {
-  const { preset } = parseRangeParams({ range: "bogus" });
+  const { preset } = parseRangeParams({ range: "bogus" }, TZ);
   assert.equal(preset, "7d");
 });
 
 test("parseRangeParams reads start/end only for a custom range", () => {
-  const { range } = parseRangeParams({ range: "custom", start: "2026-06-01", end: "2026-06-05" });
+  const { range } = parseRangeParams(
+    { range: "custom", start: "2026-06-01", end: "2026-06-05" },
+    TZ,
+  );
   assert.deepEqual(range, { start: "2026-06-01", end: "2026-06-05" });
 });

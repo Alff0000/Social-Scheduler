@@ -19,6 +19,7 @@ import { channelColor } from "@/lib/format";
 import { platformBadge, platformLabel } from "@/lib/platforms";
 import { getSessionUser } from "@/lib/auth";
 import { DateRangeFilter } from "@/components/date-range-filter";
+import { config } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -119,7 +120,7 @@ export default async function InsightsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const query = await searchParams;
-  const { preset, range } = parseRangeParams(query);
+  const { preset, range } = parseRangeParams(query, config.defaultTimezone);
   const previous = previousPeriod(range);
   const viewer = await getSessionUser();
   const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
@@ -137,7 +138,7 @@ export default async function InsightsPage({
       <div className="px-8 py-6 space-y-8">
         {supported.length > 0 ? (
           <div className="flex justify-end">
-            <DateRangeFilter preset={preset} start={range.start} end={range.end} />
+            <DateRangeFilter preset={preset} start={range.start} end={range.end} timeZone={config.defaultTimezone} />
           </div>
         ) : null}
         {supported.length === 0 ? (

@@ -75,6 +75,7 @@ function KpiTile({
 export function DashboardPerformance({
   preset,
   range,
+  timeZone,
   currentRows,
   previousRows,
   topChannels,
@@ -84,6 +85,10 @@ export function DashboardPerformance({
 }: {
   preset: RangePreset;
   range: DateRange;
+  /** The install's configured timezone (config.defaultTimezone) — passed through to
+   *  DateRangeFilter so its own "today" (bounding the custom end-date picker) agrees with
+   *  the server-resolved range above, instead of falling back to the browser's own zone. */
+  timeZone: string;
   currentRows: DayRow[];
   previousRows: DayRow[];
   topChannels: TopChannelRow[];
@@ -109,7 +114,7 @@ export function DashboardPerformance({
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-sm font-semibold text-ink">Desempenho</h2>
-        <DateRangeFilter preset={preset} start={range.start} end={range.end} />
+        <DateRangeFilter preset={preset} start={range.start} end={range.end} timeZone={timeZone} />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

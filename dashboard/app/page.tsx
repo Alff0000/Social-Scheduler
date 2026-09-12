@@ -15,7 +15,8 @@ import { PageHeader } from "@/components/ui";
 import { NoChannelsYet, OverviewBody } from "@/components/overview-body";
 import { DashboardPerformance } from "@/components/dashboard-performance";
 import { getSessionUser } from "@/lib/auth";
-import { parseRangeParams, previousPeriod } from "@/lib/date-range";
+import { parseRangeParams, previousPeriod, todayIso } from "@/lib/date-range";
+import { config } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export default async function OverviewPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const query = await searchParams;
-  const { preset, range } = parseRangeParams(query);
+  const { preset, range } = parseRangeParams(query, config.defaultTimezone);
   const viewer = await getSessionUser();
   const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
   const channels = getActiveChannels(ownerId);
@@ -74,12 +75,13 @@ export default async function OverviewPage({
           <DashboardPerformance
             preset={preset}
             range={range}
+            timeZone={config.defaultTimezone}
             currentRows={getAggregateAccountMetrics(range, ownerId)}
             previousRows={getAggregateAccountMetrics(previousPeriod(range), ownerId)}
             topChannels={getTopChannelsByReach(range, 5, ownerId)}
             postsByHour={getPublicationsByHour(range, ownerId)}
             activeChannelCount={channels.length}
-            postedTodayCount={getPostedTodayCount(ownerId)}
+            postedTodayCount={getPostedTodayCount(ownerId, todayIso(config.defaultTimezone))}
           />
         ) : null}
         {channels.length > 0 ? (

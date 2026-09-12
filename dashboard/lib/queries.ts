@@ -3747,21 +3747,26 @@ export function getPublicationsByHour(
   return Array.from({ length: 24 }, (_, hour) => ({ hour, count: byHour.get(hour) ?? 0 }));
 }
 
-/** Publications that actually went out today, by UTC calendar day — every timestamp in
- *  this schema is stored as UTC ISO-8601 (see migrations), and every connected channel
- *  can have its own timezone, so there is no single "local today" that would be correct
- *  for all of them at once; UTC is at least the same answer everywhere. The Overview
- *  page's "postado hoje" count. Deliberately a plain COUNT rather than a per-channel
- *  breakdown: this single line is meant to answer "did anything go out today", not
- *  replace the queue list already below it. */
-export function getPostedTodayCount(ownerId: number | null): number {
+/** Publications that actually went out today, by the install's configured calendar day.
+ *  Every timestamp in this schema is stored as UTC ISO-8601 (see migrations), and every
+ *  connected channel can have its own timezone, so there is no single "local today" that
+ *  is exactly correct for every one of them at once — but `date('now')` (SQLite's own
+ *  clock, always UTC on this Docker/Railway deploy) isn't a neutral compromise either: it
+ *  disagreed with the owner's actual day for 3 hours every night (Brasília is UTC-3), the
+ *  same bug lib/date-range.ts's "Hoje" filter had. `today` should be
+ *  todayIso(config.defaultTimezone) — the same day the rest of the Overview page already
+ *  means by "hoje" — so this count and that filter can never disagree about what day it
+ *  is. The Overview page's "postado hoje" count. Deliberately a plain COUNT rather than a
+ *  per-channel breakdown: this single line is meant to answer "did anything go out
+ *  today", not replace the queue list already below it. */
+export function getPostedTodayCount(ownerId: number | null, today: string): number {
   const ownerClause = ownerId === null ? "" : "AND p.owner_user_id = ?";
   const row = getDb()
     .prepare(
       `SELECT COUNT(*) AS n FROM publications pub
        JOIN posts p ON p.id = pub.post_id
-       WHERE pub.status = 'posted' AND date(pub.published_at) = date('now') ${ownerClause}`,
+       WHERE pub.status = 'posted' AND date(pub.published_at) = date(?) ${ownerClause}`,
     )
-    .get(...(ownerId === null ? [] : [ownerId])) as { n: number };
+    .get(today, ...(ownerId === null ? [] : [ownerId])) as { n: number };
   return row.n;
 }

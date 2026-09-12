@@ -247,12 +247,12 @@ test("getPostedTodayCount counts only today's posted publications", async () => 
     platform: "instagram", account_name: `${prefix}-a`, timezone: "UTC",
     remote_account_id: `${prefix}-a`, access_token: "tok",
   }, null);
-  const before = q.getPostedTodayCount(null);
+  const before = q.getPostedTodayCount(null, isoDay(0));
 
   seedPostedPublication(db, a, new Date().toISOString());
   const yesterday = new Date();
   yesterday.setUTCDate(yesterday.getUTCDate() - 1);
   seedPostedPublication(db, a, yesterday.toISOString());
 
-  assert.equal(q.getPostedTodayCount(null), before + 1, "only the one posted TODAY counts");
+  assert.equal(q.getPostedTodayCount(null, isoDay(0)), before + 1, "only the one posted TODAY counts");
 });

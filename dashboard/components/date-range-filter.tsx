@@ -17,16 +17,28 @@ export function DateRangeFilter({
   preset,
   start,
   end,
+  timeZone,
 }: {
   preset: RangePreset;
   start: string;
   end: string;
+  /** The same timezone the server resolved `start`/`end` against (config.defaultTimezone)
+   *  — the custom end-date picker's `max` must agree with what the server will actually
+   *  clamp to, or a date the picker allows could still get silently rewritten server-side.
+   *  Never the browser's own zone: this project's whole day model is calendar-anchored to
+   *  ONE install-wide timezone, not to whoever happens to be looking at the screen. */
+  timeZone: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const [customStart, setCustomStart] = useState(start);
   const [customEnd, setCustomEnd] = useState(end);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 
   function go(params: Record<string, string>) {
     const q = new URLSearchParams(params);
