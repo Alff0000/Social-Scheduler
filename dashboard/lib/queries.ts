@@ -2611,16 +2611,27 @@ const PUBLICATION_ROW_SELECT = `
        )`;
 
 export function getPublicationsOverview(limit: number, ownerId: number | null): PublicationRow[] {
-  const where = ownerId !== null ? "WHERE p.owner_user_id = ?" : "";
-  return getDb()
+  const ownerClause = ownerId !== null ? "p.owner_user_id = ?" : null;
+  const ownerArgs = ownerId !== null ? [ownerId] : [];
+  const whereClause = (statusClause: string): string => {
+    const parts = [ownerClause, statusClause].filter((c): c is string => c !== null);
+    return `WHERE ${parts.join(" AND ")}`;
+  };
+
+  // Two independently-limited queries, not one combined ORDER BY + LIMIT. A single shared
+  // limit let a large batch of live work (e.g. one bulk schedule fanned out across many
+  // channels, hours apart) crowd out 'posted'/'canceled' rows entirely: the status rank
+  // always sorts live work first, so once unfinished rows alone reached the limit, no
+  // history could ever be returned — and the status filter (client-side, over whatever
+  // this function already handed back) had nothing to reveal, no matter what was picked.
+  // Splitting the budget means history is never starved by a busy queue, and vice versa.
+  const unfinished = getDb()
     .prepare(
       `${PUBLICATION_ROW_SELECT}
-       ${where}
+       ${whereClause(`pub.status NOT IN (${FINISHED_STATUSES_SQL})`)}
        ORDER BY
-         -- Live work first, most urgent kind first, then the history block. 'posted' and
-         -- 'canceled' share the last rank because both are over; everything above is still
-         -- waiting on something. An unrecognised status lands at 4 — just above the
-         -- history block rather than inside it — so a status added to the schema and
+         -- Most urgent kind first. An unrecognised status lands at 4 — just above the
+         -- history block this query never sees — so a status added to the schema and
          -- forgotten here surfaces among live work instead of being buried (the same
          -- fallback direction as lib/queue-sections.isFinished, which labels these).
          CASE pub.status
@@ -2628,42 +2639,41 @@ export function getPublicationsOverview(limit: number, ownerId: number | null): 
            WHEN 'publishing'       THEN 1
            WHEN 'pending_approval' THEN 2
            WHEN 'scheduled'        THEN 3
-           WHEN 'posted'           THEN 5
-           WHEN 'canceled'         THEN 5
            ELSE 4
          END,
-         -- Both the clock and the DIRECTION depend on the rank above.
-         --
-         -- Clock: place a send by when it ACTUALLY went out, falling back to when it is
-         -- due. published_at is only ever written on the transition to 'posted', so the
-         -- COALESCE selects itself. Sorting a delayed post by its original slot put it
-         -- back among the posts it was PLANNED beside instead of the ones it actually
-         -- landed among — the same lie the WHEN column told before lib/send-time.
-         --
-         -- Direction: upcoming work runs forward, because the next thing to happen is the
-         -- thing you care about. Finished work runs backward, because history reads newest
-         -- first — otherwise the post that just went out sits below every older one.
-         --
-         -- Two keys rather than one, since SQLite cannot flip direction per group. Each is
-         -- NULL for the rows it does not govern, and the split is the SAME one the section
-         -- headings use (lib/queue-sections.FINISHED_STATUSES, interpolated so the two
-         -- cannot drift), so within any one block the key that applies is the only one
-         -- that varies and the other is a constant that cannot disturb it.
-         CASE WHEN pub.status NOT IN (${FINISHED_STATUSES_SQL})
-              THEN COALESCE(pub.published_at, pub.scheduled_at) END ASC,
-         CASE WHEN pub.status IN (${FINISHED_STATUSES_SQL})
-              THEN COALESCE(pub.published_at, pub.scheduled_at) END DESC,
-         -- Tie-break, and load-bearing for Stories: the slides of one fan-out share a
-         -- scheduled_at, and when they publish in a single worker cycle they share a
-         -- published_at too. Ascending id is slide order (slides are inserted in
-         -- sort_order); without this, tied rows come back in whatever order the query
-         -- plan happens to produce, which is luck rather than a guarantee. It stays
-         -- ascending inside the newest-first block too: slide 1 → 2 → 3 reads the same
-         -- way wherever the Story itself sits.
+         -- Place a send by when it is due, running forward — the next thing to happen is
+         -- the thing you care about. published_at is always NULL here (nothing in this
+         -- bucket has gone out), so this reduces to scheduled_at, but the COALESCE stays
+         -- for symmetry with the finished query below and with lib.queue-sections' shared
+         -- "effective moment" definition.
+         COALESCE(pub.published_at, pub.scheduled_at) ASC,
+         -- Tie-break, and load-bearing for Stories: slides of one fan-out share a
+         -- scheduled_at, and ascending id is slide order (slides are inserted in
+         -- sort_order) — without this, tied rows come back in whatever order the query
+         -- plan happens to produce, which is luck rather than a guarantee.
          pub.id ASC
        LIMIT ?`
     )
-    .all(...(ownerId !== null ? [ownerId] : []), limit) as PublicationRow[];
+    .all(...ownerArgs, limit) as PublicationRow[];
+
+  const finished = getDb()
+    .prepare(
+      `${PUBLICATION_ROW_SELECT}
+       ${whereClause(`pub.status IN (${FINISHED_STATUSES_SQL})`)}
+       ORDER BY
+         -- History reads newest first — place a send by when it ACTUALLY went out, falling
+         -- back to when it was due (a canceled send never has a published_at). Sorting a
+         -- delayed post by its original slot put it back among the posts it was PLANNED
+         -- beside instead of the ones it actually landed among — the same lie the WHEN
+         -- column told before lib/send-time.
+         COALESCE(pub.published_at, pub.scheduled_at) DESC,
+         -- Same tie-break as above, so a Story's slides still read 1 → 2 → 3 here too.
+         pub.id ASC
+       LIMIT ?`
+    )
+    .all(...ownerArgs, limit) as PublicationRow[];
+
+  return [...unfinished, ...finished];
 }
 
 /**

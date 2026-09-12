@@ -192,3 +192,26 @@ test("the slides of one Story keep slide order when their times tie", () => {
 
   assert.deepEqual(slideIds, ids, "slides must stay in ascending id (slide) order");
 });
+
+test("a flood of scheduled sends does not crowd posted sends out of a limited query", () => {
+  // Regression: this function used to run ONE query with a single shared LIMIT, and the
+  // status rank always sorts live work ahead of finished work — so once unfinished rows
+  // alone reached the limit, no posted/canceled row could be returned at all, regardless
+  // of how few of them actually existed. A real bulk schedule (one caption fanned out
+  // across many channels, hours apart) reproduced this: the queue's status filter had
+  // nothing to reveal, because the server never sent a single posted row back to filter.
+  for (let i = 0; i < 5; i++) {
+    send({ label: `flood-${i}`, status: "scheduled", scheduledAt: `2028-01-0${i + 1}T00:00:00+00:00` });
+  }
+  send({
+    label: "flood-posted",
+    scheduledAt: "2028-02-01T00:00:00+00:00",
+    publishedAt: "2028-02-01T00:00:05+00:00",
+  });
+
+  const seen = q.getPublicationsOverview(2, null).map((r) => r.post_caption ?? "");
+  assert.ok(
+    seen.includes("flood-posted"),
+    `expected the posted send to survive a limit smaller than the scheduled flood, got ${JSON.stringify(seen)}`
+  );
+});
