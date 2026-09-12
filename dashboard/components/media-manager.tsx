@@ -8,6 +8,20 @@ import { truncateChars } from "@/lib/truncate";
 import { DownloadMediaButton } from "@/components/download-media-button";
 import { MediaBadge, MediaLightbox, type LightboxAsset } from "@/components/media-lightbox";
 import type { AssetWithUsage } from "@/lib/queries";
+import { useToast } from "@/components/toast";
+
+type SortOrder = "newest" | "oldest" | "largest" | "unused_first";
+
+const SORT_OPTIONS: { value: SortOrder; label: string }[] = [
+  { value: "newest", label: "Mais recente" },
+  { value: "oldest", label: "Mais antigo" },
+  { value: "largest", label: "Maior tamanho" },
+  { value: "unused_first", label: "Sem uso primeiro" },
+];
+
+function isUnused(a: AssetWithUsage): boolean {
+  return a.post_count === 0 && a.cover_use_count === 0;
+}
 
 // How many linked posts to show before collapsing the rest behind "+N more". Two keeps a
 // heavily-reused asset's card the same height as everyone else's; evergreen media on this
@@ -45,6 +59,11 @@ export function MediaManager({ assets }: { assets: AssetWithUsage[] }) {
   const [pending, startT] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const { showToast } = useToast();
 
   async function remove(a: AssetWithUsage) {
     const name = a.original_filename ?? `Asset ${a.id}`;
@@ -64,6 +83,7 @@ export function MediaManager({ assets }: { assets: AssetWithUsage[] }) {
         setError(body.error ?? "Não foi possível excluir esse arquivo.");
         return;
       }
+      showToast(`"${name}" excluído.`);
       startT(() => router.refresh());
     } catch {
       setError("Não foi possível conectar ao servidor. O dashboard ainda está rodando?");
@@ -77,7 +97,7 @@ export function MediaManager({ assets }: { assets: AssetWithUsage[] }) {
     // A Reels cover (assets.cover_asset_id) has no post_assets row but IS referenced, and
     // deleteAsset() refuses it — counting its bytes here would promise space that cannot be
     // reclaimed. Any future reference to an asset belongs in this condition too.
-    const unused = assets.filter((a) => a.post_count === 0 && a.cover_use_count === 0);
+    const unused = assets.filter(isUnused);
     const bytes = (list: AssetWithUsage[]) =>
       list.reduce((sum, a) => sum + (a.byte_size ?? 0), 0);
     return {
@@ -88,17 +108,136 @@ export function MediaManager({ assets }: { assets: AssetWithUsage[] }) {
     };
   }, [assets]);
 
+  // Search + sort happen here, client-side, over the one full list the page already
+  // fetched — this store is small enough (everything the install has ever uploaded) that
+  // a second server round trip per keystroke would be pure overhead for no real benefit.
+  const shown = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const filtered = q
+      ? assets.filter((a) => (a.original_filename ?? `asset ${a.id}`).toLowerCase().includes(q))
+      : assets;
+    const sorted = [...filtered];
+    switch (sortOrder) {
+      case "oldest":
+        sorted.sort((x, y) => x.created_at.localeCompare(y.created_at));
+        break;
+      case "largest":
+        sorted.sort((x, y) => (y.byte_size ?? 0) - (x.byte_size ?? 0));
+        break;
+      case "unused_first":
+        // Stable sort: ties (both unused, or both in use) keep the newest-first order
+        // listAssetsWithUsage already returned, rather than re-shuffling them.
+        sorted.sort((x, y) => Number(isUnused(y)) - Number(isUnused(x)));
+        break;
+      case "newest":
+      default:
+        sorted.sort((x, y) => y.created_at.localeCompare(x.created_at));
+    }
+    return sorted;
+  }, [assets, search, sortOrder]);
+
+  const selectableShown = shown.filter(isUnused);
+  const allShownSelected =
+    selectableShown.length > 0 && selectableShown.every((a) => selectedIds.has(a.id));
+
+  function toggleSelected(id: number) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (allShownSelected) {
+        selectableShown.forEach((a) => next.delete(a.id));
+      } else {
+        selectableShown.forEach((a) => next.add(a.id));
+      }
+      return next;
+    });
+  }
+
+  async function bulkDelete() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    if (
+      !window.confirm(
+        `Excluir ${ids.length} arquivo${ids.length === 1 ? "" : "s"} sem uso? Removidos do disco permanentemente — isso não pode ser desfeito.`,
+      )
+    ) {
+      return;
+    }
+    setBulkDeleting(true);
+    setError(null);
+    const results = await Promise.all(
+      ids.map((id) =>
+        fetch(`/api/assets/${id}`, { method: "DELETE" })
+          .then((r) => r.ok)
+          .catch(() => false),
+      ),
+    );
+    setBulkDeleting(false);
+    const failed = results.filter((ok) => !ok).length;
+    if (failed > 0) {
+      setError(`${failed} de ${ids.length} não puderam ser excluídos.`);
+    } else {
+      showToast(`${ids.length} arquivo${ids.length === 1 ? "" : "s"} excluído${ids.length === 1 ? "" : "s"}.`);
+    }
+    setSelectedIds(new Set());
+    startT(() => router.refresh());
+  }
+
   return (
     <div>
-      <p className="mb-6 text-sm text-faint">
-        {summary.count} {summary.count === 1 ? "item" : "itens"} · {humanBytes(summary.total)}
-        {summary.unusedCount > 0 ? (
-          <>
-            {" "}
-            · {summary.unusedCount} sem uso ({humanBytes(summary.unusedBytes)})
-          </>
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <p className="text-sm text-faint">
+          {summary.count} {summary.count === 1 ? "item" : "itens"} · {humanBytes(summary.total)}
+          {summary.unusedCount > 0 ? (
+            <>
+              {" "}
+              · {summary.unusedCount} sem uso ({humanBytes(summary.unusedBytes)})
+            </>
+          ) : null}
+        </p>
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar por nome do arquivo…"
+          className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-ink placeholder:text-faint focus:border-brand"
+        />
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+          className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-ink focus:border-brand"
+        >
+          {SORT_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        {selectableShown.length > 0 ? (
+          <label className="ml-auto flex items-center gap-1.5 text-xs text-ink-soft">
+            <input type="checkbox" checked={allShownSelected} onChange={toggleSelectAll} />
+            Selecionar tudo sem uso
+          </label>
         ) : null}
-      </p>
+        {selectedIds.size > 0 ? (
+          <button
+            type="button"
+            onClick={bulkDelete}
+            disabled={bulkDeleting}
+            className={`rounded-md border border-status-failed/40 px-3 py-1.5 text-xs font-medium text-status-failed hover:bg-surface-sunken disabled:opacity-50 ${selectableShown.length > 0 ? "" : "ml-auto"}`}
+          >
+            {bulkDeleting ? "Excluindo…" : `Excluir ${selectedIds.size} selecionado${selectedIds.size === 1 ? "" : "s"}`}
+          </button>
+        ) : null}
+      </div>
 
       {error ? (
         <p className="mb-4 rounded-lg bg-accent-weak px-3 py-2 text-sm text-accent-strong">
@@ -106,8 +245,13 @@ export function MediaManager({ assets }: { assets: AssetWithUsage[] }) {
         </p>
       ) : null}
 
+      {shown.length === 0 ? (
+        <p className="rounded-card border border-dashed border-border-strong bg-surface/60 px-6 py-12 text-center text-sm text-muted">
+          Nenhum arquivo corresponde a essa busca.
+        </p>
+      ) : (
       <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {assets.map((a) => {
+        {shown.map((a) => {
           const name = a.original_filename ?? `Asset ${a.id}`;
           const inPost = a.post_count > 0;
           const isCover = a.cover_use_count > 0;
@@ -212,7 +356,15 @@ export function MediaManager({ assets }: { assets: AssetWithUsage[] }) {
                   <p className="text-xs text-faint">{coverLabel}</p>
                 ) : (
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-faint">Sem uso</span>
+                    <label className="flex items-center gap-1.5 text-xs text-faint">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(a.id)}
+                        onChange={() => toggleSelected(a.id)}
+                        aria-label={`Selecionar ${name}`}
+                      />
+                      Sem uso
+                    </label>
                     <button
                       type="button"
                       onClick={() => remove(a)}
@@ -229,6 +381,7 @@ export function MediaManager({ assets }: { assets: AssetWithUsage[] }) {
           );
         })}
       </ul>
+      )}
 
       {openMedia ? (
         <MediaLightbox
