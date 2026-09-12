@@ -52,7 +52,20 @@ export function StoryComposer({
     setUploading(true);
     const fd = new FormData();
     fd.append("file", file);
-    const res = await fetch("/api/assets/upload", { method: "POST", body: fd });
+    // fetch() itself rejects on a dropped connection (not just a bad HTTP status) — a
+    // real risk on a large upload over a flaky connection. Without this catch, that
+    // throw skipped setUploading(false) and left the UI stuck showing "uploading"
+    // forever with no error.
+    let res: Response;
+    try {
+      res = await fetch("/api/assets/upload", { method: "POST", body: fd });
+    } catch {
+      setUploading(false);
+      setError(
+        `A conexão caiu durante o envio de ${file.name}. Verifique sua internet e tente de novo.`
+      );
+      return;
+    }
     const body = await res.json().catch(() => ({}));
     setUploading(false);
     if (!res.ok) {

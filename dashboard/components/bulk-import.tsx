@@ -66,7 +66,19 @@ export function BulkImport({
     for (const file of Array.from(files)) {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await fetch("/api/assets/upload", { method: "POST", body: fd });
+      // fetch() itself rejects on a dropped connection (not just a bad HTTP status) — a
+      // real risk on a large upload over a flaky connection. Without this catch, that
+      // throw skipped setUploading(false) below and left the UI stuck showing
+      // "uploading" forever with no error.
+      let res: Response;
+      try {
+        res = await fetch("/api/assets/upload", { method: "POST", body: fd });
+      } catch {
+        setError(
+          `A conexão caiu durante o envio de ${file.name}. Verifique sua internet e tente de novo.`
+        );
+        continue;
+      }
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(body.error ?? `Não foi possível enviar ${file.name}.`);

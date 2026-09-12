@@ -83,8 +83,8 @@ export function Composer({
 }: {
   channels: ChannelLite[];
   defaultTimezone: string;
-  /** Prefilled date+time when arriving from the calendar's empty-day "+"; empty on a
-   *  plain visit, where "Pick a date and time" is a deliberate prompt. */
+  /** Prefilled date+time: the calendar's clicked day on arrival from its empty-day "+",
+   *  or today (09:00) on a plain visit — the owner still has to pick the actual time. */
   defaultScheduledLocal?: string;
   periods: Period[];
   timeOfDayTags: Tag[];
@@ -279,7 +279,20 @@ export function Composer({
     for (const file of incoming) {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await fetch("/api/assets/upload", { method: "POST", body: fd });
+      // fetch() itself rejects on a dropped connection (not just a bad HTTP status) —
+      // a real risk on a large video upload over a flaky connection. Without this catch,
+      // that throw skipped straight past setUploading(false) below and left the UI
+      // stuck showing "uploading" forever with no error, which is indistinguishable from
+      // a hang.
+      let res: Response;
+      try {
+        res = await fetch("/api/assets/upload", { method: "POST", body: fd });
+      } catch {
+        setError(
+          `A conexão caiu durante o envio de ${file.name}. Verifique sua internet e tente de novo.`
+        );
+        continue;
+      }
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(body.error ?? `Não foi possível enviar ${file.name}.`);
