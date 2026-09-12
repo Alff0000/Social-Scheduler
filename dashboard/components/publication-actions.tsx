@@ -88,6 +88,21 @@ export function PublicationActions({
     startTransition(() => router.refresh());
   }
 
+  async function saveRestore() {
+    setError(null);
+    const res = await fetch(`/api/publications/${id}/restore`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ date, time }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? "Algo deu errado.");
+      return;
+    }
+    startTransition(() => router.refresh());
+  }
+
   async function doDelete() {
     setError(null);
     const res = await fetch(`/api/publications/${id}`, { method: "DELETE" });
@@ -356,6 +371,45 @@ export function PublicationActions({
         </button>
         {queued && !workerOnline ? (
           <span className="text-[10px] text-status-scheduled">Worker offline — inicia quando ele rodar</span>
+        ) : null}
+        {error ? <span className="text-[10px] text-status-failed">{error}</span> : null}
+      </div>
+    );
+  }
+
+  // The Cancelados section's only action: a canceled send never went out and isn't
+  // waiting on anything, but until now there was no way back short of duplicating the
+  // post from the Library and starting over. Shown directly (not behind "Mais ▾") since
+  // this is the one thing there is to do with a canceled row.
+  if (status === "canceled") {
+    return (
+      <div className="flex flex-col items-end gap-1">
+        <div className="flex items-center gap-1.5">
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className={dateTimeInputCls}
+          />
+          <input
+            type="time"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+            className={dateTimeInputCls}
+          />
+          <button
+            onClick={saveRestore}
+            disabled={pending || !date || !time}
+            className="rounded-md bg-brand px-2.5 py-1 text-xs font-medium text-on-brand hover:bg-brand-ink disabled:opacity-50"
+            title="Volta esse envio para Agendado, na nova data e hora escolhidas"
+          >
+            {pending ? "Reagendando…" : "Reagendar"}
+          </button>
+        </div>
+        {isPastInTz(date, time, channelTimezone) ? (
+          <span className="text-[10px] text-status-scheduled">
+            Isso está no passado — vai enviar na próxima execução do worker.
+          </span>
         ) : null}
         {error ? <span className="text-[10px] text-status-failed">{error}</span> : null}
       </div>
