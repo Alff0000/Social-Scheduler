@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ThemeControls } from "@/components/theme-controls";
 import { UpdateBanner } from "@/components/update-banner";
 
@@ -64,6 +64,8 @@ const NAV_GROUPS = [
 
 export function Sidebar({ isAdmin, email }: { isAdmin: boolean; email: string }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
   // The drawer's own state — closed by default so a fresh page load on a phone never
   // opens covering the content. md and up ignore this entirely (the aside is always
   // in-flow there), so this only ever matters below that breakpoint.
@@ -167,6 +169,24 @@ export function Sidebar({ isAdmin, email }: { isAdmin: boolean; email: string })
           Auto-hospedado · somente local
         </p>
       </div>
+
+      <form
+        className="px-3 pt-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!searchQuery.trim()) return;
+          router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+        }}
+      >
+        <input
+          type="search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Buscar posts, contas, mídia…"
+          aria-label="Busca"
+          className="w-full rounded-lg border border-border bg-surface-sunken px-3 py-1.5 text-sm text-ink placeholder:text-faint focus:border-brand"
+        />
+      </form>
 
       <nav className="flex-1 space-y-5 p-3">
         {groups.map((group) => (

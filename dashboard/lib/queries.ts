@@ -3789,3 +3789,59 @@ export function getPostedTodayCount(ownerId: number | null, today: string): numb
     .get(today, ...(ownerId === null ? [] : [ownerId])) as { n: number };
   return row.n;
 }
+
+export interface GlobalSearchResults {
+  posts: { id: number; caption: string | null; post_type: string; status: string }[];
+  channels: {
+    id: number; account_name: string; platform: string;
+    color_hue: number | null; avatar_path: string | null;
+  }[];
+  assets: { id: number; original_filename: string | null; media_kind: string }[];
+}
+
+/** Escapes SQLite LIKE's own wildcards (%, _) in user-typed text, so searching for a
+ *  caption that genuinely contains a percent sign does not turn into an unintended
+ *  wildcard match. Paired with `ESCAPE '\'` on every LIKE below. */
+function likeEscape(raw: string): string {
+  return raw.replace(/[\\%_]/g, "\\$&");
+}
+
+/** The one search box in the sidebar: posts (by caption), channels (by name), and media
+ *  (by original filename) — nothing else in the app could previously be found except by
+ *  opening the one page that lists it and scanning by eye. Capped per category (8) rather
+ *  than paginated: this is a jump-to tool, not a second Library/Media/Channels browser. */
+export function globalSearch(query: string, ownerId: number | null): GlobalSearchResults {
+  const trimmed = query.trim();
+  if (!trimmed) return { posts: [], channels: [], assets: [] };
+  const like = `%${likeEscape(trimmed)}%`;
+  const db = getDb();
+
+  const postsOwner = ownerId === null ? "" : "AND owner_user_id = ?";
+  const posts = db
+    .prepare(
+      `SELECT id, caption, post_type, status FROM posts
+       WHERE caption LIKE ? ESCAPE '\\' ${postsOwner}
+       ORDER BY created_at DESC LIMIT 8`,
+    )
+    .all(...(ownerId === null ? [like] : [like, ownerId])) as GlobalSearchResults["posts"];
+
+  const channelsOwner = ownerId === null ? "" : "AND owner_user_id = ?";
+  const channels = db
+    .prepare(
+      `SELECT id, account_name, platform, color_hue, avatar_path FROM channels
+       WHERE account_name LIKE ? ESCAPE '\\' ${channelsOwner}
+       ORDER BY account_name COLLATE NOCASE LIMIT 8`,
+    )
+    .all(...(ownerId === null ? [like] : [like, ownerId])) as GlobalSearchResults["channels"];
+
+  const assetsOwner = ownerId === null ? "" : "AND owner_user_id = ?";
+  const assets = db
+    .prepare(
+      `SELECT id, original_filename, media_kind FROM assets
+       WHERE original_filename LIKE ? ESCAPE '\\' ${assetsOwner}
+       ORDER BY created_at DESC LIMIT 8`,
+    )
+    .all(...(ownerId === null ? [like] : [like, ownerId])) as GlobalSearchResults["assets"];
+
+  return { posts, channels, assets };
+}
