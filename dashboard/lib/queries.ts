@@ -2909,6 +2909,25 @@ export function listPeriods(ownerId: number | null): Period[] {
     .all(...(ownerId !== null ? [ownerId] : [])) as Period[];
 }
 
+/** listPeriods, plus how many distinct posts link to each — the Períodos page's delete
+ *  confirm used to say only "posts that use it will lose this window" with no number,
+ *  same gap listTopicTagsWithUsage already closed for tags. DISTINCT post_id because a
+ *  post can link one period in both 'green' and 'blackout' mode (the composite primary
+ *  key on post_periods allows it), which would otherwise double-count that post. */
+export function listPeriodsWithUsage(ownerId: number | null): (Period & { post_count: number })[] {
+  const where = ownerId !== null ? "WHERE p.owner_user_id = ?" : "";
+  return getDb()
+    .prepare(
+      `SELECT p.*, COUNT(DISTINCT pp.post_id) AS post_count
+         FROM periods p
+         LEFT JOIN post_periods pp ON pp.period_id = p.id
+         ${where}
+        GROUP BY p.id
+        ORDER BY p.name COLLATE NOCASE`
+    )
+    .all(...(ownerId !== null ? [ownerId] : [])) as (Period & { post_count: number })[];
+}
+
 export function getPeriod(id: number): Period | undefined {
   return getDb().prepare("SELECT * FROM periods WHERE id = ?").get(id) as
     | Period

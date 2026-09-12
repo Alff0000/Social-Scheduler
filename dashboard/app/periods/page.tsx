@@ -1,6 +1,6 @@
-import { listPeriods } from "@/lib/queries";
+import { listPeriodsWithUsage } from "@/lib/queries";
 import { PageHeader, EmptyState } from "@/components/ui";
-import { PeriodAdd, PeriodCard } from "@/components/period-manager";
+import { PeriodAdd, PeriodManager } from "@/components/period-manager";
 import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function PeriodsPage() {
   const viewer = await getSessionUser();
   const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
-  const periods = listPeriods(ownerId);
+  const periods = listPeriodsWithUsage(ownerId);
 
   return (
     <div>
@@ -27,11 +27,7 @@ export default async function PeriodsPage() {
             enquanto estiver na temporada.
           </EmptyState>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {periods.map((p) => (
-              <PeriodCard key={p.id} period={p} />
-            ))}
-          </div>
+          <PeriodManager periods={periods} />
         )}
       </div>
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useReducer, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { channelColor, formatInTz, videoPreviewSrc } from "@/lib/format";
 import { truncateChars } from "@/lib/truncate";
@@ -114,6 +114,12 @@ export function LibraryView({
   evaluationTimezone: string;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Lets a link from elsewhere (Tags'/Períodos' "Em N posts" count) land here
+  // pre-filtered instead of just dumping the whole library and expecting a second,
+  // manual filter step.
+  const initialTag = searchParams.get("tag");
+  const initialPeriodId = Number(searchParams.get("period"));
   const [selected, setSelected] = useState<number[]>([]); // ordered = post order
   const [chans, setChans] = useState<Set<number>>(new Set());
   const [everyDays, setEveryDays] = useState(2);
@@ -124,8 +130,14 @@ export function LibraryView({
   const [pending, startT] = useTransition();
   const [checkboxFilters, dispatchCheckboxFilters] = useReducer(
     libraryCheckboxFilterReducer,
-    undefined,
-    createLibraryCheckboxFilterState,
+    { tag: initialTag, periodId: initialPeriodId },
+    ({ tag, periodId }) => {
+      const state = createLibraryCheckboxFilterState();
+      const applied = { ...state.applied };
+      if (tag) applied.tags = new Set([tag]);
+      if (Number.isInteger(periodId) && periodId > 0) applied.periods = new Set([periodId]);
+      return { applied };
+    },
   );
   // A VIEW, not a filter — which is why everything below (the summary counts, the format
   // counts, "showing N of M") is computed over `inView` rather than `posts`. Archived posts

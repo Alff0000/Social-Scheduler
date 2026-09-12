@@ -2,8 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { Period } from "@/lib/types";
 import { describePeriod } from "@/lib/format";
+import { useToast } from "@/components/toast";
+
+type PeriodWithUsage = Period & { post_count: number };
 
 const field =
   "w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-faint focus:border-brand";
@@ -236,14 +240,33 @@ export function PeriodAdd() {
   );
 }
 
-export function PeriodCard({ period }: { period: Period }) {
+function PeriodCard({
+  period,
+  selected,
+  onToggleSelect,
+}: {
+  period: PeriodWithUsage;
+  selected: boolean;
+  onToggleSelect: () => void;
+}) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
+  const { showToast } = useToast();
 
   async function remove() {
-    if (!confirm(`Excluir "${period.name}"? Os posts que o usam perderão essa janela.`)) return;
-    await fetch(`/api/periods/${period.id}`, { method: "DELETE" });
+    const usage =
+      period.post_count === 0
+        ? "Nenhum post usa essa janela."
+        : `${period.post_count} post${period.post_count === 1 ? "" : "s"} que a usa${period.post_count === 1 ? "" : "m"} perderá${period.post_count === 1 ? "" : "ão"} essa janela.`;
+    if (!confirm(`Excluir "${period.name}"? ${usage}`)) return;
+    const res = await fetch(`/api/periods/${period.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      showToast(body.error ?? "Não foi possível excluir o período.", "error");
+      return;
+    }
+    showToast(`"${period.name}" excluído.`);
     startTransition(() => router.refresh());
   }
 
@@ -259,9 +282,28 @@ export function PeriodCard({ period }: { period: Period }) {
   return (
     <div className="rounded-card border border-border bg-surface p-5">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="font-display text-base font-semibold text-ink">{period.name}</h3>
-          <p className="data mt-1 text-xs text-ink-soft">{describePeriod(period)}</p>
+        <div className="flex items-start gap-2.5">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={onToggleSelect}
+            aria-label={`Selecionar ${period.name}`}
+            className="mt-1"
+          />
+          <div>
+            <h3 className="font-display text-base font-semibold text-ink">{period.name}</h3>
+            <p className="data mt-1 text-xs text-ink-soft">{describePeriod(period)}</p>
+            {period.post_count > 0 ? (
+              <Link
+                href={`/library?period=${period.id}`}
+                className="mt-0.5 block text-xs text-brand underline underline-offset-2"
+              >
+                Em {period.post_count} post{period.post_count === 1 ? "" : "s"}
+              </Link>
+            ) : (
+              <p className="mt-0.5 text-xs text-muted">Em nenhum post</p>
+            )}
+          </div>
         </div>
         <span className="shrink-0 rounded-full bg-surface-sunken px-2 py-0.5 text-[11px] text-muted">
           {period.recurs_yearly ? "Anual" : "Avulso"}
@@ -281,6 +323,78 @@ export function PeriodCard({ period }: { period: Period }) {
         >
           Excluir
         </button>
+      </div>
+    </div>
+  );
+}
+
+export function PeriodManager({ periods }: { periods: PeriodWithUsage[] }) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const { showToast } = useToast();
+
+  function toggleSelected(id: number) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function bulkDelete() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    if (
+      !window.confirm(
+        `Excluir ${ids.length} período${ids.length === 1 ? "" : "s"}? Os posts que os usam perderão essas janelas. Isso não pode ser desfeito.`,
+      )
+    ) {
+      return;
+    }
+    setBulkDeleting(true);
+    const results = await Promise.all(
+      ids.map((id) => fetch(`/api/periods/${id}`, { method: "DELETE" }).then((r) => r.ok).catch(() => false)),
+    );
+    setBulkDeleting(false);
+    const failed = results.filter((ok) => !ok).length;
+    if (failed > 0) {
+      showToast(`${failed} de ${ids.length} não puderam ser excluídos.`, "error");
+    } else {
+      showToast(`${ids.length} período${ids.length === 1 ? "" : "s"} excluído${ids.length === 1 ? "" : "s"}.`);
+    }
+    setSelectedIds(new Set());
+    startTransition(() => router.refresh());
+  }
+
+  return (
+    <div>
+      {selectedIds.size > 0 ? (
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-xs font-medium text-ink-soft">
+            {selectedIds.size} selecionado{selectedIds.size === 1 ? "" : "s"}
+          </span>
+          <button
+            type="button"
+            onClick={bulkDelete}
+            disabled={bulkDeleting}
+            className="rounded-md border border-status-failed/40 px-3 py-1.5 text-xs font-medium text-status-failed hover:bg-surface-sunken disabled:opacity-50"
+          >
+            {bulkDeleting ? "Excluindo…" : "Excluir selecionados"}
+          </button>
+        </div>
+      ) : null}
+      <div className="grid gap-4 md:grid-cols-2">
+        {periods.map((p) => (
+          <PeriodCard
+            key={p.id}
+            period={p}
+            selected={selectedIds.has(p.id)}
+            onToggleSelect={() => toggleSelected(p.id)}
+          />
+        ))}
       </div>
     </div>
   );

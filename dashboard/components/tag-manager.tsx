@@ -2,8 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { bandLabel } from "@/lib/cadence";
 import type { Tag } from "@/lib/types";
+import { useToast } from "@/components/toast";
 
 type TopicTag = Tag & { post_count: number };
 
@@ -15,7 +17,15 @@ function usageLabel(n: number): string {
 const secondaryBtn =
   "rounded-md border border-border px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-surface-sunken disabled:opacity-50";
 
-function TagRow({ tag }: { tag: TopicTag }) {
+function TagRow({
+  tag,
+  selected,
+  onToggleSelect,
+}: {
+  tag: TopicTag;
+  selected: boolean;
+  onToggleSelect: () => void;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [mode, setMode] = useState<"idle" | "renaming" | "deleting">("idle");
@@ -87,9 +97,27 @@ function TagRow({ tag }: { tag: TopicTag }) {
             }}
           />
         ) : (
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-ink">{tag.name}</p>
-            <p className="mt-0.5 text-xs text-muted">{usageLabel(tag.post_count)}</p>
+          <div className="flex min-w-0 items-start gap-2.5">
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={onToggleSelect}
+              aria-label={`Selecionar ${tag.name}`}
+              className="mt-1"
+            />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-ink">{tag.name}</p>
+              {tag.post_count > 0 ? (
+                <Link
+                  href={`/library?tag=${encodeURIComponent(tag.name)}`}
+                  className="mt-0.5 block text-xs text-brand underline underline-offset-2"
+                >
+                  {usageLabel(tag.post_count)}
+                </Link>
+              ) : (
+                <p className="mt-0.5 text-xs text-muted">{usageLabel(tag.post_count)}</p>
+              )}
+            </div>
           </div>
         )}
 
@@ -189,10 +217,62 @@ export function TagManager({
   topicTags: TopicTag[];
   bandTags: Tag[];
 }) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const { showToast } = useToast();
+
+  function toggleSelected(id: number) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function bulkDelete() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    if (
+      !window.confirm(
+        `Excluir ${ids.length} etiqueta${ids.length === 1 ? "" : "s"}? Elas saem de qualquer post que as carregue — os posts em si não são afetados. Isso não pode ser desfeito.`,
+      )
+    ) {
+      return;
+    }
+    setBulkDeleting(true);
+    const results = await Promise.all(
+      ids.map((id) => fetch(`/api/tags/${id}`, { method: "DELETE" }).then((r) => r.ok).catch(() => false)),
+    );
+    setBulkDeleting(false);
+    const failed = results.filter((ok) => !ok).length;
+    if (failed > 0) {
+      showToast(`${failed} de ${ids.length} não puderam ser excluídas.`, "error");
+    } else {
+      showToast(`${ids.length} etiqueta${ids.length === 1 ? "" : "s"} excluída${ids.length === 1 ? "" : "s"}.`);
+    }
+    setSelectedIds(new Set());
+    startTransition(() => router.refresh());
+  }
+
   return (
     <div className="space-y-8">
       <section>
-        <h2 className="mb-1 font-display text-base font-semibold text-ink">Tópicos</h2>
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-display text-base font-semibold text-ink">Tópicos</h2>
+          {selectedIds.size > 0 ? (
+            <button
+              type="button"
+              onClick={bulkDelete}
+              disabled={bulkDeleting}
+              className="rounded-md border border-status-failed/40 px-3 py-1.5 text-xs font-medium text-status-failed hover:bg-surface-sunken disabled:opacity-50"
+            >
+              {bulkDeleting ? "Excluindo…" : `Excluir ${selectedIds.size} selecionada${selectedIds.size === 1 ? "" : "s"}`}
+            </button>
+          ) : null}
+        </div>
         <p className="mb-3 text-sm text-muted">
           Suas próprias etiquetas. Adicione novas ao criar um post; renomeie ou retire-as
           aqui. Renomear corrige um erro de digitação em todo lugar de uma vez e mantém os
@@ -205,7 +285,12 @@ export function TagManager({
         ) : (
           <div className="grid gap-2 md:grid-cols-2">
             {topicTags.map((tag) => (
-              <TagRow key={tag.id} tag={tag} />
+              <TagRow
+                key={tag.id}
+                tag={tag}
+                selected={selectedIds.has(tag.id)}
+                onToggleSelect={() => toggleSelected(tag.id)}
+              />
             ))}
           </div>
         )}
