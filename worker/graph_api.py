@@ -57,6 +57,21 @@ class GraphAPIError(Exception):
         """
         return self.code == 100 and self.error_subcode == 33
 
+    @property
+    def is_auth_revoked(self) -> bool:
+        """The access token this call used no longer works at all.
+
+        Code 190 (OAuthException) — Meta's own umbrella for "Error validating access
+        token", which covers an expired token, a token the person revoked, a password
+        change that invalidated every session, and the account itself being disabled,
+        suspended, or checkpointed. Unlike is_missing_object's 100/33 (which Meta admits
+        conflates deletion with a permissions problem, and needs several occurrences in a
+        row before a caller should act on it), 190 is unambiguous on a single occurrence:
+        whatever the underlying cause, this token cannot publish and reconnecting the
+        channel is the only fix.
+        """
+        return self.code == 190
+
 
 def _error_fields(body: str) -> dict:
     """Pull Meta's error code/subcode out of a response body, tolerating anything.

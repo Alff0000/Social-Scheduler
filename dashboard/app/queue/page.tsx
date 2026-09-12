@@ -2,8 +2,10 @@ import Link from "next/link";
 import {
   blockedPublicationIds,
   getActiveChannels,
+  getLostChannels,
   getPublicationsOverview,
   getWorkerStatus,
+  type LostChannelRow,
   type PublicationRow,
 } from "@/lib/queries";
 import { ChannelAvatar, EmptyState, PageHeader } from "@/components/ui";
@@ -60,6 +62,15 @@ export default async function QueueStatusPage() {
   const pubs = getPublicationsOverview(200, ownerId);
   const worker = getWorkerStatus();
   const blocked = new Set(blockedPublicationIds(pubs));
+  const lostChannels = getLostChannels(ownerId);
+  // Bucketed here in JS rather than three separate queries — the list itself is one row
+  // per broken ACCOUNT (not per failed send), so it is always small enough that reading
+  // it once and counting in memory costs nothing.
+  // eslint-disable-next-line react-hooks/purity
+  const nowMs = Date.now();
+  const lostWithin = (days: number) =>
+    lostChannels.filter((c) => nowMs - new Date(c.lost_at).getTime() <= days * 86_400_000).length;
+  const lostCounts = { today: lostWithin(1), week: lostWithin(7), month: lostWithin(30) };
 
   const isError = (p: PublicationRow) => p.status === "failed" || blocked.has(p.id);
   const isProgress = (p: PublicationRow) => p.status === "publishing";
@@ -185,6 +196,65 @@ export default async function QueueStatusPage() {
             </div>
           </section>
         )}
+
+        <section className="rounded-card border border-border bg-surface">
+          <div className="border-b border-border px-5 py-3">
+            <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-muted">
+              Contas perdidas
+            </h2>
+          </div>
+          <dl className="grid grid-cols-3 divide-x divide-border">
+            {(
+              [
+                ["Hoje", lostCounts.today],
+                ["7 dias", lostCounts.week],
+                ["30 dias", lostCounts.month],
+              ] as const
+            ).map(([label, value]) => (
+              <div key={label} className="px-5 py-4">
+                <dt className="text-[10px] uppercase tracking-wide text-faint">{label}</dt>
+                <dd
+                  className={`data mt-1 text-xl font-semibold leading-none ${
+                    value > 0 ? "text-status-failed" : "text-ink"
+                  }`}
+                >
+                  {value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {lostChannels.length === 0 ? (
+            <p className="border-t border-border px-5 py-6 text-sm text-muted">
+              Nenhuma conta perdida até agora.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border border-t border-border">
+              {lostChannels.map((c: LostChannelRow) => (
+                <li key={c.id} className="flex items-center gap-3 px-5 py-3">
+                  <ChannelAvatar
+                    id={c.id}
+                    name={c.account_name}
+                    colorHue={c.color_hue}
+                    avatarPath={c.avatar_path}
+                    size={20}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm text-ink">
+                      {c.account_name}{" "}
+                      <span className="text-[10px] uppercase tracking-wide text-faint">
+                        {platformBadge(c.platform)}
+                      </span>
+                    </p>
+                    <p className="truncate text-xs text-muted">
+                      {c.lost_reason ?? "Token de acesso inválido ou revogado."}
+                    </p>
+                  </div>
+                  <span className="data shrink-0 text-xs text-faint">{timeAgo(c.lost_at)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         <section className="rounded-card border border-border bg-surface">
           <div className="flex items-center justify-between border-b border-border px-5 py-3">

@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 
 from worker.config import Config
+from worker.graph_api import GraphAPIError
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MIGRATIONS_DIR = REPO_ROOT / "migrations"
@@ -133,6 +134,12 @@ class FakeGraphClient:
         self.calls.append((kind, image_url))
         if "create" in self.fail_on:
             raise RuntimeError("create container boom")
+        # A real OAuthException (code 190), not a bare RuntimeError — this is what lets a
+        # test exercise publisher.py's `except GraphAPIError as exc: if exc.is_auth_revoked`
+        # branch specifically, rather than the generic transient-failure path every other
+        # `fail_on` entry hits.
+        if "auth_revoked" in self.fail_on:
+            raise GraphAPIError("Error validating access token", code=190)
         self._n += 1
         return f"cont-{self._n}"
 

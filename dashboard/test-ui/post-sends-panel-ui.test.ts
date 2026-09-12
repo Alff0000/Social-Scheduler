@@ -38,6 +38,8 @@ function channel(overrides: Partial<Channel> = {}): Channel {
     avatar_error: null,
     folder_id: null,
     owner_user_id: null,
+    lost_at: null,
+    lost_reason: null,
     ...overrides,
   };
 }

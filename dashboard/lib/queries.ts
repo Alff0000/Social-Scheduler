@@ -62,6 +62,34 @@ export function getActiveChannels(ownerId: number | null): Channel[] {
     .all(...(ownerId !== null ? [ownerId] : [])) as Channel[];
 }
 
+export interface LostChannelRow {
+  id: number;
+  account_name: string;
+  platform: string;
+  color_hue: number | null;
+  avatar_path: string | null;
+  lost_at: string;
+  lost_reason: string | null;
+}
+
+/**
+ * Every channel the worker has marked as lost (migration 0038) — an unrecoverable auth
+ * failure, not an ordinary retryable send error. Most recent first, so the freshest break
+ * is the one the owner sees without scrolling. The Status da Fila page derives its own
+ * hoje/7 dias/30 dias counts from `lost_at` in JS rather than three separate queries — the
+ * list itself is small (one row per broken account, not per failed send) and the owner
+ * benefits from seeing which account and why, not just a number.
+ */
+export function getLostChannels(ownerId: number | null): LostChannelRow[] {
+  const ownerClause = ownerId !== null ? "AND owner_user_id = ?" : "";
+  return getDb()
+    .prepare(
+      `SELECT id, account_name, platform, color_hue, avatar_path, lost_at, lost_reason
+       FROM channels WHERE lost_at IS NOT NULL ${ownerClause} ORDER BY lost_at DESC`,
+    )
+    .all(...(ownerId !== null ? [ownerId] : [])) as LostChannelRow[];
+}
+
 export function getChannel(id: number): Channel | undefined {
   return getDb().prepare("SELECT * FROM channels WHERE id = ?").get(id) as
     | Channel
@@ -196,8 +224,19 @@ export function updateChannel(
     bpp_strong_pct: number;
     bpp_broad_pct: number;
     color_hue: number | null;
+    lost_at: string | null;
+    lost_reason: string | null;
   }>
 ): void {
+  // A fresh, real access_token means this channel was just (re)connected — see migration
+  // 0038's header. Clearing lost_at/lost_reason here, in the one function every token
+  // write already goes through (manual paste in Channels, and upsertOAuthChannel's
+  // reconnect path), means every caller gets this for free instead of having to
+  // remember it. Only when the caller didn't already say something explicit about
+  // either column themselves.
+  if (fields.access_token && !("lost_at" in fields) && !("lost_reason" in fields)) {
+    fields = { ...fields, lost_at: null, lost_reason: null };
+  }
   const keys = Object.keys(fields);
   if (keys.length === 0) return;
   const setClause = keys.map((k) => `${k} = @${k}`).join(", ");

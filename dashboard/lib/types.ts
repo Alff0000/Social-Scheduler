@@ -95,6 +95,13 @@ export interface Channel {
    *  users row to backfill from) — never treat null as "shared," it means invisible to
    *  every non-admin login. See migrations/0034_owner_scoping.sql. */
   owner_user_id: number | null;
+  /** Migration 0038. Set by the worker the first time a publish attempt on this channel
+   *  hits an unrecoverable auth error (expired/revoked token, or the account itself
+   *  suspended/disabled) — see GraphAPIError.is_auth_revoked and TikTokAuthRevoked.
+   *  Cleared automatically the moment a fresh access_token is saved (updateChannel). */
+  lost_at: string | null;
+  /** Human-readable reason paired with lost_at — never the raw API response. */
+  lost_reason: string | null;
 }
 
 /** A purely organizational grouping of accounts (migration 0030) — "which accounts

@@ -102,6 +102,66 @@ def test_failure_retries_then_terminal_and_is_independent(conn, config, make_pub
     assert other_row["attempt_count"] == 0
 
 
+def test_is_auth_revoked_matches_only_oauthexception():
+    from worker.graph_api import GraphAPIError
+
+    assert GraphAPIError("Error validating access token", code=190).is_auth_revoked
+    # error_subcode is irrelevant here — every 190 means the token cannot be used,
+    # regardless of WHY (expired, revoked, password change, account suspended).
+    assert GraphAPIError("x", code=190, error_subcode=460).is_auth_revoked
+    assert not GraphAPIError("x", code=100, error_subcode=33).is_auth_revoked
+    assert not GraphAPIError("x").is_auth_revoked
+
+
+def test_auth_revoked_marks_the_channel_lost_and_fails_terminally(conn, config, make_publication):
+    # code=190 (OAuthException) is Meta's umbrella for "this token no longer works at
+    # all" — see GraphAPIError.is_auth_revoked. Migration 0038's whole point is that no
+    # amount of retrying fixes this, so it must behave like the invalid-post-type case
+    # above: terminal on the first attempt, never a backoff loop.
+    revoked = FakeGraphClient(fail_on=["auth_revoked"])
+    pub = make_publication(post_type="single", n_assets=1)
+
+    out = publish_one(conn, pub, config, revoked, dry_run=False, now=NOW)
+
+    assert out.result == "failed"
+    row = _reload(conn, pub["id"])
+    assert row["status"] == "failed"
+    assert row["attempt_count"] == 1
+    assert "Error validating access token" in row["last_error"]
+
+    channel = conn.execute(
+        "SELECT lost_at, lost_reason FROM channels WHERE id = ?", (pub["channel_id"],)
+    ).fetchone()
+    assert channel["lost_at"] == NOW.isoformat()
+    assert "Error validating access token" in channel["lost_reason"]
+
+
+def test_auth_revoked_does_not_overwrite_an_earlier_lost_at(conn, config, make_publication):
+    # Every OTHER publish on an already-dead channel hits the identical error. Restamping
+    # lost_at on each one would make "lost today" never age past today — the metric this
+    # exists for depends on lost_at staying the FIRST time it broke.
+    revoked = FakeGraphClient(fail_on=["auth_revoked"])
+    first = make_publication(post_type="single", n_assets=1)
+    EARLIER = datetime(2026, 7, 20, 9, 0, 0, tzinfo=timezone.utc)
+    publish_one(conn, first, config, revoked, dry_run=False, now=EARLIER)
+
+    # Force a second publication onto the SAME already-lost channel, rather than the
+    # fresh one make_publication gave it.
+    second = make_publication(post_type="single", n_assets=1)
+    conn.execute(
+        "UPDATE publications SET channel_id = ? WHERE id = ?",
+        (first["channel_id"], second["id"]),
+    )
+    second = _reload(conn, second["id"])
+
+    publish_one(conn, second, config, revoked, dry_run=False, now=NOW)
+
+    channel = conn.execute(
+        "SELECT lost_at FROM channels WHERE id = ?", (first["channel_id"],)
+    ).fetchone()
+    assert channel["lost_at"] == EARLIER.isoformat(), "lost_at must stay the FIRST failure"
+
+
 def test_invalid_post_type_fails_terminally_without_retry(conn, config, fake_client, make_publication):
     # posts.post_type='story' is VESTIGIAL (see migration 0014's header): Stories are a
     # target SURFACE, not a content shape. The old enum value must stay dead rather than

@@ -25,6 +25,7 @@ from . import db, media_limits
 from .caption_length import caption_length
 from .clients import PLATFORM_CAPS, SUPPORTED_PLATFORMS, PlatformCaps, UnknownPlatform
 from .config import Config
+from .graph_api import GraphAPIError
 from .logging_setup import LOGGER_NAME
 from .redact import redact
 
@@ -1436,6 +1437,12 @@ def publish_one(
         except TikTokAuthRevoked as exc:
             # Terminal. No amount of retrying re-authorises an account, and a quiet retry
             # loop would bury the one instruction the owner needs: reconnect the channel.
+            # Same lost_at bookkeeping as the Meta OAuthException case below, so the
+            # dashboard's "accounts lost" count covers every platform, not just Meta's.
+            if not channel["lost_at"]:
+                db.update_channel(
+                    conn, channel["id"], lost_at=_iso(now), lost_reason=redact(str(exc)),
+                )
             log(f"tiktok auth revoked: {exc}")
             return _mark_failure(conn, pub, config, now, str(exc), terminal=True)
         except Exception as exc:  # noqa: BLE001 — transient refresh failure; retry with backoff
@@ -1492,6 +1499,23 @@ def publish_one(
         # every other unsupported combination, never silently retry it.
         log(f"publish failed (non-retryable): {exc}")
         return _mark_failure(conn, pub, config, now, str(exc), terminal=True)
+    except GraphAPIError as exc:
+        if exc.is_auth_revoked:
+            # Terminal, same reasoning as TikTokAuthRevoked above: no amount of retrying
+            # re-authorises an account, and a silent retry loop would bury the one
+            # instruction the owner needs — reconnect the channel. Stamped only once: every
+            # other publish on this same dead channel hits the identical error, and
+            # overwriting lost_at on each one would make "lost today" never age past today.
+            # Cleared the moment the channel is reconnected (see the dashboard's
+            # createChannel/updateChannel — saving a fresh access_token clears both columns).
+            if not channel["lost_at"]:
+                db.update_channel(
+                    conn, channel["id"], lost_at=_iso(now), lost_reason=redact(str(exc)),
+                )
+            log(f"channel auth revoked: {exc}")
+            return _mark_failure(conn, pub, config, now, str(exc), terminal=True)
+        log(f"publish failed: {exc}")
+        return _mark_failure(conn, pub, config, now, f"publish: {exc}", terminal=False)
     except Exception as exc:  # noqa: BLE001 — transient publish error, retry with backoff
         log(f"publish failed: {exc}")
         return _mark_failure(conn, pub, config, now, f"publish: {exc}", terminal=False)
