@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getActiveChannels, listPeriods, listTags, listPosts } from "@/lib/queries";
+import { getActiveChannels, listFolders, listPeriods, listTags, listPosts } from "@/lib/queries";
 import { config } from "@/lib/config";
 import { getPublishReadiness } from "@/lib/publish-readiness";
 import { PageHeader, EmptyState } from "@/components/ui";
@@ -16,7 +16,16 @@ export default async function ComposePage({
   const params = await searchParams;
   const viewer = await getSessionUser();
   const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
-  const channels = getActiveChannels(ownerId).map((c) => ({
+  // Deliberately NOT `ownerId`: admin's null there means "every login's data, for
+  // oversight" everywhere else on this page, but a compose screen is the one place that
+  // matters, not just for viewing — picking a channel here PUBLISHES to it. An admin
+  // composing their own posts must only ever be offered accounts *they* connected; every
+  // other login's channels staying invisible here is what stops admin's own post from
+  // silently reaching someone else's Instagram/Facebook because both happened to be
+  // visible in the same picker. See CLAUDE.md's admin-oversight note — oversight was
+  // never meant to extend to "can accidentally post as anyone."
+  const composeOwnerId = viewer ? viewer.id : null;
+  const channels = getActiveChannels(composeOwnerId).map((c) => ({
     id: c.id,
     platform: c.platform,
     account_name: c.account_name,
@@ -24,7 +33,9 @@ export default async function ComposePage({
     requires_approval: c.requires_approval === 1,
     color_hue: c.color_hue,
     avatar_path: c.avatar_path,
+    folder_id: c.folder_id,
   }));
+  const folders = listFolders(composeOwnerId);
   const timeOfDayTags = listTags("time_of_day", ownerId);
   const topicTags = listTags("topic", ownerId);
   const libraryPosts = listPosts(undefined, "active", ownerId).map((p) => ({
@@ -95,6 +106,7 @@ export default async function ComposePage({
         ) : (
           <ComposeSwitcher
             channels={channels}
+            folders={folders.map((f) => ({ id: f.id, name: f.name }))}
             defaultTimezone={config.defaultTimezone}
             periods={listPeriods(ownerId)}
             timeOfDayTags={timeOfDayTags}

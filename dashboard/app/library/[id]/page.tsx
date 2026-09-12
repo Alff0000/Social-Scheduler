@@ -32,6 +32,12 @@ export default async function EditPostPage({
   const postId = Number(id);
   const post = getPost(postId);
   if (!post || (ownerId !== null && post.owner_user_id !== ownerId)) notFound();
+  // NOT `ownerId`: when admin opens someone ELSE's post for oversight, the channels
+  // offered as targets must be that post's owner's — never the admin's own (wrong
+  // account entirely) and never every login's via `ownerId`'s null (this is a real
+  // publish target picker, not a read-only oversight view). For a post editing their own
+  // work this is identical to `ownerId` already, since the two ids match.
+  const channelOwnerId = post.owner_user_id;
 
   // Read once: PostEditor needs the list, and the framing dialog needs a per-asset count of
   // the sends its framing would change.
@@ -51,9 +57,9 @@ export default async function EditPostPage({
         scheduledSendCounts={Object.fromEntries(
           assets.map((a) => [a.id, countScheduledSendsForAsset(a.id)])
         )}
-        channels={getChannels(ownerId)}
+        channels={getChannels(channelOwnerId)}
         sends={getPostPublications(postId)}
-        sendableChannels={getActiveChannels(ownerId)}
+        sendableChannels={getActiveChannels(channelOwnerId)}
         periods={listPeriods(ownerId)}
         timeOfDayTags={listTags("time_of_day", ownerId)}
         topicTags={listTags("topic", ownerId)}

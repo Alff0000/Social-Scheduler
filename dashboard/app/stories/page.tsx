@@ -18,7 +18,10 @@ export const dynamic = "force-dynamic";
 
 export default async function StoriesPage() {
   const viewer = await getSessionUser();
-  const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
+  // NOT the usual `viewer.is_admin ? null : viewer.id` — this page posts for real, right
+  // now. Admin must only ever see the channels THEY connected here, never every login's;
+  // see the matching comment in app/compose/page.tsx.
+  const ownerId = viewer ? viewer.id : null;
   const channels = getActiveChannels(ownerId)
     .filter((c) => supportsStory(c.platform))
     .map((c) => ({

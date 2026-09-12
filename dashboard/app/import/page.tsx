@@ -8,6 +8,10 @@ export const dynamic = "force-dynamic";
 export default async function ImportPage() {
   const viewer = await getSessionUser();
   const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
+  // See the matching comment in app/compose/page.tsx: this screen schedules real
+  // publications, so admin must only ever be offered the channels THEY connected —
+  // never every login's, the way `ownerId` means everywhere else on read-only pages.
+  const composeOwnerId = viewer ? viewer.id : null;
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <header>
@@ -17,7 +21,7 @@ export default async function ImportPage() {
         </p>
       </header>
       <BulkImport
-        channels={getChannels(ownerId)}
+        channels={getChannels(composeOwnerId)}
         periods={listPeriods(ownerId)}
         timeOfDayTags={listTags("time_of_day", ownerId)}
         topicTags={listTags("topic", ownerId)}
