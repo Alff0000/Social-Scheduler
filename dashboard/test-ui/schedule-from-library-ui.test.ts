@@ -21,6 +21,7 @@ const facebook: ChannelLite = {
   requires_approval: false,
   color_hue: 120,
   avatar_path: null,
+  folder_id: null,
 };
 const instagram: ChannelLite = {
   id: 1,
@@ -30,6 +31,7 @@ const instagram: ChannelLite = {
   requires_approval: false,
   color_hue: 200,
   avatar_path: null,
+  folder_id: null,
 };
 const channels = [facebook, instagram];
 

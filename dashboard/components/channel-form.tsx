@@ -19,9 +19,12 @@ const field =
   "w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-faint focus:border-brand";
 const label = "block text-xs font-medium text-ink-soft mb-1";
 
+const NEW_FOLDER = "__new__";
+
 export function ChannelForm({
   defaultTimezone,
   nextChannelId,
+  folders,
 }: {
   defaultTimezone: string;
   /**
@@ -31,6 +34,7 @@ export function ChannelForm({
    * hue 200, which is only ever right by coincidence.
    */
   nextChannelId: number;
+  folders: { id: number; name: string }[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -39,6 +43,8 @@ export function ChannelForm({
   // The picker owns timezone validation (only it knows what's in its Custom box),
   // so it reports validity up here to gate Save.
   const [tzValid, setTzValid] = useState(true);
+  const [folderOptions, setFolderOptions] = useState(folders);
+  const [newFolderName, setNewFolderName] = useState("");
   const [form, setForm] = useState({
     // `as string`: PLATFORMS[0].value is a non-fresh literal ("instagram"), which TS
     // would NOT widen during useState's generic inference (unlike a literal written
@@ -53,6 +59,7 @@ export function ChannelForm({
     access_token: "",
     requires_approval: false,
     color_hue: null as number | null,
+    folder_id: "" as string,
   });
 
   // TikTok's channel row is created by the OAuth callback, not by this form's Save — it
@@ -70,6 +77,29 @@ export function ChannelForm({
 
   async function submit() {
     setError(null);
+    // A folder typed inline has to exist before the channel can be pointed at it — same
+    // two-step flow as ChannelFolderSelect, just done up front here since the channel
+    // itself doesn't exist yet to PATCH afterwards.
+    let folderId: string = form.folder_id;
+    if (folderId === NEW_FOLDER) {
+      const name = newFolderName.trim();
+      if (!name) {
+        setError("Digite um nome para a nova pasta.");
+        return;
+      }
+      const folderRes = await fetch("/api/folders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const folderBody = await folderRes.json().catch(() => ({}));
+      if (!folderRes.ok) {
+        setError(folderBody.error ?? "Não foi possível criar a pasta.");
+        return;
+      }
+      folderId = String(folderBody.id);
+      setFolderOptions((f) => [...f, { id: folderBody.id, name }]);
+    }
     const res = await fetch("/api/channels", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -84,6 +114,7 @@ export function ChannelForm({
         access_token: form.access_token.trim(),
         remote_account_id: form.remote_account_id.trim(),
         linked_page_id: form.linked_page_id.trim(),
+        folder_id: folderId === "" ? null : Number(folderId),
       }),
     });
     if (!res.ok) {
@@ -99,7 +130,9 @@ export function ChannelForm({
       linked_page_id: "",
       access_token: "",
       color_hue: null,
+      folder_id: "",
     }));
+    setNewFolderName("");
     setOpen(false);
     startTransition(() => router.refresh());
   }
@@ -164,6 +197,30 @@ export function ChannelForm({
             onValidityChange={setTzValid}
             className={field}
           />
+        </div>
+        <div>
+          <label className={label}>Pasta (opcional)</label>
+          <select
+            className={field}
+            value={form.folder_id}
+            onChange={(e) => set("folder_id", e.target.value)}
+          >
+            <option value="">Sem pasta</option>
+            {folderOptions.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+            <option value={NEW_FOLDER}>+ Nova pasta…</option>
+          </select>
+          {form.folder_id === NEW_FOLDER ? (
+            <input
+              className={`${field} mt-2`}
+              placeholder="Nome da pasta"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+            />
+          ) : null}
         </div>
         {isFacebook ? (
           <FacebookConnect

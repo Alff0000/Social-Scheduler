@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createChannel, getChannels } from "@/lib/queries";
+import { createChannel, getChannels, listFolders, setChannelFolder } from "@/lib/queries";
 import { isPlatform, PLATFORMS } from "@/lib/platforms";
 import { isValidTimezone } from "@/lib/timezones";
 import { getSessionUser } from "@/lib/auth";
@@ -53,6 +53,16 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
+  // Same validation PATCH /api/channels/[id] applies to folder_id — checked before the
+  // insert so a bad folder never leaves the new channel half-created.
+  let folderId: number | null = null;
+  if (body.folder_id !== undefined && body.folder_id !== null && body.folder_id !== "") {
+    folderId = Number(body.folder_id);
+    const folder = listFolders(viewer.id).find((f) => f.id === folderId);
+    if (!folder) {
+      return NextResponse.json({ error: "Pasta não encontrada." }, { status: 400 });
+    }
+  }
   const id = createChannel({
     platform,
     account_name,
@@ -64,5 +74,6 @@ export async function POST(req: NextRequest) {
     requires_approval: !!body.requires_approval,
     color_hue: body.color_hue ?? null,
   }, viewer.id);
+  if (folderId !== null) setChannelFolder(id, folderId);
   return NextResponse.json({ id }, { status: 201 });
 }

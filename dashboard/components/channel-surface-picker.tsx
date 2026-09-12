@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import { channelColor } from "@/lib/format";
 import { ChannelAvatar } from "@/components/ui";
 import {
@@ -21,6 +22,9 @@ export interface PickerChannel {
   requires_approval: boolean | number;
   color_hue: number | null;
   avatar_path: string | null;
+  /** Migration 0030. Optional: a caller that never passes `folders` below gets the
+   *  original flat grid regardless of what this holds. */
+  folder_id?: number | null;
 }
 
 export function hasTarget(targets: PostTarget[], channelId: number, surface: Surface) {
@@ -65,10 +69,17 @@ export function ChannelSurfacePicker({
   slideCount = 0,
   assets,
   postNow = false,
+  folders,
 }: {
   channels: PickerChannel[];
   value: PostTarget[];
   onChange: (next: PostTarget[]) => void;
+  /** When given, channels are grouped under their folder (migration 0030) instead of one
+   *  flat grid — mirrors "which accounts belong together for browsing" from the folder's
+   *  own doc comment in lib/types.ts. Omitted entirely, callers keep today's flat grid;
+   *  a folder with no members here is simply skipped, and a channel whose folder_id
+   *  matches nothing in this list falls into "Sem pasta" alongside the truly unfoldered. */
+  folders?: { id: number; name: string }[];
   /** A text-only post: no media, so nothing a Story could show. */
   textOnly?: boolean;
   /** The post's media is video, which some platforms can't take at all. */
@@ -141,6 +152,41 @@ export function ChannelSurfacePicker({
     onChange(value.filter((t) => !(t.surface === "feed" && eligibleIds.includes(t.channel_id))));
   }
 
+  // Grouped by folder (migration 0030) only when the caller passes one — every other
+  // caller (bulk-import, post-sends-panel, schedule-from-library) omits it and keeps
+  // today's flat order untouched. Channels are reordered so a folder's members sit
+  // together; a header is attached to the first channel of each group and skipped
+  // entirely when there's only one group to tell apart, same rule the queue's own
+  // section headings use.
+  const folderList = folders ?? [];
+  let orderedChannels = channels;
+  const headerBefore = new Map<number, string>();
+  if (folderList.length > 0) {
+    const byFolder = new Map<number, PickerChannel[]>();
+    const unfoldered: PickerChannel[] = [];
+    for (const c of channels) {
+      const folder = c.folder_id != null ? folderList.find((f) => f.id === c.folder_id) : undefined;
+      if (folder) {
+        if (!byFolder.has(folder.id)) byFolder.set(folder.id, []);
+        byFolder.get(folder.id)!.push(c);
+      } else {
+        unfoldered.push(c);
+      }
+    }
+    const groups = [
+      ...folderList
+        .filter((f) => byFolder.has(f.id))
+        .map((f) => ({ title: f.name, rows: byFolder.get(f.id)! })),
+      ...(unfoldered.length > 0 ? [{ title: "Sem pasta", rows: unfoldered }] : []),
+    ];
+    if (groups.length > 1) {
+      orderedChannels = groups.flatMap((g) => g.rows);
+      for (const g of groups) {
+        if (g.rows.length > 0) headerBefore.set(g.rows[0].id, `${g.title} · ${g.rows.length}`);
+      }
+    }
+  }
+
   return (
     <div>
       {eligibleIds.length > 1 ? (
@@ -158,7 +204,8 @@ export function ChannelSurfacePicker({
         </div>
       ) : null}
       <div className="grid gap-2 sm:grid-cols-2">
-        {channels.map((c) => {
+        {orderedChannels.map((c) => {
+          const header = headerBefore.get(c.id);
           const color = channelColor(c.id, c.color_hue);
           const textDisabled = textOnly && !supportsText(c.platform);
           const surfaces = videoSurfaces(c.platform);
@@ -244,8 +291,13 @@ export function ChannelSurfacePicker({
           // than two — a channel just shows whichever of Story/Reel it actually has.
           if (offersStory || offersReel) {
             return (
+              <Fragment key={c.id}>
+              {header ? (
+                <div className="sm:col-span-2 pt-2 first:pt-0 text-[11px] font-semibold uppercase tracking-wide text-muted">
+                  {header}
+                </div>
+              ) : null}
               <div
-                key={c.id}
                 className={`rounded-lg border px-3 py-2.5 transition-colors ${
                   anyOn ? "border-transparent" : "border-border"
                 }`}
@@ -301,13 +353,19 @@ export function ChannelSurfacePicker({
                   <p className="mt-1.5 pl-8 text-[11px] text-muted">{reelLimitReason}</p>
                 ) : null}
               </div>
+              </Fragment>
             );
           }
 
           // ---- Everything else: unchanged single toggle ---------------------------
           return (
+            <Fragment key={c.id}>
+            {header ? (
+              <div className="sm:col-span-2 pt-2 first:pt-0 text-[11px] font-semibold uppercase tracking-wide text-muted">
+                {header}
+              </div>
+            ) : null}
             <button
-              key={c.id}
               type="button"
               onClick={() => onChange(toggleTarget(value, c.id, "feed"))}
               disabled={feedDisabled}
@@ -336,6 +394,7 @@ export function ChannelSurfacePicker({
               </span>
               {identity}
             </button>
+            </Fragment>
           );
         })}
       </div>

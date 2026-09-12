@@ -5,6 +5,7 @@ import {
   getGroupMembers,
   getBandCounts,
   getAutofillLanes,
+  listFolders,
 } from "@/lib/queries";
 import { config } from "@/lib/config";
 import { toLanePanels } from "@/lib/autofill-lanes";
@@ -29,6 +30,7 @@ import { ChannelTimezone } from "@/components/channel-timezone";
 import { AutofillConfig } from "@/components/autofill-config";
 import { ChannelGroups } from "@/components/channel-groups";
 import { ChannelGroupSelect } from "@/components/channel-group-select";
+import { ChannelFolderSelect } from "@/components/channel-folder-select";
 import { TestConnectionButton } from "@/components/test-connection-button";
 import { ChannelSearchGrid } from "@/components/channel-search-grid";
 import { tzAbbrev, timeAgo } from "@/lib/format";
@@ -58,6 +60,7 @@ export default async function ChannelsPage({
   const viewer = await getSessionUser();
   const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
   const channels = getChannels(ownerId);
+  const folders = listFolders(ownerId);
   const groups = listChannelGroups(ownerId).map((g) => {
     const members = getGroupMembers(g.id);
     const memberIds = members.map((m) => m.id);
@@ -121,6 +124,7 @@ export default async function ChannelsPage({
         <ChannelForm
           defaultTimezone={config.defaultTimezone}
           nextChannelId={channels.reduce((max, c) => Math.max(max, c.id), 0) + 1}
+          folders={folders.map((f) => ({ id: f.id, name: f.name }))}
         />
 
         {channels.length === 0 ? (
@@ -288,6 +292,12 @@ export default async function ChannelsPage({
                   channelId={c.id}
                   groupId={c.group_id}
                   groups={groups.map((g) => ({ id: g.id, name: g.name }))}
+                />
+
+                <ChannelFolderSelect
+                  channelId={c.id}
+                  folderId={c.folder_id}
+                  folders={folders.map((f) => ({ id: f.id, name: f.name }))}
                 />
 
                 {c.group_id === null ? (

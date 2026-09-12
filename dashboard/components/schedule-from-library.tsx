@@ -44,6 +44,7 @@ export type ChannelLite = {
   requires_approval: boolean;
   color_hue: number | null;
   avatar_path: string | null;
+  folder_id: number | null;
 };
 
 const card = "rounded-card border border-border bg-surface p-5";
@@ -105,12 +106,14 @@ export function effectiveLibraryTargets(
 export function ScheduleFromLibrary({
   posts,
   channels,
+  folders = [],
   defaultDate,
   defaultTime,
   readiness,
 }: {
   posts: LibraryPickItem[];
   channels: ChannelLite[];
+  folders?: { id: number; name: string }[];
   defaultDate: string;
   defaultTime: string;
   readiness: PublishReadiness;
@@ -316,6 +319,7 @@ export function ScheduleFromLibrary({
         <div className="mb-3">
           <ChannelSurfacePicker
             channels={channels}
+            folders={folders}
             value={effectiveTargets}
             onChange={setTargets}
             hasVideo={selected?.post_type === "video"}

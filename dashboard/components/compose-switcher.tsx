@@ -13,6 +13,7 @@ const segBtn = (active: boolean) =>
 
 export function ComposeSwitcher({
   channels,
+  folders = [],
   defaultTimezone,
   periods,
   timeOfDayTags,
@@ -24,6 +25,7 @@ export function ComposeSwitcher({
   readiness,
 }: {
   channels: ChannelLite[];
+  folders?: { id: number; name: string }[];
   defaultTimezone: string;
   periods: Period[];
   timeOfDayTags: Tag[];
@@ -45,6 +47,7 @@ export function ComposeSwitcher({
       {mode === "new" ? (
         <Composer
           channels={channels}
+          folders={folders}
           defaultTimezone={defaultTimezone}
           defaultScheduledLocal={defaultScheduledLocal}
           periods={periods}
@@ -56,6 +59,7 @@ export function ComposeSwitcher({
         <ScheduleFromLibrary
           posts={libraryPosts}
           channels={channels}
+          folders={folders}
           defaultDate={defaultDate}
           defaultTime={defaultTime}
           readiness={readiness}

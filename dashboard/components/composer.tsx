@@ -33,6 +33,7 @@ interface ChannelLite {
   requires_approval: boolean;
   color_hue: number | null;
   avatar_path: string | null;
+  folder_id: number | null;
 }
 // Wraps the full Asset row the upload API returns (needed as-is for <CoverFramePicker>)
 // plus the bits that only make sense while composing: whether this upload matched
@@ -105,6 +106,7 @@ function formatWallClock(value: string): string | null {
 
 export function Composer({
   channels,
+  folders = [],
   defaultTimezone,
   defaultScheduledLocal = "",
   periods,
@@ -113,6 +115,7 @@ export function Composer({
   readiness,
 }: {
   channels: ChannelLite[];
+  folders?: { id: number; name: string }[];
   defaultTimezone: string;
   /** Prefilled date+time: the calendar's clicked day on arrival from its empty-day "+",
    *  or today (09:00) on a plain visit — the owner still has to pick the actual time. */
@@ -800,6 +803,7 @@ export function Composer({
           </p>
           <ChannelSurfacePicker
             channels={channels}
+            folders={folders}
             value={effectiveTargets}
             onChange={setTargets}
             textOnly={textOnly}
