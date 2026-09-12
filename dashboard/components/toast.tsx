@@ -4,14 +4,22 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 
 export type ToastKind = "success" | "error" | "info";
 
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface Toast {
   id: number;
   message: string;
   kind: ToastKind;
+  action?: ToastAction;
 }
 
 interface ToastContextValue {
-  showToast: (message: string, kind?: ToastKind) => void;
+  /** `action` gives the toast a second button (e.g. "Desfazer") beside the close ✕ —
+   *  clicking it runs the callback and dismisses the toast, same as any other dismissal. */
+  showToast: (message: string, kind?: ToastKind, action?: ToastAction) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -29,9 +37,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(0);
 
-  const showToast = useCallback((message: string, kind: ToastKind = "success") => {
+  const showToast = useCallback((message: string, kind: ToastKind = "success", action?: ToastAction) => {
     const id = nextId.current++;
-    setToasts((current) => [...current, { id, message, kind }]);
+    setToasts((current) => [...current, { id, message, kind, action }]);
   }, []);
 
   function dismiss(id: number) {
@@ -64,9 +72,10 @@ const KIND_STYLES: Record<ToastKind, string> = {
 
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }) {
   // Auto-dismisses on its own — a toast the owner has to click to get rid of is a second
-  // chore, not a confirmation. 4s is enough to read a short line without lingering.
+  // chore, not a confirmation. Longer when there's an action (e.g. "Desfazer") to give
+  // there enough time to actually notice and press it, not just read the message.
   useEffect(() => {
-    const timer = setTimeout(onDismiss, 4000);
+    const timer = setTimeout(onDismiss, toast.action ? 6000 : 4000);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -77,6 +86,18 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
       className={`pointer-events-auto flex items-start gap-2 rounded-card border bg-surface px-4 py-3 text-sm shadow-lg ${KIND_STYLES[toast.kind]}`}
     >
       <span className="flex-1 text-ink">{toast.message}</span>
+      {toast.action ? (
+        <button
+          type="button"
+          onClick={() => {
+            toast.action?.onClick();
+            onDismiss();
+          }}
+          className="shrink-0 font-medium text-brand hover:text-brand-strong"
+        >
+          {toast.action.label}
+        </button>
+      ) : null}
       <button
         type="button"
         onClick={onDismiss}

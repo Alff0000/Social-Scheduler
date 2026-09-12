@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { channelColor, formatParts } from "@/lib/format";
 import { ChannelAvatar } from "@/components/ui";
@@ -23,6 +23,7 @@ import { PostNowReadinessNotice } from "@/components/post-now-readiness";
 import { SlideReorder, type Slide } from "@/components/slide-reorder";
 import { ChannelSurfacePicker } from "@/components/channel-surface-picker";
 import { TimezonePicker } from "@/components/timezone-picker";
+import { useToast } from "@/components/toast";
 
 interface ChannelLite {
   id: number;
@@ -56,6 +57,36 @@ interface UploadedAsset {
  * formatting in the viewer's zone would be the same mistake that briefly titled August's
  * calendar grid "July".
  */
+// Closing the tab mid-compose lost everything — caption, uploaded media, schedule, tags —
+// with no way back. The assets themselves are already saved server-side (upload happens
+// as soon as a file is picked, well before Postar/Salvar), so restoring a draft is only
+// ever re-hydrating form state, never re-uploading anything.
+const DRAFT_STORAGE_KEY = "socialscheduler:composer-draft";
+
+interface ComposerDraftSnapshot {
+  savedAt: string;
+  assets: UploadedAsset[];
+  variants: CaptionVariantDraft[];
+  firstComment: string;
+  targets: PostTarget[];
+  textOnly: boolean;
+  timezone: string;
+  scheduledLocal: string;
+  postNow: boolean;
+  contentKind: "evergreen" | "one_time";
+  periodModes: Record<number, PeriodMode>;
+  tagIds: number[];
+  libraryStatus: "draft" | "ready";
+}
+
+function clearSavedDraft(): void {
+  try {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+  } catch {
+    // localStorage unavailable (private mode, disabled) — nothing was persisted anyway.
+  }
+}
+
 function formatWallClock(value: string): string | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value);
   if (!m) return null;
@@ -92,6 +123,7 @@ export function Composer({
   readiness: PublishReadiness;
 }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const fileInput = useRef<HTMLInputElement>(null);
   const [assets, setAssets] = useState<UploadedAsset[]>([]);
   const [variants, setVariants] = useState<CaptionVariantDraft[]>([{ platform: "", body: "" }]);
@@ -166,6 +198,83 @@ export function Composer({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [submitting, startSubmit] = useTransition();
+  // A draft found in localStorage on mount, offered rather than auto-applied — silently
+  // overwriting whatever the URL/props already prefilled (e.g. a date clicked from the
+  // calendar) would be its own surprise. Null once there's nothing to offer, or once the
+  // owner has restored or discarded it.
+  const [restorableDraft, setRestorableDraft] = useState<ComposerDraftSnapshot | null>(null);
+  // Gates the autosave effect below: it must not write anything until AFTER this mount
+  // check has run, or it would overwrite a just-loaded saved draft with the component's
+  // still-empty initial state before the owner ever sees the restore prompt.
+  const [draftChecked, setDraftChecked] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<ComposerDraftSnapshot>;
+        const hasContent =
+          (parsed.assets?.length ?? 0) > 0 ||
+          (parsed.variants ?? []).some((v) => v.body?.trim()) ||
+          !!parsed.firstComment?.trim();
+        if (hasContent) setRestorableDraft(parsed as ComposerDraftSnapshot);
+      }
+    } catch {
+      // Corrupt JSON or an old, incompatible shape — nothing worth offering.
+    }
+    setDraftChecked(true);
+  }, []);
+
+  useEffect(() => {
+    if (!draftChecked || restorableDraft) return;
+    const timer = setTimeout(() => {
+      const hasContent = assets.length > 0 || variants.some((v) => v.body.trim()) || firstComment.trim();
+      try {
+        if (!hasContent) {
+          clearSavedDraft();
+          return;
+        }
+        const snapshot: ComposerDraftSnapshot = {
+          savedAt: new Date().toISOString(),
+          assets, variants, firstComment, targets, textOnly, timezone,
+          scheduledLocal, postNow, contentKind, periodModes, tagIds, libraryStatus,
+        };
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(snapshot));
+      } catch {
+        // Autosave is a nicety, not a requirement — a full/disabled localStorage just
+        // means no recovery if the tab closes, not a broken compose flow.
+      }
+      // 800ms debounce: long enough that a caption typed at normal speed writes once per
+      // pause, not once per keystroke.
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [
+    draftChecked, restorableDraft, assets, variants, firstComment, targets, textOnly,
+    timezone, scheduledLocal, postNow, contentKind, periodModes, tagIds, libraryStatus,
+  ]);
+
+  function restoreDraft() {
+    if (!restorableDraft) return;
+    setAssets(restorableDraft.assets ?? []);
+    setVariants(restorableDraft.variants?.length ? restorableDraft.variants : [{ platform: "", body: "" }]);
+    setFirstComment(restorableDraft.firstComment ?? "");
+    setTargets(restorableDraft.targets ?? []);
+    setTextOnly(restorableDraft.textOnly ?? false);
+    setTimezone(restorableDraft.timezone ?? defaultTimezone);
+    setScheduledLocal(restorableDraft.scheduledLocal ?? defaultScheduledLocal);
+    setPostNow(restorableDraft.postNow ?? false);
+    setContentKind(restorableDraft.contentKind ?? "evergreen");
+    setPeriodModes(restorableDraft.periodModes ?? {});
+    setTagIds(restorableDraft.tagIds ?? []);
+    setLibraryStatus(restorableDraft.libraryStatus ?? "draft");
+    setRestorableDraft(null);
+    showToast("Rascunho restaurado.");
+  }
+
+  function discardDraft() {
+    clearSavedDraft();
+    setRestorableDraft(null);
+  }
 
   const caption =
     variants.find((v) => v.platform === "" && v.body.trim())?.body ??
@@ -328,9 +437,15 @@ export function Composer({
   }
 
   function removeAsset(id: number) {
-    const removed = assets.find((a) => a.asset.id === id);
+    const removedIndex = assets.findIndex((a) => a.asset.id === id);
+    if (removedIndex === -1) return;
+    const removed = assets[removedIndex];
+    // Reel targets pruned alongside a removed video need to come back too, or "Desfazer"
+    // would restore the asset but leave the Reel chip unpicked — a silent partial undo.
+    const prunedReelTargets =
+      removed.asset.media_kind === "video" ? targets.filter((t) => t.surface === "reel") : [];
     setAssets((prev) => prev.filter((a) => a.asset.id !== id));
-    if (removed?.asset.media_kind === "video") {
+    if (removed.asset.media_kind === "video") {
       // The Reel chip disappears once hasVideo goes false, but an ALREADY-picked reel
       // target would otherwise survive the removal and be submitted invisibly — mirrors
       // toggleTextOnly's story-target pruning below. (The worker's _validate refuses a
@@ -338,6 +453,19 @@ export function Composer({
       // what's actually selected.)
       setTargets((prev) => prev.filter((t) => t.surface !== "reel"));
     }
+    showToast("Mídia removida.", "info", {
+      label: "Desfazer",
+      onClick: () => {
+        setAssets((prev) => {
+          const next = [...prev];
+          next.splice(removedIndex, 0, removed);
+          return next;
+        });
+        if (prunedReelTargets.length > 0) {
+          setTargets((prev) => [...prev, ...prunedReelTargets]);
+        }
+      },
+    });
   }
 
   function toggleTextOnly(next: boolean) {
@@ -397,6 +525,7 @@ export function Composer({
       setError(body.error ?? "Não foi possível agendar a publicação.");
       return;
     }
+    clearSavedDraft();
     startSubmit(() => router.push("/"));
   }
 
@@ -428,6 +557,7 @@ export function Composer({
       setError(body.error ?? "Não foi possível salvar o rascunho.");
       return;
     }
+    clearSavedDraft();
     startSubmit(() => router.push("/library"));
   }
 
@@ -441,6 +571,30 @@ export function Composer({
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
+      {restorableDraft ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-brand/40 bg-brand-weak px-4 py-3 text-sm lg:col-span-2">
+          <span className="text-brand-strong">
+            Você tem um rascunho não salvo de{" "}
+            {new Date(restorableDraft.savedAt).toLocaleString("pt-BR")}.
+          </span>
+          <span className="flex shrink-0 gap-2">
+            <button
+              type="button"
+              onClick={discardDraft}
+              className="rounded-md px-3 py-1.5 text-xs font-medium text-muted hover:text-ink"
+            >
+              Descartar
+            </button>
+            <button
+              type="button"
+              onClick={restoreDraft}
+              className="rounded-md bg-brand px-3 py-1.5 text-xs font-semibold text-on-brand hover:bg-brand-ink"
+            >
+              Restaurar rascunho
+            </button>
+          </span>
+        </div>
+      ) : null}
       {/* ---- Builder ---- */}
       <div className="space-y-6">
         {/* Text only toggle */}
