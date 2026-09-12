@@ -72,6 +72,24 @@ function PlayGlyph() {
   );
 }
 
+function ChevronGlyph() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
 function ExpandGlyph() {
   return (
     <svg
@@ -224,7 +242,7 @@ export function PublicationQueue({
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkEditing, setBulkEditing] = useState(false);
-  // Which of the two sections (queue-sections.QueueSection['key']) are collapsed. Reaching
+  // Which sections (queue-sections.QueueSection['key']) are collapsed. Reaching
   // Done meant scrolling past the whole queue first whenever it was long — a large batch
   // schedule made that the common case, not the rare one. Starts empty (both open) so the
   // table looks exactly as it did before anyone collapses anything.
@@ -500,8 +518,9 @@ export function PublicationQueue({
                 const collapsed = collapsedSections.has(section.key);
                 return (
                 <Fragment key={section.key}>
-                  {/* Only headed when both halves are on screen. A single heading over the
-                      whole table says nothing the status filter has not already said. */}
+                  {/* Only headed when more than one section is on screen. A single heading
+                      over the whole table says nothing the status filter has not already
+                      said. */}
                   {all.length > 1 ? (
                     <tr>
                       <td
@@ -514,17 +533,19 @@ export function PublicationQueue({
                           type="button"
                           onClick={() => toggleSection(section.key)}
                           aria-expanded={!collapsed}
-                          className="flex w-full items-baseline gap-2 text-left"
+                          title={collapsed ? "Clique para expandir" : "Clique para recolher"}
+                          className="group/toggle flex w-full items-center gap-2.5 rounded-md py-0.5 text-left hover:bg-surface"
                         >
-                          {/* Rotates to point right when collapsed — a single glyph that
-                              still reads as "expand this" without needing separate art. */}
+                          {/* A visibly separate round chip, not just a bare glyph sitting in
+                              text — the earlier plain "▾" character read as decoration, not
+                              as a control. Rotates to point right when collapsed. */}
                           <span
                             aria-hidden
-                            className={`inline-block text-faint transition-transform ${collapsed ? "-rotate-90" : ""}`}
+                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border-strong bg-surface text-ink-soft transition-transform group-hover/toggle:border-brand group-hover/toggle:text-brand ${collapsed ? "-rotate-90" : ""}`}
                           >
-                            ▾
+                            <ChevronGlyph />
                           </span>
-                          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft group-hover/toggle:text-ink">
                             {section.title}
                           </span>
                           <span className="data text-[11px] text-faint">

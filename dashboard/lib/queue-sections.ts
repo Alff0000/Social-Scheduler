@@ -37,7 +37,7 @@ export function isFinished(status: string): boolean {
 
 export interface QueueSection<T> {
   /** Stable React key. */
-  key: "unfinished" | "finished";
+  key: "unfinished" | "finished" | "canceled";
   title: string;
   /** Why this section reads the direction it does — shown beside the heading. */
   hint: string;
@@ -47,12 +47,19 @@ export interface QueueSection<T> {
 /**
  * Split sorted rows into their sections, preserving the order within each.
  *
- * Filtering rather than scanning for a boundary: the two halves are contiguous today
- * because of the ORDER BY, but relying on that would turn a future sort change into a
+ * Filtering rather than scanning for a boundary: the halves are contiguous today because
+ * of the ORDER BY (both 'posted' and 'canceled' sort together, backward from now, as
+ * FINISHED_STATUSES), but relying on that would turn a future sort change into a
  * mislabelled table rather than a merely differently-ordered one.
  *
+ * 'canceled' gets its OWN section rather than sharing "Concluído" with 'posted', even
+ * though both count as isFinished() for sorting purposes — a canceled send never went
+ * out, and filing it under the same heading as ones that did makes "Concluído" lie about
+ * what actually happened. This is a display-only split: the SQL/ORDER BY split in
+ * getPublicationsOverview stays exactly as isFinished() defines it.
+ *
  * An empty section is dropped, so a queue of only posted sends gets no headings to
- * disagree with — and neither does the status filter when it narrows to one half.
+ * disagree with — and neither does the status filter when it narrows to one status.
  */
 export function splitQueueSections<T extends { status: string }>(
   rows: T[]
@@ -60,15 +67,21 @@ export function splitQueueSections<T extends { status: string }>(
   const sections: QueueSection<T>[] = [
     {
       key: "unfinished",
-      title: "In the queue",
-      hint: "soonest first",
+      title: "Na fila",
+      hint: "mais próximo primeiro",
       rows: rows.filter((r) => !isFinished(r.status)),
     },
     {
       key: "finished",
-      title: "Done",
-      hint: "newest first",
-      rows: rows.filter((r) => isFinished(r.status)),
+      title: "Concluído",
+      hint: "mais recente primeiro",
+      rows: rows.filter((r) => r.status === "posted"),
+    },
+    {
+      key: "canceled",
+      title: "Cancelados",
+      hint: "mais recente primeiro",
+      rows: rows.filter((r) => r.status === "canceled"),
     },
   ];
   return sections.filter((s) => s.rows.length > 0);

@@ -31,7 +31,7 @@ test("an unknown status counts as unfinished, so it is never filed under Done", 
   assert.equal(isFinished("some_future_status"), false);
 });
 
-test("the queue splits into two sections, upcoming first", () => {
+test("the queue splits into three sections, upcoming first, canceled kept apart from posted", () => {
   const sections = splitQueueSections([
     row(1, "failed"),
     row(2, "scheduled"),
@@ -43,7 +43,8 @@ test("the queue splits into two sections, upcoming first", () => {
     sections.map((s) => [s.key, s.rows.map((r) => r.id)]),
     [
       ["unfinished", [1, 2]],
-      ["finished", [3, 4]],
+      ["finished", [3]],
+      ["canceled", [4]],
     ]
   );
 });
@@ -94,8 +95,16 @@ test("each section carries a title and its own count", () => {
     row(3, "posted"),
   ]);
 
-  assert.equal(sections[0].title, "In the queue");
+  assert.equal(sections[0].title, "Na fila");
   assert.equal(sections[0].rows.length, 2);
-  assert.equal(sections[1].title, "Done");
+  assert.equal(sections[1].title, "Concluído");
   assert.equal(sections[1].rows.length, 1);
+});
+
+test("a canceled send never lands under Concluído — it gets its own section", () => {
+  const sections = splitQueueSections([row(1, "posted"), row(2, "canceled")]);
+
+  assert.deepEqual(sections.map((s) => s.key), ["finished", "canceled"]);
+  assert.equal(sections[1].title, "Cancelados");
+  assert.deepEqual(sections[1].rows.map((r) => r.id), [2]);
 });
