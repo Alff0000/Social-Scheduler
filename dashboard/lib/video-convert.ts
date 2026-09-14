@@ -98,8 +98,14 @@ function resolveAvconvert(): ResolvedConverter | null {
   return fs.existsSync(AVCONVERT_BIN) ? { kind: "avconvert", bin: AVCONVERT_BIN } : null;
 }
 
-function resolveFfmpeg(
-  vendorDir: string,
+/**
+ * Resolve ffmpeg specifically, skipping avconvert even where it's available. Needed by
+ * callers (the watermark tool) that pass a custom `-filter_complex` — avconvert only ever
+ * accepts `-p <preset>` and cannot run an arbitrary filter graph, so findConverter()'s
+ * avconvert-first preference is wrong for them.
+ */
+export function resolveFfmpeg(
+  vendorDir: string = defaultVendorDir(),
   platform: NodeJS.Platform = process.platform
 ): ResolvedConverter | null {
   const bin = vendoredFfmpegPath(vendorDir, platform) ?? findOnPath("ffmpeg", platform);

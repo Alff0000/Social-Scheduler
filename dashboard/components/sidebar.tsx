@@ -51,6 +51,12 @@ const NAV_GROUPS = [
     ],
   },
   {
+    group: "Ferramentas",
+    items: [
+      { href: "/tools/watermark", label: "Remover Marca d'Água", hint: "Borra uma região da foto ou vídeo" },
+    ],
+  },
+  {
     group: "Configuração",
     items: [
       { href: "/channels", label: "Contas", hint: "Contas e configuração" },
