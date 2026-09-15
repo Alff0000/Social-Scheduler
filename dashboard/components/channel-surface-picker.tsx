@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { useState } from "react";
 import { channelColor } from "@/lib/format";
 import { ChannelAvatar } from "@/components/ui";
 import {
@@ -40,6 +40,24 @@ export function toggleTarget(
   return hasTarget(targets, channelId, surface)
     ? targets.filter((t) => !(t.channel_id === channelId && t.surface === surface))
     : [...targets, { channel_id: channelId, surface }];
+}
+
+function ChevronGlyph() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
 }
 
 /**
@@ -127,277 +145,330 @@ export function ChannelSurfacePicker({
     ? { media_kind: hasVideo ? "video" : "image", ...primaryAsset }
     : null;
 
-  // Same three checks the per-row feedDisabled below applies, kept separate rather than
-  // shared: this pass only needs the yes/no answer to build the select-all set, not the
-  // per-row `reason` text that the checks below also produce.
-  const eligibleIds = channels
-    .filter((c) => {
-      const textDisabled = textOnly && !supportsText(c.platform);
-      const videoDisabled = hasVideo && videoSurfaces(c.platform).length === 0;
-      const feedLimitReason = mediaAsset ? destinationDisabledReason(c.platform, "feed", mediaAsset) : null;
-      return !(textDisabled || videoDisabled || !!feedLimitReason);
-    })
-    .map((c) => c.id);
-  const selectedEligibleCount = eligibleIds.filter((id) => hasTarget(value, id, "feed")).length;
-  const allEligibleSelected = eligibleIds.length > 0 && selectedEligibleCount === eligibleIds.length;
+  // Shared by the flat select-all bar AND each folder's own select-all — one definition of
+  // "can this channel even take a Feed send", so the two can never quietly disagree.
+  function isEligible(c: PickerChannel): boolean {
+    const textDisabled = textOnly && !supportsText(c.platform);
+    const videoDisabled = hasVideo && videoSurfaces(c.platform).length === 0;
+    const feedLimitReason = mediaAsset ? destinationDisabledReason(c.platform, "feed", mediaAsset) : null;
+    return !(textDisabled || videoDisabled || !!feedLimitReason);
+  }
 
-  function selectAllChannels() {
-    const additions = eligibleIds
+  function selectAll(ids: number[]) {
+    const additions = ids
       .filter((id) => !hasTarget(value, id, "feed"))
       .map((id) => ({ channel_id: id, surface: "feed" as Surface }));
     onChange([...value, ...additions]);
   }
 
-  function clearAllChannels() {
-    onChange(value.filter((t) => !(t.surface === "feed" && eligibleIds.includes(t.channel_id))));
+  function clearAll(ids: number[]) {
+    onChange(value.filter((t) => !(t.surface === "feed" && ids.includes(t.channel_id))));
   }
+
+  const eligibleIds = channels.filter(isEligible).map((c) => c.id);
+  const selectedEligibleCount = eligibleIds.filter((id) => hasTarget(value, id, "feed")).length;
 
   // Grouped by folder (migration 0030) only when the caller passes one — every other
   // caller (bulk-import, post-sends-panel, schedule-from-library) omits it and keeps
-  // today's flat order untouched. Channels are reordered so a folder's members sit
-  // together; a header is attached to the first channel of each group and skipped
-  // entirely when there's only one group to tell apart, same rule the queue's own
-  // section headings use.
+  // today's flat grid untouched. A group is skipped entirely when there's only one to
+  // tell apart (everything in "Sem pasta", say), same rule the queue's own section
+  // headings use — a lone heading over the whole grid says nothing the picker hasn't
+  // already said.
   const folderList = folders ?? [];
-  let orderedChannels = channels;
-  const headerBefore = new Map<number, string>();
-  if (folderList.length > 0) {
-    const byFolder = new Map<number, PickerChannel[]>();
-    const unfoldered: PickerChannel[] = [];
-    for (const c of channels) {
-      const folder = c.folder_id != null ? folderList.find((f) => f.id === c.folder_id) : undefined;
-      if (folder) {
-        if (!byFolder.has(folder.id)) byFolder.set(folder.id, []);
-        byFolder.get(folder.id)!.push(c);
-      } else {
-        unfoldered.push(c);
-      }
+  const byFolder = new Map<number, PickerChannel[]>();
+  const unfoldered: PickerChannel[] = [];
+  for (const c of channels) {
+    const folder = c.folder_id != null ? folderList.find((f) => f.id === c.folder_id) : undefined;
+    if (folder) {
+      if (!byFolder.has(folder.id)) byFolder.set(folder.id, []);
+      byFolder.get(folder.id)!.push(c);
+    } else {
+      unfoldered.push(c);
     }
-    const groups = [
-      ...folderList
-        .filter((f) => byFolder.has(f.id))
-        .map((f) => ({ title: f.name, rows: byFolder.get(f.id)! })),
-      ...(unfoldered.length > 0 ? [{ title: "Sem pasta", rows: unfoldered }] : []),
-    ];
-    if (groups.length > 1) {
-      orderedChannels = groups.flatMap((g) => g.rows);
-      for (const g of groups) {
-        if (g.rows.length > 0) headerBefore.set(g.rows[0].id, `${g.title} · ${g.rows.length}`);
-      }
+  }
+  const groups = [
+    ...folderList
+      .filter((f) => byFolder.has(f.id))
+      .map((f) => ({ key: String(f.id), title: f.name, rows: byFolder.get(f.id)! })),
+    ...(unfoldered.length > 0 ? [{ key: "none", title: "Sem pasta", rows: unfoldered }] : []),
+  ];
+  const grouped = groups.length > 1;
+
+  // Starts with every folder collapsed — picking a folder to open is the point, not
+  // scrolling past every account in every folder to find the one you want. Lazy
+  // initializer: computed once, from whatever `groups` looks like on first render: this
+  // is a starting POSTURE, not something that should snap shut again if a folder is
+  // created mid-session elsewhere.
+  const [collapsed, setCollapsed] = useState<Set<string>>(
+    () => new Set(groups.map((g) => g.key))
+  );
+  function toggleFolder(key: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function renderChannel(c: PickerChannel) {
+    const color = channelColor(c.id, c.color_hue);
+    const textDisabled = textOnly && !supportsText(c.platform);
+    const surfaces = videoSurfaces(c.platform);
+    // A video post can only use this channel's VIDEO surfaces; an image post is
+    // unaffected — surfaces.length === 0 is the same condition supportsVideo checks.
+    const videoDisabled = hasVideo && surfaces.length === 0;
+    // EVERY surface chip consults the same shared limits (dashboard/media-limits.json,
+    // via destinationDisabledReason) — Feed included. A platform/surface this file has
+    // no entry for (everything but Instagram/Facebook, for now) gets null back for
+    // every chip, i.e. stays enabled: absent means not enforced, not "refuse everything".
+    const feedLimitReason = mediaAsset ? destinationDisabledReason(c.platform, "feed", mediaAsset) : null;
+    const feedDisabled = textDisabled || videoDisabled || !!feedLimitReason;
+    // A Story needs something to show, so a text-only post has no Story option at
+    // all — hidden rather than disabled, since it isn't a limit of the account.
+    const offersStory = supportsStory(c.platform) && !textOnly;
+    const storyLimitReason =
+      offersStory && mediaAsset ? destinationDisabledReason(c.platform, "story", mediaAsset) : null;
+    const storyDisabled = videoDisabled || !!storyLimitReason;
+    // A Reel is a VIDEO surface, so it only ever appears alongside an actual video —
+    // an image post never offers one, and neither does a platform without a "reel"
+    // entry in videoSurfaces (Instagram included: its feed video already IS a Reel,
+    // so a separate toggle there would be a distinction with no difference).
+    const offersReel = hasVideo && surfaces.includes("reel");
+    // Independent of videoDisabled: the whole channel can take this video (Feed is
+    // fine), but Reel specifically has its own, tighter limits. offersReel implies
+    // videoDisabled is false (a platform with no video surfaces at all never lists
+    // "reel"), so this is the only thing that can grey out just the Reel chip.
+    const reelLimitReason =
+      offersReel && mediaAsset ? destinationDisabledReason(c.platform, "reel", mediaAsset) : null;
+    const reelDisabled = videoDisabled || !!reelLimitReason;
+    const feedLabel = feedChipLabel(c.platform, hasVideo);
+    const feedOn = hasTarget(value, c.id, "feed");
+    const storyOn = hasTarget(value, c.id, "story");
+    const reelOn = hasTarget(value, c.id, "reel");
+    const anyOn = feedOn || (offersStory && storyOn) || (offersReel && reelOn);
+
+    const reason = textDisabled
+      ? `${platformLabel(c.platform)} não publica só texto`
+      : videoDisabled
+        ? `${platformLabel(c.platform)} não publica vídeo`
+        : feedLimitReason
+          ? feedLimitReason
+          : platformLabel(c.platform);
+    const approval =
+      !feedDisabled && c.requires_approval
+        ? postNow
+          ? " · aprovação pulada (Postar agora)"
+          : " · precisa de aprovação"
+        : "";
+
+    const identity = (
+      <>
+        <ChannelAvatar
+          id={c.id}
+          name={c.account_name}
+          colorHue={c.color_hue}
+          avatarPath={c.avatar_path}
+          size={20}
+        />
+        {/* channelColor's bg is a fixed LIGHT tint in every theme, so a selected
+            row must take its paired dark `fg` — on `text-ink` alone the name is
+            near-invisible in the dark themes. Same pairing as ui.tsx's ChannelChip. */}
+        <span className="min-w-0">
+          <span
+            className="block truncate text-sm font-medium text-ink"
+            style={anyOn && !feedDisabled ? { color: color.fg } : undefined}
+          >
+            {c.account_name}
+          </span>
+          <span
+            className="data block text-[11px] text-muted"
+            style={anyOn && !feedDisabled ? { color: color.fg, opacity: 0.75 } : undefined}
+          >
+            {reason}
+            {approval}
+          </span>
+        </span>
+      </>
+    );
+
+    // ---- Instagram (Story) / Facebook (Reel): multiple destinations, multiple
+    // chips. Same row shape either way, so there is one behaviour to learn rather
+    // than two — a channel just shows whichever of Story/Reel it actually has.
+    if (offersStory || offersReel) {
+      return (
+        <div
+          key={c.id}
+          className={`rounded-lg border px-3 py-2.5 transition-colors ${
+            anyOn ? "border-transparent" : "border-border"
+          }`}
+          style={
+            anyOn
+              ? { backgroundColor: color.bg, boxShadow: `inset 0 0 0 2px ${color.dot}` }
+              : undefined
+          }
+        >
+          <div className="flex items-center gap-3">
+            {identity}
+            <span className="ml-auto flex shrink-0 gap-1" role="group"
+                  aria-label={`Destinos de ${c.account_name}`}>
+              <SurfaceChip
+                label={feedLabel}
+                on={feedOn}
+                disabled={feedDisabled}
+                disabledReason={reason}
+                dot={color.dot}
+                onClick={() => onChange(toggleTarget(value, c.id, "feed"))}
+              />
+              {offersStory ? (
+                <SurfaceChip
+                  label="Story"
+                  on={storyOn}
+                  disabled={storyDisabled}
+                  disabledReason={storyLimitReason ?? reason}
+                  dot={color.dot}
+                  onClick={() => onChange(toggleTarget(value, c.id, "story"))}
+                />
+              ) : null}
+              {offersReel ? (
+                <SurfaceChip
+                  label="Reel"
+                  on={reelOn}
+                  disabled={reelDisabled}
+                  disabledReason={reelLimitReason ?? reason}
+                  dot={color.dot}
+                  onClick={() => onChange(toggleTarget(value, c.id, "reel"))}
+                />
+              ) : null}
+            </span>
+          </div>
+          {/* Shown inline, not just on hover — the limit should explain itself the
+              moment it matters, same spirit as the reframing/fan-out notes below.
+              Story and Reel are never both offered on the same channel today (one
+              needs Instagram, the other Facebook), but each gets its own line rather
+              than joining them, so this still reads cleanly if that ever changes. */}
+          {storyLimitReason ? (
+            <p className="mt-1.5 pl-8 text-[11px] text-muted">{storyLimitReason}</p>
+          ) : null}
+          {reelLimitReason ? (
+            <p className="mt-1.5 pl-8 text-[11px] text-muted">{reelLimitReason}</p>
+          ) : null}
+        </div>
+      );
     }
+
+    // ---- Everything else: unchanged single toggle ---------------------------
+    return (
+      <button
+        key={c.id}
+        type="button"
+        onClick={() => onChange(toggleTarget(value, c.id, "feed"))}
+        disabled={feedDisabled}
+        aria-pressed={feedOn}
+        className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${
+          feedDisabled
+            ? "cursor-not-allowed border-border opacity-50"
+            : feedOn
+              ? "border-transparent"
+              : "border-border hover:bg-surface-sunken"
+        }`}
+        style={
+          feedOn && !feedDisabled
+            ? { backgroundColor: color.bg, boxShadow: `inset 0 0 0 2px ${color.dot}` }
+            : undefined
+        }
+      >
+        <span
+          className="flex h-4 w-4 shrink-0 items-center justify-center rounded"
+          style={{
+            backgroundColor: feedOn && !feedDisabled ? color.dot : "transparent",
+            border: feedOn && !feedDisabled ? "none" : "1.5px solid var(--color-border-strong)",
+          }}
+        >
+          {feedOn && !feedDisabled ? <span className="text-[10px] text-white">✓</span> : null}
+        </span>
+        {identity}
+      </button>
+    );
   }
 
   return (
     <div>
-      {eligibleIds.length > 1 ? (
+      {/* The flat (ungrouped) select-all bar. Grouped mode gets the same control per
+          folder instead — a single bar here would span every folder at once, which is
+          exactly the "selecting one folder selected all of them" confusion this was
+          built to fix. */}
+      {!grouped && eligibleIds.length > 1 ? (
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[11px] text-muted">
             {selectedEligibleCount} de {eligibleIds.length} contas selecionadas
           </span>
           <button
             type="button"
-            onClick={allEligibleSelected ? clearAllChannels : selectAllChannels}
+            onClick={() =>
+              selectedEligibleCount === eligibleIds.length
+                ? clearAll(eligibleIds)
+                : selectAll(eligibleIds)
+            }
             className="text-xs font-medium text-brand-strong hover:underline"
           >
-            {allEligibleSelected ? "Limpar seleção" : "Selecionar todas"}
+            {selectedEligibleCount === eligibleIds.length ? "Limpar seleção" : "Selecionar todas"}
           </button>
         </div>
       ) : null}
-      <div className="grid gap-2 sm:grid-cols-2">
-        {orderedChannels.map((c) => {
-          const header = headerBefore.get(c.id);
-          const color = channelColor(c.id, c.color_hue);
-          const textDisabled = textOnly && !supportsText(c.platform);
-          const surfaces = videoSurfaces(c.platform);
-          // A video post can only use this channel's VIDEO surfaces; an image post is
-          // unaffected — surfaces.length === 0 is the same condition supportsVideo checks.
-          const videoDisabled = hasVideo && surfaces.length === 0;
-          // EVERY surface chip consults the same shared limits (dashboard/media-limits.json,
-          // via destinationDisabledReason) — Feed included. A platform/surface this file has
-          // no entry for (everything but Instagram/Facebook, for now) gets null back for
-          // every chip, i.e. stays enabled: absent means not enforced, not "refuse everything".
-          const feedLimitReason = mediaAsset ? destinationDisabledReason(c.platform, "feed", mediaAsset) : null;
-          const feedDisabled = textDisabled || videoDisabled || !!feedLimitReason;
-          // A Story needs something to show, so a text-only post has no Story option at
-          // all — hidden rather than disabled, since it isn't a limit of the account.
-          const offersStory = supportsStory(c.platform) && !textOnly;
-          const storyLimitReason =
-            offersStory && mediaAsset ? destinationDisabledReason(c.platform, "story", mediaAsset) : null;
-          const storyDisabled = videoDisabled || !!storyLimitReason;
-          // A Reel is a VIDEO surface, so it only ever appears alongside an actual video —
-          // an image post never offers one, and neither does a platform without a "reel"
-          // entry in videoSurfaces (Instagram included: its feed video already IS a Reel,
-          // so a separate toggle there would be a distinction with no difference).
-          const offersReel = hasVideo && surfaces.includes("reel");
-          // Independent of videoDisabled: the whole channel can take this video (Feed is
-          // fine), but Reel specifically has its own, tighter limits. offersReel implies
-          // videoDisabled is false (a platform with no video surfaces at all never lists
-          // "reel"), so this is the only thing that can grey out just the Reel chip.
-          const reelLimitReason =
-            offersReel && mediaAsset ? destinationDisabledReason(c.platform, "reel", mediaAsset) : null;
-          const reelDisabled = videoDisabled || !!reelLimitReason;
-          const feedLabel = feedChipLabel(c.platform, hasVideo);
-          const feedOn = hasTarget(value, c.id, "feed");
-          const storyOn = hasTarget(value, c.id, "story");
-          const reelOn = hasTarget(value, c.id, "reel");
-          const anyOn = feedOn || (offersStory && storyOn) || (offersReel && reelOn);
 
-          const reason = textDisabled
-            ? `${platformLabel(c.platform)} não publica só texto`
-            : videoDisabled
-              ? `${platformLabel(c.platform)} não publica vídeo`
-              : feedLimitReason
-                ? feedLimitReason
-                : platformLabel(c.platform);
-          const approval =
-            !feedDisabled && c.requires_approval
-              ? postNow
-                ? " · aprovação pulada (Postar agora)"
-                : " · precisa de aprovação"
-              : "";
-
-          const identity = (
-            <>
-              <ChannelAvatar
-                id={c.id}
-                name={c.account_name}
-                colorHue={c.color_hue}
-                avatarPath={c.avatar_path}
-                size={20}
-              />
-              {/* channelColor's bg is a fixed LIGHT tint in every theme, so a selected
-                  row must take its paired dark `fg` — on `text-ink` alone the name is
-                  near-invisible in the dark themes. Same pairing as ui.tsx's ChannelChip. */}
-              <span className="min-w-0">
-                <span
-                  className="block truncate text-sm font-medium text-ink"
-                  style={anyOn && !feedDisabled ? { color: color.fg } : undefined}
-                >
-                  {c.account_name}
-                </span>
-                <span
-                  className="data block text-[11px] text-muted"
-                  style={anyOn && !feedDisabled ? { color: color.fg, opacity: 0.75 } : undefined}
-                >
-                  {reason}
-                  {approval}
-                </span>
-              </span>
-            </>
-          );
-
-          // ---- Instagram (Story) / Facebook (Reel): multiple destinations, multiple
-          // chips. Same row shape either way, so there is one behaviour to learn rather
-          // than two — a channel just shows whichever of Story/Reel it actually has.
-          if (offersStory || offersReel) {
+      {grouped ? (
+        <div className="space-y-2">
+          {groups.map((g) => {
+            const isCollapsed = collapsed.has(g.key);
+            const gEligible = g.rows.filter(isEligible).map((c) => c.id);
+            const gSelected = gEligible.filter((id) => hasTarget(value, id, "feed")).length;
+            const gAllSelected = gEligible.length > 0 && gSelected === gEligible.length;
             return (
-              <Fragment key={c.id}>
-              {header ? (
-                <div className="sm:col-span-2 pt-2 first:pt-0 text-[11px] font-semibold uppercase tracking-wide text-muted">
-                  {header}
+              <div key={g.key} className="rounded-lg border border-border">
+                <div className="flex items-center gap-2.5 px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => toggleFolder(g.key)}
+                    aria-expanded={!isCollapsed}
+                    title={isCollapsed ? "Clique para expandir" : "Clique para recolher"}
+                    className="group/toggle flex min-w-0 flex-1 items-center gap-2.5 text-left"
+                  >
+                    <span
+                      aria-hidden
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border-strong bg-surface text-ink-soft transition-transform group-hover/toggle:border-brand group-hover/toggle:text-brand ${isCollapsed ? "-rotate-90" : ""}`}
+                    >
+                      <ChevronGlyph />
+                    </span>
+                    <span className="truncate text-sm font-medium text-ink group-hover/toggle:text-brand-strong">
+                      {g.title}
+                    </span>
+                    <span className="data shrink-0 text-[11px] text-faint">
+                      {gSelected > 0 ? `${gSelected}/${g.rows.length}` : g.rows.length}
+                    </span>
+                  </button>
+                  {gEligible.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => (gAllSelected ? clearAll(gEligible) : selectAll(gEligible))}
+                      className="shrink-0 text-xs font-medium text-brand-strong hover:underline"
+                    >
+                      {gAllSelected ? "Limpar" : "Selecionar todas"}
+                    </button>
+                  ) : null}
                 </div>
-              ) : null}
-              <div
-                className={`rounded-lg border px-3 py-2.5 transition-colors ${
-                  anyOn ? "border-transparent" : "border-border"
-                }`}
-                style={
-                  anyOn
-                    ? { backgroundColor: color.bg, boxShadow: `inset 0 0 0 2px ${color.dot}` }
-                    : undefined
-                }
-              >
-                <div className="flex items-center gap-3">
-                  {identity}
-                  <span className="ml-auto flex shrink-0 gap-1" role="group"
-                        aria-label={`Destinos de ${c.account_name}`}>
-                    <SurfaceChip
-                      label={feedLabel}
-                      on={feedOn}
-                      disabled={feedDisabled}
-                      disabledReason={reason}
-                      dot={color.dot}
-                      onClick={() => onChange(toggleTarget(value, c.id, "feed"))}
-                    />
-                    {offersStory ? (
-                      <SurfaceChip
-                        label="Story"
-                        on={storyOn}
-                        disabled={storyDisabled}
-                        disabledReason={storyLimitReason ?? reason}
-                        dot={color.dot}
-                        onClick={() => onChange(toggleTarget(value, c.id, "story"))}
-                      />
-                    ) : null}
-                    {offersReel ? (
-                      <SurfaceChip
-                        label="Reel"
-                        on={reelOn}
-                        disabled={reelDisabled}
-                        disabledReason={reelLimitReason ?? reason}
-                        dot={color.dot}
-                        onClick={() => onChange(toggleTarget(value, c.id, "reel"))}
-                      />
-                    ) : null}
-                  </span>
-                </div>
-                {/* Shown inline, not just on hover — the limit should explain itself the
-                    moment it matters, same spirit as the reframing/fan-out notes below.
-                    Story and Reel are never both offered on the same channel today (one
-                    needs Instagram, the other Facebook), but each gets its own line rather
-                    than joining them, so this still reads cleanly if that ever changes. */}
-                {storyLimitReason ? (
-                  <p className="mt-1.5 pl-8 text-[11px] text-muted">{storyLimitReason}</p>
-                ) : null}
-                {reelLimitReason ? (
-                  <p className="mt-1.5 pl-8 text-[11px] text-muted">{reelLimitReason}</p>
-                ) : null}
+                {isCollapsed ? null : (
+                  <div className="grid gap-2 border-t border-border p-3 sm:grid-cols-2">
+                    {g.rows.map(renderChannel)}
+                  </div>
+                )}
               </div>
-              </Fragment>
             );
-          }
-
-          // ---- Everything else: unchanged single toggle ---------------------------
-          return (
-            <Fragment key={c.id}>
-            {header ? (
-              <div className="sm:col-span-2 pt-2 first:pt-0 text-[11px] font-semibold uppercase tracking-wide text-muted">
-                {header}
-              </div>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => onChange(toggleTarget(value, c.id, "feed"))}
-              disabled={feedDisabled}
-              aria-pressed={feedOn}
-              className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${
-                feedDisabled
-                  ? "cursor-not-allowed border-border opacity-50"
-                  : feedOn
-                    ? "border-transparent"
-                    : "border-border hover:bg-surface-sunken"
-              }`}
-              style={
-                feedOn && !feedDisabled
-                  ? { backgroundColor: color.bg, boxShadow: `inset 0 0 0 2px ${color.dot}` }
-                  : undefined
-              }
-            >
-              <span
-                className="flex h-4 w-4 shrink-0 items-center justify-center rounded"
-                style={{
-                  backgroundColor: feedOn && !feedDisabled ? color.dot : "transparent",
-                  border: feedOn && !feedDisabled ? "none" : "1.5px solid var(--color-border-strong)",
-                }}
-              >
-                {feedOn && !feedDisabled ? <span className="text-[10px] text-white">✓</span> : null}
-              </span>
-              {identity}
-            </button>
-            </Fragment>
-          );
-        })}
-      </div>
+          })}
+        </div>
+      ) : (
+        <div className="grid gap-2 sm:grid-cols-2">{channels.map(renderChannel)}</div>
+      )}
 
       {/* Say the fan-out BEFORE scheduling. There is no carousel Story in the API, so a
           multi-slide post becomes one Story per slide — a surprise if discovered later. */}
