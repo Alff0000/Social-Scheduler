@@ -141,7 +141,7 @@ export default async function ChannelsPage({
             defaultTimezone={config.defaultTimezone}
             bandTimes={config.bandTimes}
           />
-          <ChannelSearchGrid channels={channels}>
+          <ChannelSearchGrid channels={channels} folders={folders.map((f) => ({ id: f.id, name: f.name }))}>
             {channels.map((c) => (
               <div
                 key={c.id}
