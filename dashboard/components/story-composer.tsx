@@ -24,6 +24,24 @@ interface UploadedAsset {
   media_kind: "image" | "video";
 }
 
+function ChevronGlyph() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
 export function StoryComposer({
   channels,
   folders,
@@ -39,11 +57,42 @@ export function StoryComposer({
   const [error, setError] = useState<string | null>(null);
   const [posting, setPosting] = useState(false);
 
-  // Only folders that actually contain a story-capable account are worth offering — an
-  // empty quick-select button would look like a bug, not an empty state.
-  const foldersWithMembers = folders
-    .map((f) => ({ folder: f, members: channels.filter((c) => c.folder_id === f.id) }))
-    .filter((f) => f.members.length > 0);
+  // Same grouping/collapse pattern as the main composer's ChannelSurfacePicker: a folder
+  // with no story-capable members here is skipped outright, and grouping only kicks in
+  // once there's more than one group to tell apart — otherwise "Sem pasta" alone would
+  // just be a redundant heading over the whole list.
+  const byFolder = new Map<number, ChannelOption[]>();
+  const unfoldered: ChannelOption[] = [];
+  for (const c of channels) {
+    if (c.folder_id != null && folders.some((f) => f.id === c.folder_id)) {
+      if (!byFolder.has(c.folder_id)) byFolder.set(c.folder_id, []);
+      byFolder.get(c.folder_id)!.push(c);
+    } else {
+      unfoldered.push(c);
+    }
+  }
+  const groups = [
+    ...folders
+      .filter((f) => byFolder.has(f.id))
+      .map((f) => ({ key: String(f.id), title: f.name, members: byFolder.get(f.id)! })),
+    ...(unfoldered.length > 0 ? [{ key: "none", title: "Sem pasta", members: unfoldered }] : []),
+  ];
+  const grouped = groups.length > 1;
+
+  // Starts collapsed — picking a folder to open is the point, not scrolling past every
+  // account in every folder to find the one you want. See the matching comment in
+  // channel-surface-picker.tsx.
+  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(
+    () => new Set(groups.map((g) => g.key))
+  );
+  function toggleCollapsed(key: string) {
+    setCollapsedFolders((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   async function onFile(files: FileList | null) {
     const file = files?.[0];
@@ -183,53 +232,64 @@ export function StoryComposer({
           Para onde vai
         </h2>
 
-        {foldersWithMembers.length > 0 ? (
-          <div className="mb-3 flex flex-wrap gap-1.5">
-            {foldersWithMembers.map(({ folder, members }) => {
-              const ids = members.map((m) => m.id);
-              const active = ids.every((id) => selected.has(id));
+        {grouped ? (
+          <div className="space-y-2">
+            {groups.map((g) => {
+              const isCollapsed = collapsedFolders.has(g.key);
+              const ids = g.members.map((m) => m.id);
+              const selectedCount = ids.filter((id) => selected.has(id)).length;
+              const allSelected = selectedCount === ids.length;
               return (
-                <button
-                  key={folder.id}
-                  onClick={() => toggleFolder(ids)}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
-                    active
-                      ? "bg-brand-weak text-brand-strong"
-                      : "bg-surface-sunken text-muted hover:text-ink-soft"
-                  }`}
-                >
-                  📁 {folder.name} · {ids.length}
-                </button>
+                <div key={g.key} className="rounded-lg border border-border">
+                  <div className="flex items-center gap-2.5 px-3 py-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleCollapsed(g.key)}
+                      aria-expanded={!isCollapsed}
+                      title={isCollapsed ? "Clique para expandir" : "Clique para recolher"}
+                      className="group/toggle flex min-w-0 flex-1 items-center gap-2.5 text-left"
+                    >
+                      <span
+                        aria-hidden
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border-strong bg-surface text-ink-soft transition-transform group-hover/toggle:border-brand group-hover/toggle:text-brand ${isCollapsed ? "-rotate-90" : ""}`}
+                      >
+                        <ChevronGlyph />
+                      </span>
+                      <span className="truncate text-sm font-medium text-ink group-hover/toggle:text-brand-strong">
+                        {g.title}
+                      </span>
+                      <span className="data shrink-0 text-[11px] text-faint">
+                        {selectedCount > 0 ? `${selectedCount}/${ids.length}` : ids.length}
+                      </span>
+                    </button>
+                    {ids.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleFolder(ids)}
+                        className="shrink-0 text-xs font-medium text-brand-strong hover:underline"
+                      >
+                        {allSelected ? "Limpar" : "Selecionar todas"}
+                      </button>
+                    ) : null}
+                  </div>
+                  {isCollapsed ? null : (
+                    <ul className="space-y-1.5 border-t border-border p-3">
+                      {g.members.map((c) => (
+                        <ChannelRow key={c.id} channel={c} checked={selected.has(c.id)} onToggle={toggleChannel} />
+                      ))}
+                    </ul>
+                  )}
+                </div>
               );
             })}
           </div>
-        ) : null}
-
-        <ul className="space-y-1.5">
-          {channels.map((c) => (
-            <li key={c.id}>
-              <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-border bg-surface px-3 py-2 hover:bg-surface-sunken/40">
-                <input
-                  type="checkbox"
-                  checked={selected.has(c.id)}
-                  onChange={() => toggleChannel(c.id)}
-                  className="accent-[var(--color-brand)]"
-                />
-                <ChannelAvatar
-                  id={c.id}
-                  name={c.account_name}
-                  colorHue={c.color_hue}
-                  avatarPath={c.avatar_path}
-                  size={22}
-                />
-                <span className="text-sm text-ink">{c.account_name}</span>
-                <span className="text-[10px] uppercase tracking-wide text-faint">
-                  {platformBadge(c.platform)}
-                </span>
-              </label>
-            </li>
-          ))}
-        </ul>
+        ) : (
+          <ul className="space-y-1.5">
+            {channels.map((c) => (
+              <ChannelRow key={c.id} channel={c} checked={selected.has(c.id)} onToggle={toggleChannel} />
+            ))}
+          </ul>
+        )}
       </section>
 
       {error ? <p className="text-sm text-status-failed">{error}</p> : null}
@@ -242,5 +302,39 @@ export function StoryComposer({
         {posting ? "Postando…" : "Postar agora"}
       </button>
     </div>
+  );
+}
+
+function ChannelRow({
+  channel: c,
+  checked,
+  onToggle,
+}: {
+  channel: ChannelOption;
+  checked: boolean;
+  onToggle: (id: number) => void;
+}) {
+  return (
+    <li>
+      <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-border bg-surface px-3 py-2 hover:bg-surface-sunken/40">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={() => onToggle(c.id)}
+          className="accent-[var(--color-brand)]"
+        />
+        <ChannelAvatar
+          id={c.id}
+          name={c.account_name}
+          colorHue={c.color_hue}
+          avatarPath={c.avatar_path}
+          size={22}
+        />
+        <span className="text-sm text-ink">{c.account_name}</span>
+        <span className="text-[10px] uppercase tracking-wide text-faint">
+          {platformBadge(c.platform)}
+        </span>
+      </label>
+    </li>
   );
 }
