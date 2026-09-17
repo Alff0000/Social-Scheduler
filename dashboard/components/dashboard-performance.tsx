@@ -83,6 +83,7 @@ export function DashboardPerformance({
   activeChannelCount,
   postedTodayCount,
   scheduledCount,
+  lostChannelsCount,
 }: {
   preset: RangePreset;
   range: DateRange;
@@ -100,6 +101,10 @@ export function DashboardPerformance({
    *  not capped at the queue's own 200-row display limit. See getScheduledCount's own
    *  comment for why this can't just be read off the page's already-fetched pubs list. */
   scheduledCount: number;
+  /** Channels whose connection broke (lost_at) within `range` — moves with the SAME
+   *  Hoje/Últimos 7 dias/Este mês/Personalizado filter as the KPIs below, unlike the three
+   *  tiles above which are fixed to "today"/"right now." See getLostChannelsCount. */
+  lostChannelsCount: number;
 }) {
   const kpis = buildRangeKpis(currentRows, previousRows, KPI_METRICS, range);
   const dense = denseRange(currentRows, range);
@@ -142,21 +147,17 @@ export function DashboardPerformance({
           <p className="data mt-1 text-2xl font-semibold text-ink">{exact(scheduledCount)}</p>
           <p className="mt-0.5 text-[10px] text-faint">Ainda a postar</p>
         </div>
-        {kpis.slice(0, 1).map((k) => (
-          <KpiTile
-            key={k.key}
-            label={k.label}
-            value={k.value}
-            delta={k.delta}
-            daysWithData={k.daysWithData}
-            windowDays={k.windowDays}
-            points={pointsFor(k.key)}
-          />
-        ))}
+        <div className="rounded-card border border-border bg-surface p-4">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted">
+            Contas perdidas
+          </p>
+          <p className="data mt-1 text-2xl font-semibold text-ink">{exact(lostChannelsCount)}</p>
+          <p className="mt-0.5 text-[10px] text-faint">{rangeLabel(preset, range)}</p>
+        </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {kpis.slice(1).map((k) => (
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {kpis.map((k) => (
           <KpiTile
             key={k.key}
             label={k.label}

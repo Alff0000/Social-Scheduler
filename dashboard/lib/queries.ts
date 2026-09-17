@@ -3810,6 +3810,24 @@ export function getPostedTodayCount(ownerId: number | null, today: string): numb
   return row.n;
 }
 
+/** The Overview page's "contas perdidas" count — channels whose lost_at (migration 0038,
+ *  set the first time a publish attempt hits an unrecoverable auth error) falls inside the
+ *  given DateRange, i.e. "how many connections broke in this period" rather than "how many
+ *  are broken right now" (that second number is always visible per-account as the
+ *  Conexão perdida banner on /channels, so it doesn't need its own always-on tile here).
+ *  Shares the exact same DateRange the Desempenho filter above it already resolves, so
+ *  picking Hoje/Últimos 7 dias/Este mês/Personalizado moves both at once. */
+export function getLostChannelsCount(range: DateRange, ownerId: number | null): number {
+  const ownerClause = ownerId === null ? "" : "AND owner_user_id = ?";
+  const row = getDb()
+    .prepare(
+      `SELECT COUNT(*) AS n FROM channels
+       WHERE lost_at IS NOT NULL AND date(lost_at) >= ? AND date(lost_at) <= ? ${ownerClause}`,
+    )
+    .get(range.start, range.end, ...(ownerId === null ? [] : [ownerId])) as { n: number };
+  return row.n;
+}
+
 /** The Overview page's "agendados" count — every publication still scheduled or awaiting
  *  approval, install-wide (or one owner's, for a non-admin), with no LIMIT. Deliberately
  *  a plain COUNT rather than reading it off getPublicationsOverview()'s capped row list:

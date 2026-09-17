@@ -7,6 +7,7 @@ import {
   getPublicationsByHour,
   getPublicationsOverview,
   getScheduledCount,
+  getLostChannelsCount,
   getTopChannelsByReach,
   getWorkerStatus,
   listPeriods,
@@ -84,6 +85,7 @@ export default async function OverviewPage({
             activeChannelCount={channels.length}
             postedTodayCount={getPostedTodayCount(ownerId, todayIso(config.defaultTimezone))}
             scheduledCount={getScheduledCount(ownerId)}
+            lostChannelsCount={getLostChannelsCount(range, ownerId)}
           />
         ) : null}
         {channels.length > 0 ? (
