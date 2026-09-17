@@ -3810,6 +3810,25 @@ export function getPostedTodayCount(ownerId: number | null, today: string): numb
   return row.n;
 }
 
+/** The Overview page's "agendados" count — every publication still scheduled or awaiting
+ *  approval, install-wide (or one owner's, for a non-admin), with no LIMIT. Deliberately
+ *  a plain COUNT rather than reading it off getPublicationsOverview()'s capped row list:
+ *  that list caps at 200 for the on-screen queue, which would silently undercount this
+ *  number the moment a bulk schedule pushed the real total past it. Excludes 'failed'
+ *  (already attempted — needs a fix or retry, not "yet to post") and the brief in-flight
+ *  'publishing' state, matching the everyday sense of "still scheduled to go out." */
+export function getScheduledCount(ownerId: number | null): number {
+  const ownerClause = ownerId === null ? "" : "AND p.owner_user_id = ?";
+  const row = getDb()
+    .prepare(
+      `SELECT COUNT(*) AS n FROM publications pub
+       JOIN posts p ON p.id = pub.post_id
+       WHERE pub.status IN ('scheduled', 'pending_approval') ${ownerClause}`,
+    )
+    .get(...(ownerId === null ? [] : [ownerId])) as { n: number };
+  return row.n;
+}
+
 export interface GlobalSearchResults {
   posts: { id: number; caption: string | null; post_type: string; status: string }[];
   channels: {

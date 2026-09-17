@@ -82,6 +82,7 @@ export function DashboardPerformance({
   postsByHour,
   activeChannelCount,
   postedTodayCount,
+  scheduledCount,
 }: {
   preset: RangePreset;
   range: DateRange;
@@ -95,6 +96,10 @@ export function DashboardPerformance({
   postsByHour: { hour: number; count: number }[];
   activeChannelCount: number;
   postedTodayCount: number;
+  /** Every publication still scheduled or awaiting approval, install- (or owner-) wide —
+   *  not capped at the queue's own 200-row display limit. See getScheduledCount's own
+   *  comment for why this can't just be read off the page's already-fetched pubs list. */
+  scheduledCount: number;
 }) {
   const kpis = buildRangeKpis(currentRows, previousRows, KPI_METRICS, range);
   const dense = denseRange(currentRows, range);
@@ -130,7 +135,14 @@ export function DashboardPerformance({
           </p>
           <p className="data mt-1 text-2xl font-semibold text-ink">{exact(postedTodayCount)}</p>
         </div>
-        {kpis.slice(0, 2).map((k) => (
+        <div className="rounded-card border border-border bg-surface p-4">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted">
+            Agendados
+          </p>
+          <p className="data mt-1 text-2xl font-semibold text-ink">{exact(scheduledCount)}</p>
+          <p className="mt-0.5 text-[10px] text-faint">Ainda a postar</p>
+        </div>
+        {kpis.slice(0, 1).map((k) => (
           <KpiTile
             key={k.key}
             label={k.label}
@@ -143,8 +155,8 @@ export function DashboardPerformance({
         ))}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {kpis.slice(2).map((k) => (
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {kpis.slice(1).map((k) => (
           <KpiTile
             key={k.key}
             label={k.label}
