@@ -126,6 +126,12 @@ class FakeGraphClient:
         self.calls.append(("limit", ig_user_id))
         if "limit" in self.fail_on:
             raise RuntimeError("quota check boom")
+        # Same reasoning as create_image_container's own "auth_revoked" branch — a real
+        # OAuthException (code 190) here is what a token needing the owner to re-log-in
+        # to Instagram actually looks like at THIS specific call, distinct from a bare
+        # transient RuntimeError.
+        if "auth_revoked" in self.fail_on:
+            raise GraphAPIError("Error validating access token", code=190)
         return self.limit
 
     def create_image_container(self, ig_user_id, image_url, token,

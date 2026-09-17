@@ -162,6 +162,34 @@ def test_auth_revoked_does_not_overwrite_an_earlier_lost_at(conn, config, make_p
     assert channel["lost_at"] == EARLIER.isoformat(), "lost_at must stay the FIRST failure"
 
 
+def test_auth_revoked_during_the_quota_check_is_terminal_too(conn, config, make_publication):
+    # A production incident: several Instagram channels sat "Bloqueado" forever, retrying
+    # the SAME content_publishing_limit call every cycle, because that call's own
+    # except-block caught every error (including a real 190 OAuthException — the token
+    # needing the owner to log back into instagram.com) as a generic retryable failure.
+    # The publish-step's own is_auth_revoked handling (tested above) never ran, since the
+    # quota check happens BEFORE any container is ever created — so it never got a chance.
+    revoked = FakeGraphClient(fail_on=["auth_revoked"])
+    pub = make_publication(post_type="single", n_assets=1)
+
+    out = publish_one(conn, pub, config, revoked, dry_run=False, now=NOW)
+
+    # Exactly the quota check and nothing past it — proves this failed AT that step,
+    # never reaching (or needing to reach) container creation to detect the dead token.
+    assert [c[0] for c in revoked.calls] == ["limit"]
+    assert out.result == "failed"
+    row = _reload(conn, pub["id"])
+    assert row["status"] == "failed", "must fail terminally, not sit retrying forever"
+    assert row["attempt_count"] == 1
+    assert "Error validating access token" in row["last_error"]
+
+    channel = conn.execute(
+        "SELECT lost_at, lost_reason FROM channels WHERE id = ?", (pub["channel_id"],)
+    ).fetchone()
+    assert channel["lost_at"] == NOW.isoformat()
+    assert "Error validating access token" in channel["lost_reason"]
+
+
 def test_invalid_post_type_fails_terminally_without_retry(conn, config, fake_client, make_publication):
     # posts.post_type='story' is VESTIGIAL (see migration 0014's header): Stories are a
     # target SURFACE, not a content shape. The old enum value must stay dead rather than

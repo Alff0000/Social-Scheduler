@@ -1467,6 +1467,22 @@ def publish_one(
                 )
                 log(f"rate limit reached {usage}/{total}; deferring to {retry_at}")
                 return PublishOutcome("rate_limited", f"quota {usage}/{total}")
+        except GraphAPIError as exc:
+            if exc.is_auth_revoked:
+                # Same reasoning as the publish-step's own is_auth_revoked handling
+                # below: a dead token fails THIS exact quota check identically on every
+                # retry, so treat it the same way here too — mark the channel lost
+                # once, and stop retrying, instead of leaving every send on this
+                # channel stuck "Bloqueado" forever with no visible way out and the
+                # channel never showing as lost on /channels.
+                if not channel["lost_at"]:
+                    db.update_channel(
+                        conn, channel["id"], lost_at=_iso(now), lost_reason=redact(str(exc)),
+                    )
+                log(f"channel auth revoked (quota check): {exc}")
+                return _mark_failure(conn, pub, config, now, str(exc), terminal=True)
+            log(f"quota check failed: {exc}")
+            return _mark_failure(conn, pub, config, now, f"quota check: {exc}", terminal=False)
         except Exception as exc:  # noqa: BLE001 — a quota-check failure is retryable
             log(f"quota check failed: {exc}")
             return _mark_failure(conn, pub, config, now, f"quota check: {exc}", terminal=False)
