@@ -376,6 +376,30 @@ export function PublicationQueue({
     await runBulk("cancel");
   }
 
+  async function bulkDelete() {
+    const count = selectedIds.size;
+    if (count === 0) return;
+    if (
+      !window.confirm(
+        `Excluir ${count} envio${count === 1 ? "" : "s"} selecionado${count === 1 ? "" : "s"}? Só um envio que ainda não foi publicado pode ser excluído — o resto fica como está. Essa ação não pode ser desfeita.`,
+      )
+    ) {
+      return;
+    }
+    const ids = [...selectedIds];
+    setBulkBusy(true);
+    // DELETE, not the /:id/:action POST shape runBulk uses — deletePublication's own
+    // guard (lib/queries.ts) already refuses a posted send, so a row this doesn't apply
+    // to just 404/409s and is left alone, same "each id stands on its own" reasoning as
+    // every other bulk action here.
+    await Promise.all(
+      ids.map((id) => fetch(`/api/publications/${id}`, { method: "DELETE" }).catch(() => null)),
+    );
+    setBulkBusy(false);
+    setSelectedIds(new Set());
+    startTransition(() => router.refresh());
+  }
+
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -467,6 +491,14 @@ export function PublicationQueue({
             className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted hover:border-status-failed hover:text-status-failed disabled:opacity-50"
           >
             Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={bulkDelete}
+            disabled={bulkBusy}
+            className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted hover:border-status-failed hover:text-status-failed disabled:opacity-50"
+          >
+            Excluir
           </button>
           <button
             type="button"
