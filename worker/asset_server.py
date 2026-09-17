@@ -15,10 +15,31 @@ Stdlib only (http.server + threading) so we add no dependency.
 
 from __future__ import annotations
 
+import shutil
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlparse
+
+# Streamed in fixed-size chunks rather than read_bytes()'d whole — a single request used to
+# load the ENTIRE file into memory before writing a byte of the response. Harmless for a
+# small image, but this server is a ThreadingHTTPServer with no cap on concurrent requests,
+# and Meta fetches a scheduled video's container asynchronously on its own schedule: posting
+# one video to many accounts at once can put several concurrent GETs for large video files
+# in flight together, each holding its own full copy in RAM at the same time. Reported as
+# the whole machine locking up during a bulk-account video post — streaming keeps peak
+# memory per request to this chunk size regardless of file size or concurrency.
+_CHUNK_BYTES = 256 * 1024
+
+# ThreadingHTTPServer spawns one thread per connection with no limit of its own. Streaming
+# (above) fixes the memory side of a many-accounts video post, but disk read + upload
+# bandwidth are still shared real resources — letting, say, 27 large video reads run flat
+# out at once is still enough contention to make an ordinary home machine feel locked up.
+# A small semaphore queues the rest to run right after, rather than all fighting for disk
+# and network at the same instant; this is not a rate limit on WHICH requests succeed, only
+# on how many run concurrently at once.
+_MAX_CONCURRENT_SERVES = 4
+_serve_slots = threading.Semaphore(_MAX_CONCURRENT_SERVES)
 
 _CONTENT_TYPE = {
     ".jpg": "image/jpeg",
@@ -61,16 +82,27 @@ class _Handler(BaseHTTPRequestHandler):
             self.send_error(404, "Not found")
             return
         try:
-            data = target.read_bytes()
+            size = target.stat().st_size
+            fh = target.open("rb")
         except OSError:
             self.send_error(404, "Not found")
             return
-        self.send_response(200)
-        self.send_header("Content-Type", _CONTENT_TYPE.get(target.suffix.lower(), "application/octet-stream"))
-        self.send_header("Content-Length", str(len(data)))
-        self.send_header("Cache-Control", "no-store")
-        self.end_headers()
-        self.wfile.write(data)
+        with _serve_slots:
+            try:
+                self.send_response(200)
+                self.send_header("Content-Type", _CONTENT_TYPE.get(target.suffix.lower(), "application/octet-stream"))
+                self.send_header("Content-Length", str(size))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                shutil.copyfileobj(fh, self.wfile, length=_CHUNK_BYTES)
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                # The fetcher (Meta, or anything else) went away mid-stream. Headers are
+                # already written at this point, so there is no error response left to
+                # send — just stop, the same as any other server would on a dropped
+                # connection.
+                pass
+            finally:
+                fh.close()
 
     def log_message(self, *args) -> None:  # silence per-request stderr logging
         pass

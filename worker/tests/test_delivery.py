@@ -8,6 +8,7 @@ functions so they're testable, and the asset server is exercised over real local
 from __future__ import annotations
 
 import dataclasses
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -57,6 +58,33 @@ def test_asset_server_serves_bytes_and_blocks_traversal(tmp_path):
         assert exc.value.code == 404
     finally:
         server.stop()
+
+
+def test_asset_server_streams_a_large_file_byte_exact(tmp_path):
+    # Bigger than asset_server's own streaming chunk size (256 KiB), so this only passes
+    # if copyfileobj is actually looping over multiple chunks correctly, not just
+    # happening to work because the whole thing fit in one read like read_bytes() did.
+    payload = bytes((i % 256 for i in range(1_000_000)))
+    (tmp_path / "big.mp4").write_bytes(payload)
+    server = AssetServer(tmp_path, port=0).start()
+    try:
+        base = f"http://127.0.0.1:{server.port}"
+        with urllib.request.urlopen(f"{base}/big.mp4") as resp:
+            assert resp.status == 200
+            assert resp.headers["Content-Length"] == str(len(payload))
+            assert resp.read() == payload
+    finally:
+        server.stop()
+
+
+def test_asset_server_caps_concurrent_serves():
+    # Regression guard for the fix itself, not a timing test (real concurrent-overlap
+    # timing in a unit test is inherently flaky) — this only pins that the safeguard
+    # exists at all: a small, positive cap, not accidentally removed or set to unlimited.
+    from worker.asset_server import _MAX_CONCURRENT_SERVES, _serve_slots
+
+    assert 0 < _MAX_CONCURRENT_SERVES <= 8
+    assert isinstance(_serve_slots, threading.Semaphore)
 
 
 def test_asset_server_serves_mov_as_quicktime(tmp_path):
