@@ -103,7 +103,8 @@ export function humanBytes(n: number | null): string {
   if (!n && n !== 0) return "—";
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(n / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
 const MONTHS_SHORT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
