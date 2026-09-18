@@ -373,6 +373,38 @@ export function deleteFolder(id: number): boolean {
   return info.changes > 0;
 }
 
+/** Thrown when a rename would collide with a folder this same owner already has —
+ *  folders.name is UNIQUE(name, owner_user_id) (migration 0037), so the bare UPDATE would
+ *  otherwise surface as a raw SQLite constraint error rather than something the page can
+ *  explain to the owner. */
+export class DuplicateFolderNameError extends Error {
+  constructor(name: string) {
+    super(`Já existe uma pasta chamada "${name}".`);
+    this.name = "DuplicateFolderNameError";
+  }
+}
+
+/** Rename a folder in place. The id never changes, so every channel already in it stays
+ *  in it — same non-destructive-typo-fix reasoning as renameTopicTag. Returns the updated
+ *  row, or null if the folder is gone. */
+export function renameFolder(id: number, name: string): Folder | null {
+  const db = getDb();
+  const clean = name.trim();
+  if (!clean) throw new Error("O nome da pasta não pode ficar vazio.");
+
+  const folder = getFolder(id);
+  if (!folder) return null;
+
+  // Excludes the row itself: renaming "clientes" -> "Clientes" is a legitimate case fix.
+  const clash = db
+    .prepare("SELECT id FROM folders WHERE name = ? AND id != ? AND owner_user_id IS ?")
+    .get(clean, id, folder.owner_user_id);
+  if (clash) throw new DuplicateFolderNameError(clean);
+
+  db.prepare("UPDATE folders SET name = ? WHERE id = ?").run(clean, id);
+  return getFolder(id) ?? null;
+}
+
 /** Move a channel into a folder, or out of every folder when `folderId` is null. */
 export function setChannelFolder(channelId: number, folderId: number | null): void {
   getDb().prepare("UPDATE channels SET folder_id = ? WHERE id = ?").run(folderId, channelId);

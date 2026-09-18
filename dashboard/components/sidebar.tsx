@@ -60,6 +60,7 @@ const NAV_GROUPS = [
     group: "Configuração",
     items: [
       { href: "/channels", label: "Contas", hint: "Contas e configuração" },
+      { href: "/folders", label: "Minhas Pastas", hint: "Criar, renomear e mover contas entre pastas" },
       { href: "/accounts/stock", label: "Estoque", hint: "Contas do Instagram em lotes" },
       { href: "/settings/meta-apps", label: "Apps Meta", hint: "Apps cadastrados no Meta for Developers" },
       { href: "/settings/integration", label: "Integração", hint: "Links de OAuth por app Meta" },
