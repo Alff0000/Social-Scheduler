@@ -146,10 +146,23 @@ export default async function ChannelsPage({
             {channels.map((c) => (
               <div
                 key={c.id}
-                className={`rounded-card border bg-surface p-5 ${
-                  c.is_active ? "border-border" : "border-border opacity-60"
+                className={`overflow-hidden rounded-card border bg-surface ${
+                  c.lost_at
+                    ? "border-status-failed"
+                    : c.is_active
+                      ? "border-border"
+                      : "border-border opacity-60"
                 }`}
               >
+                {/* A full-width strip, not just the small reason box further down — the
+                    point is to be readable while scanning the whole grid at a glance,
+                    not only once you're already reading one card closely. */}
+                {c.lost_at ? (
+                  <div className="bg-status-failed px-5 py-2 text-xs font-semibold uppercase tracking-wide text-white">
+                    ⚠ Conexão perdida ou bloqueada — {timeAgo(c.lost_at)}
+                  </div>
+                ) : null}
+                <div className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
                     <ChannelAvatar
@@ -182,8 +195,7 @@ export default async function ChannelsPage({
 
                 {c.lost_at ? (
                   <p className="mt-3 rounded-lg border border-status-failed/40 bg-status-failed/10 px-3 py-2 text-xs text-status-failed">
-                    <span className="font-medium">Conexão perdida</span> ({timeAgo(c.lost_at)}) —{" "}
-                    {c.lost_reason ?? "token de acesso inválido ou revogado."}
+                    {c.lost_reason ?? "Token de acesso inválido ou revogado."}
                   </p>
                 ) : null}
 
@@ -325,6 +337,7 @@ export default async function ChannelsPage({
                 )}
 
                 <ChannelDeleteButton channelId={c.id} accountName={c.account_name} />
+                </div>
               </div>
             ))}
           </ChannelSearchGrid>
