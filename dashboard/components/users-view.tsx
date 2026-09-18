@@ -2,106 +2,13 @@
 
 import { useState, type FormEvent } from "react";
 import { PageHeader } from "@/components/ui";
-import { humanBytes } from "@/lib/format";
 import type { UserRow } from "@/lib/users";
-
-type UserWithStorage = UserRow & { storage_bytes: number };
-
-function StorageLimitEditor({
-  user,
-  onSaved,
-}: {
-  user: UserWithStorage;
-  onSaved: (limitMb: number | null) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(
-    user.storage_limit_mb != null ? String(user.storage_limit_mb) : ""
-  );
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const usageMb = user.storage_bytes / (1024 * 1024);
-  const overLimit = user.storage_limit_mb != null && usageMb > user.storage_limit_mb;
-
-  async function save() {
-    const trimmed = draft.trim();
-    const limitMb = trimmed === "" ? null : Number(trimmed);
-    if (limitMb !== null && (!Number.isFinite(limitMb) || limitMb <= 0)) {
-      setError("Digite um número maior que zero, ou deixe vazio para sem limite.");
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    const res = await fetch(`/api/users/${user.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ storage_limit_mb: limitMb }),
-    });
-    setBusy(false);
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Não foi possível salvar o limite.");
-      return;
-    }
-    onSaved(limitMb);
-    setEditing(false);
-  }
-
-  if (editing) {
-    return (
-      <div className="flex items-center gap-1.5">
-        <input
-          autoFocus
-          type="number"
-          min={1}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") save();
-            if (e.key === "Escape") setEditing(false);
-          }}
-          placeholder="Sem limite"
-          className="w-24 rounded-md border border-border bg-surface px-2 py-1 text-xs text-ink focus:border-brand"
-        />
-        <span className="text-[11px] text-faint">MB</span>
-        <button
-          onClick={save}
-          disabled={busy}
-          className="rounded-md bg-brand px-2 py-1 text-[11px] font-medium text-on-brand disabled:opacity-50"
-        >
-          {busy ? "Salvando…" : "Salvar"}
-        </button>
-        <button
-          onClick={() => setEditing(false)}
-          disabled={busy}
-          className="text-[11px] text-muted hover:text-ink"
-        >
-          Cancelar
-        </button>
-        {error ? <p className="text-[11px] text-status-failed">{error}</p> : null}
-      </div>
-    );
-  }
-
-  return (
-    <button
-      onClick={() => setEditing(true)}
-      className={`text-[12px] hover:underline ${overLimit ? "font-medium text-status-failed" : "text-muted"}`}
-      title="Clique para mudar o limite de armazenamento"
-    >
-      {humanBytes(user.storage_bytes)}
-      {user.storage_limit_mb != null ? ` de ${user.storage_limit_mb} MB` : " · sem limite"}
-      {overLimit ? " · acima do limite" : ""}
-    </button>
-  );
-}
 
 export function UsersView({
   initialUsers,
   currentUserId,
 }: {
-  initialUsers: UserWithStorage[];
+  initialUsers: UserRow[];
   currentUserId: number;
 }) {
   const [users, setUsers] = useState(initialUsers);
@@ -136,7 +43,7 @@ export function UsersView({
         setBusy(false);
         return;
       }
-      setUsers((prev) => [...prev, { ...data.user, storage_bytes: 0 }]);
+      setUsers((prev) => [...prev, data.user]);
       setEmail("");
       setPassword("");
       setIsAdmin(false);
@@ -252,14 +159,6 @@ export function UsersView({
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <StorageLimitEditor
-                  user={u}
-                  onSaved={(limitMb) =>
-                    setUsers((prev) =>
-                      prev.map((p) => (p.id === u.id ? { ...p, storage_limit_mb: limitMb } : p))
-                    )
-                  }
-                />
                 <span
                   className={
                     u.is_active

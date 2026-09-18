@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
-import { listUsersWithStorage } from "@/lib/users";
+import { listUsers } from "@/lib/users";
 import { UsersView } from "@/components/users-view";
 
 export default async function UsersPage() {
@@ -11,6 +11,6 @@ export default async function UsersPage() {
   if (!user.is_admin) {
     redirect("/");
   }
-  const users = listUsersWithStorage();
+  const users = listUsers();
   return <UsersView initialUsers={users} currentUserId={user.id} />;
 }
