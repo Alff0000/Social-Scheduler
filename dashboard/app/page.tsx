@@ -16,11 +16,9 @@ import {
 import { PageHeader } from "@/components/ui";
 import { NoChannelsYet, OverviewBody } from "@/components/overview-body";
 import { DashboardPerformance } from "@/components/dashboard-performance";
-import { DiskUsageBanner } from "@/components/disk-usage-banner";
 import { getSessionUser } from "@/lib/auth";
 import { parseRangeParams, previousPeriod, todayIso } from "@/lib/date-range";
 import { config } from "@/lib/config";
-import { getDiskUsage } from "@/lib/disk";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +34,6 @@ export default async function OverviewPage({
   const channels = getActiveChannels(ownerId);
   const pubs = getPublicationsOverview(200, ownerId);
   const worker = getWorkerStatus();
-  const diskUsage = getDiskUsage();
 
   const scheduledByChannel = new Map<number, number>();
   const nextByChannel = new Map<number, string>();
@@ -76,7 +73,6 @@ export default async function OverviewPage({
       />
 
       <div className="px-8 py-6 space-y-8">
-        {diskUsage ? <DiskUsageBanner usage={diskUsage} /> : null}
         {channels.length > 0 ? (
           <DashboardPerformance
             preset={preset}
