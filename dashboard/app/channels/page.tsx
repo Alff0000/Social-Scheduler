@@ -31,6 +31,7 @@ import { AutofillConfig } from "@/components/autofill-config";
 import { ChannelGroups } from "@/components/channel-groups";
 import { ChannelGroupSelect } from "@/components/channel-group-select";
 import { ChannelFolderSelect } from "@/components/channel-folder-select";
+import { ChannelDeleteButton } from "@/components/channel-delete-button";
 import { TestConnectionButton } from "@/components/test-connection-button";
 import { ChannelSearchGrid } from "@/components/channel-search-grid";
 import { tzAbbrev, timeAgo } from "@/lib/format";
@@ -322,6 +323,8 @@ export default async function ChannelsPage({
                     . A cadência dela é definida no grupo acima.
                   </p>
                 )}
+
+                <ChannelDeleteButton channelId={c.id} accountName={c.account_name} />
               </div>
             ))}
           </ChannelSearchGrid>

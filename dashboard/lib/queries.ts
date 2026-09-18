@@ -465,6 +465,18 @@ export function deleteChannelGroup(id: number): boolean {
   return info.changes > 0;
 }
 
+/** Delete a channel entirely — the credential, and everything that only exists BECAUSE
+ *  of it: every ON DELETE CASCADE FK naming channel_id (publications, post_targets,
+ *  remote_media, account_metrics, autofill_lanes, story/video-surface rows, insights_hub
+ *  rows — see migrations 0001, 0002, 0014, 0018, 0027, 0028) fires automatically, since
+ *  lib/db.ts turns PRAGMA foreign_keys ON for every connection. A post that was also
+ *  targeted at OTHER channels survives; only ITS row for this one channel goes with it.
+ *  Irreversible — the route calling this must get a real confirmation first. */
+export function deleteChannel(id: number): boolean {
+  const info = getDb().prepare("DELETE FROM channels WHERE id = ?").run(id);
+  return info.changes > 0;
+}
+
 type LaneOwner = { kind: "channel" | "group"; id: number };
 
 function ownerColumn(owner: LaneOwner): "channel_id" | "group_id" {

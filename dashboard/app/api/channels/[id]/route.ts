@@ -7,6 +7,7 @@ import {
   setChannelFolder,
   upsertAutofillLane,
   listFolders,
+  deleteChannel,
 } from "@/lib/queries";
 import { getSessionUser } from "@/lib/auth";
 import { isSurface } from "@/lib/story-fanout";
@@ -128,5 +129,25 @@ export async function PATCH(
   }
 
   updateChannel(channelId, fields);
+  return NextResponse.json({ ok: true });
+}
+
+/** Irreversible: every publication, target, metric and auto-fill setting this channel
+ *  ever had goes with it (ON DELETE CASCADE — see deleteChannel's own comment). The
+ *  confirmation happens client-side before this is ever called; the route itself trusts
+ *  that a DELETE request means exactly that. */
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const viewer = await getSessionUser();
+  if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
+  const { id } = await params;
+  const channelId = Number(id);
+  const channel = getChannel(channelId);
+  if (!channel || (!viewer.is_admin && channel.owner_user_id !== viewer.id)) {
+    return NextResponse.json({ error: "Conta não encontrada." }, { status: 404 });
+  }
+  deleteChannel(channelId);
   return NextResponse.json({ ok: true });
 }
