@@ -15,6 +15,7 @@ import { converterAdvice } from "@/lib/converter-advice";
 import { IMAGE_EXT_BY_MIME, resolveUploadMime } from "@/lib/upload-mime";
 import { anyDestinationAccepts, needsConformedDerivative, type AssetLike } from "@/lib/media-limits";
 import { getSessionUser } from "@/lib/auth";
+import { getUser, getUserStorageUsageBytes } from "@/lib/users";
 
 export const runtime = "nodejs";
 
@@ -64,6 +65,26 @@ export async function POST(req: NextRequest) {
       }
     }
     return NextResponse.json({ asset: existing, deduped: true, warnings });
+  }
+
+  // A genuinely NEW file — checked here, after dedup, so re-uploading something already
+  // on disk never counts against the quota twice. Admin-set per login (migration 0039);
+  // most logins have no row here at all (storage_limit_mb NULL), so this is a no-op for
+  // them. One login filling the whole shared volume breaks uploads AND deletes for every
+  // other login on the same install — this is what stops that before it happens again,
+  // rather than only ever discovering it after the disk is already full.
+  const limitOwner = getUser(viewer.id);
+  if (limitOwner?.storage_limit_mb != null) {
+    const usage = getUserStorageUsageBytes(viewer.id);
+    const limitBytes = limitOwner.storage_limit_mb * 1024 * 1024;
+    if (usage + buf.length > limitBytes) {
+      return NextResponse.json(
+        {
+          error: `Limite de armazenamento atingido (${limitOwner.storage_limit_mb} MB). Apague arquivos antigos na Biblioteca ou peça pro administrador aumentar seu limite.`,
+        },
+        { status: 413 }
+      );
+    }
   }
 
   // ---- Video: validate, converting when the spec allows it ----------------------
