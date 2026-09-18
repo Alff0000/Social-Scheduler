@@ -902,6 +902,48 @@ export function deleteAsset(id: number): "ok" | "not_found" | "in_use" {
   }
 }
 
+/**
+ * Delete an asset EVEN THOUGH a post still references it — reclaiming disk space from old,
+ * already-posted content is the whole reason this exists (see the Biblioteca's per-account
+ * storage usage). Unlinks the asset from every post that uses it (post_assets), and clears
+ * a direct story-slide reference (publications.asset_id, nullable exactly for this reason)
+ * — then deletes the row. A post's own record (caption, status, when it went out) is
+ * untouched; only its stored media disappears, same as if the file had simply gone missing.
+ *
+ * Refused only when a send is genuinely mid-flight (status = 'publishing') anywhere in the
+ * reference chain right now — pulling media out from under a request already in flight to
+ * Meta is not something a "delete an old file" action should ever risk, however rare the
+ * timing window is in practice.
+ */
+export function forceDeleteAsset(id: number): "ok" | "not_found" | "live_send" {
+  const db = getDb();
+  const row = db.prepare("SELECT id FROM assets WHERE id = ?").get(id);
+  if (!row) return "not_found";
+
+  const postIds = (
+    db.prepare("SELECT DISTINCT post_id FROM post_assets WHERE asset_id = ?").all(id) as {
+      post_id: number;
+    }[]
+  ).map((r) => r.post_id);
+  if (postIds.some(postHasPublishingPublication)) return "live_send";
+  const liveDirect = db
+    .prepare("SELECT 1 FROM publications WHERE asset_id = ? AND status = 'publishing'")
+    .get(id);
+  if (liveDirect) return "live_send";
+
+  const tx = db.transaction(() => {
+    db.prepare("DELETE FROM post_assets WHERE asset_id = ?").run(id);
+    db.prepare("UPDATE publications SET asset_id = NULL WHERE asset_id = ?").run(id);
+    // A video's chosen Reel-cover frame can point at THIS asset (assets.cover_asset_id,
+    // migration 0016) — clear that reference too, or the self-referencing FK refuses the
+    // delete outright for a cover-only asset (one with no post_assets row at all).
+    db.prepare("UPDATE assets SET cover_asset_id = NULL WHERE cover_asset_id = ?").run(id);
+    db.prepare("DELETE FROM assets WHERE id = ?").run(id);
+  });
+  tx();
+  return "ok";
+}
+
 /** A post's assets in carousel order (for the edit screen's read-only image strip). */
 export function getPostAssets(postId: number): Asset[] {
   return getDb()

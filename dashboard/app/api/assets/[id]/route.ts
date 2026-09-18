@@ -1,17 +1,21 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { assetFilePaths, unlinkInsideStore } from "@/lib/asset-files";
-import { deleteAsset, getAsset } from "@/lib/queries";
+import { deleteAsset, forceDeleteAsset, getAsset } from "@/lib/queries";
 import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
 export async function DELETE(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const viewer = await getSessionUser();
   if (!viewer) return NextResponse.json({ error: "Não conectado." }, { status: 401 });
   const { id } = await params;
+  // Reclaiming disk space from old, already-posted content is exactly why this exists —
+  // see forceDeleteAsset's own comment. Never the default: a plain delete still refuses
+  // an in-use file outright, same as always.
+  const force = req.nextUrl.searchParams.get("force") === "true";
 
   // Read the paths BEFORE the row disappears — after the DELETE there is nothing to
   // read them from.
@@ -20,7 +24,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Arquivo não encontrado." }, { status: 404 });
   }
 
-  const result = deleteAsset(Number(id));
+  const result = force ? forceDeleteAsset(Number(id)) : deleteAsset(Number(id));
   if (result === "not_found") {
     return NextResponse.json({ error: "Arquivo não encontrado." }, { status: 404 });
   }
@@ -28,7 +32,16 @@ export async function DELETE(
     return NextResponse.json(
       {
         error:
-          "Something still references this file, so it can't be deleted. If it's attached to a post, remove it from the post first.",
+          "Algo ainda referencia esse arquivo, então não pode ser excluído. Se está anexado a um post, remova-o do post primeiro.",
+      },
+      { status: 409 }
+    );
+  }
+  if (result === "live_send") {
+    return NextResponse.json(
+      {
+        error:
+          "Um envio com esse arquivo está publicando agora mesmo — espere terminar antes de excluir.",
       },
       { status: 409 }
     );

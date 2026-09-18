@@ -136,9 +136,14 @@ export function MediaManager({ assets }: { assets: AssetWithUsage[] }) {
     return sorted;
   }, [assets, search, sortOrder]);
 
+  // "Select all" stays scoped to the safe, no-consequence subset — a shortcut that could
+  // sweep in years of already-posted content in one click is not a shortcut, it's a trap.
+  // An in-use file can still be selected, just one at a time, and its own checkbox says
+  // plainly what selecting it will do.
   const selectableShown = shown.filter(isUnused);
   const allShownSelected =
     selectableShown.length > 0 && selectableShown.every((a) => selectedIds.has(a.id));
+  const selectedInUseCount = shown.filter((a) => selectedIds.has(a.id) && !isUnused(a)).length;
 
   function toggleSelected(id: number) {
     setSelectedIds((current) => {
@@ -164,18 +169,18 @@ export function MediaManager({ assets }: { assets: AssetWithUsage[] }) {
   async function bulkDelete() {
     const ids = [...selectedIds];
     if (ids.length === 0) return;
-    if (
-      !window.confirm(
-        `Excluir ${ids.length} arquivo${ids.length === 1 ? "" : "s"} sem uso? Removidos do disco permanentemente — isso não pode ser desfeito.`,
-      )
-    ) {
+    const warning =
+      selectedInUseCount > 0
+        ? `Excluir ${ids.length} arquivo${ids.length === 1 ? "" : "s"}? ${selectedInUseCount} ${selectedInUseCount === 1 ? "está" : "estão"} em uso em posts — ${selectedInUseCount === 1 ? "será removido" : "serão removidos"} desses posts também (o post em si continua existindo, só perde a mídia local). Removidos do disco permanentemente — isso não pode ser desfeito.`
+        : `Excluir ${ids.length} arquivo${ids.length === 1 ? "" : "s"} sem uso? Removidos do disco permanentemente — isso não pode ser desfeito.`;
+    if (!window.confirm(warning)) {
       return;
     }
     setBulkDeleting(true);
     setError(null);
     const results = await Promise.all(
       ids.map((id) =>
-        fetch(`/api/assets/${id}`, { method: "DELETE" })
+        fetch(`/api/assets/${id}?force=true`, { method: "DELETE" })
           .then((r) => r.ok)
           .catch(() => false),
       ),
@@ -320,6 +325,16 @@ export function MediaManager({ assets }: { assets: AssetWithUsage[] }) {
                 </p>
                 {inPost ? (
                   <div className="space-y-0.5 text-xs text-faint">
+                    <label className="flex items-center gap-1.5">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(a.id)}
+                        onChange={() => toggleSelected(a.id)}
+                        aria-label={`Selecionar ${name} (em uso)`}
+                      />
+                      Em uso — selecionar remove da{a.posts.length > 1 ? "s" : ""} post
+                      {a.posts.length > 1 ? "s" : ""} também
+                    </label>
                     {a.posts.length > 1 ? <p>Em {a.posts.length} posts:</p> : null}
                     {(isExpanded ? a.posts : a.posts.slice(0, INLINE_POSTS)).map((linked) => (
                       // EVERY post gets its own link. The old card linked one — whichever had
@@ -351,9 +366,18 @@ export function MediaManager({ assets }: { assets: AssetWithUsage[] }) {
                     {isCover ? <p>{coverAlso}</p> : null}
                   </div>
                 ) : isCover ? (
-                  // Referenced, but by a video rather than a post — so it gets a reason and
-                  // no Delete button, matching what deleteAsset() would actually allow.
-                  <p className="text-xs text-faint">{coverLabel}</p>
+                  // Referenced, but by a video's cover_asset_id rather than a post —
+                  // forceDeleteAsset clears that reference too, so this can still be
+                  // selected same as an in-use one; it just has a different reason to show.
+                  <label className="flex items-center gap-1.5 text-xs text-faint">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(a.id)}
+                      onChange={() => toggleSelected(a.id)}
+                      aria-label={`Selecionar ${name} (${coverLabel})`}
+                    />
+                    {coverLabel}
+                  </label>
                 ) : (
                   <div className="flex items-center justify-between gap-2">
                     <label className="flex items-center gap-1.5 text-xs text-faint">
