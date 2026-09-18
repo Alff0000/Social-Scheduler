@@ -148,6 +148,19 @@ export async function DELETE(
   if (!channel || (!viewer.is_admin && channel.owner_user_id !== viewer.id)) {
     return NextResponse.json({ error: "Conta não encontrada." }, { status: 404 });
   }
-  deleteChannel(channelId);
+  try {
+    deleteChannel(channelId);
+  } catch (err) {
+    // Every table naming channel_id has ON DELETE CASCADE (see deleteChannel's own
+    // comment), so this should never actually throw — but if some inconsistency slips
+    // through, surface the real reason rather than a bare 500 with no body, which the
+    // dashboard's own fetch call would otherwise show as a generic, undiagnosable
+    // "could not delete" with nothing to go on.
+    console.error(`Failed to delete channel ${channelId}:`, err);
+    return NextResponse.json(
+      { error: `Não foi possível excluir: ${err instanceof Error ? err.message : String(err)}` },
+      { status: 500 }
+    );
+  }
   return NextResponse.json({ ok: true });
 }
