@@ -62,6 +62,15 @@ def run_once(conn, config: Config, client, *, client_for=None, now=None, logger=
 
     now = now or datetime.now(timezone.utc)
 
+    # Disk cleanup goes BEFORE the heartbeat, on purpose. On a full volume the heartbeat's
+    # own write fails and aborts the whole cycle, so a cleanup placed anywhere after it would
+    # never get to run — the exact moment it is needed. It honours the kill switch like every
+    # other automation, and never raises (see prune.run_media_prune).
+    if not kill_switch_active():
+        from .prune import run_media_prune
+
+        run_media_prune(conn, config, now, logger=logger)
+
     # Liveness first — the worker is "alive" whenever it polls, even if the kill switch is on
     # (alive != publishing). The dashboard reads this to know a queued refresh will be picked up.
     db.write_heartbeat(conn, now.isoformat())

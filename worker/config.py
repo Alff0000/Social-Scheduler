@@ -38,6 +38,14 @@ def _as_bool(value: str | None, default: bool = False) -> bool:
     return value.strip().lower() in ("1", "true", "yes", "on")
 
 
+def _non_negative_int(value: str | None) -> int:
+    """A blank, missing or garbage value is 0 (off) — never an exception at startup."""
+    try:
+        return max(0, int((value or "0").strip()))
+    except ValueError:
+        return 0
+
+
 def load_env(override: bool = False) -> None:
     """Load KEY=VALUE pairs from the repo-root .env into os.environ.
 
@@ -233,6 +241,11 @@ class Config:
     # worker/variants.py). False here so direct Config(...) constructions in tests keep
     # publishing the untouched file; from_env() turns it ON unless VIDEO_VARIANTS=0.
     video_variants: bool = False
+    # Delete a post's media this many days after its last real publish, to keep the volume
+    # from filling (see worker/prune.py). 0 = never delete anything, and that is the default
+    # everywhere: deleting the owner's files is something they turn on, not something that
+    # happens to them.
+    media_prune_days: int = 0
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -326,4 +339,5 @@ class Config:
             tod_afternoon=os.environ.get("TOD_AFTERNOON", "13:00"),
             tod_evening=os.environ.get("TOD_EVENING", "18:00"),
             video_variants=_as_bool(os.environ.get("VIDEO_VARIANTS"), default=True),
+            media_prune_days=_non_negative_int(os.environ.get("MEDIA_PRUNE_DAYS")),
         )
