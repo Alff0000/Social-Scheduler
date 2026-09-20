@@ -22,6 +22,7 @@ from pathlib import Path
 import requests
 
 from . import db, media_limits
+from . import variants as variant_files
 from .caption_length import caption_length
 from .clients import PLATFORM_CAPS, SUPPORTED_PLATFORMS, PlatformCaps, UnknownPlatform
 from .config import Config
@@ -1360,7 +1361,84 @@ def _mark_failure(conn, pub, config, now, error: str, terminal: bool) -> Publish
     return PublishOutcome("retry_scheduled", f"{error} (retry at {retry_at})")
 
 
-def publish_one(
+_VARIANT_PLATFORMS = ("instagram", "facebook")
+_FFMPEG_CACHE: dict = {}
+
+
+def _find_ffmpeg() -> str | None:
+    """The ffmpeg this install uses, looked up once (verifying it runs a subprocess)."""
+    if "path" not in _FFMPEG_CACHE:
+        from . import ffmpeg_setup
+
+        found = ffmpeg_setup.find_existing(ffmpeg_setup.repo_root())
+        _FFMPEG_CACHE["path"] = str(found) if found else None
+    return _FFMPEG_CACHE["path"]
+
+
+def _apply_video_variant(plan, assets, config, asset_base_url, log) -> Path | None:
+    """Point this send at its own metadata-varied copy of the video (worker/variants.py).
+
+    Returns the temp file so the caller can delete it once the send is over, or None when
+    the original is being sent. EVERY failure path returns None: a variant is an extra,
+    and failing or retrying a post over it would be worse than the identical-file
+    behaviour it replaces.
+
+    Only for URL-fetched video on Meta platforms. Where an asset carries an external
+    public_url, the variant is served from PUBLIC_ASSET_BASE_URL (the same host that
+    already serves it) and is cut from that exact file, so it is what would have been sent.
+    """
+    if not getattr(config, "video_variants", False):
+        return None
+    if plan["platform"] not in _VARIANT_PLATFORMS or plan["media_kind"] != "video":
+        return None
+    if plan["surface"] in ("story", "cover"):
+        return None
+    if len(assets) != 1 or len(plan["asset_urls"]) != 1:
+        return None
+    asset = assets[0]
+    external = asset["public_url"]
+    if external:
+        base = (config.public_asset_base_url or "").rstrip("/")
+        if not base or not external.startswith(base + "/"):
+            return None
+        rel = external[len(base) + 1:]
+    else:
+        if not asset_base_url:
+            return None
+        base = asset_base_url.rstrip("/")
+        caps = PLATFORM_CAPS[plan["platform"]]
+        rel = _resolve_rel(asset, plan["surface"], _needs_conformed(caps, plan["surface"], "video"))
+    if not rel or Path(rel).is_absolute() or ".." in Path(rel).parts:
+        return None
+    src = config.asset_storage_dir / rel
+    ffmpeg = _find_ffmpeg()
+    if not ffmpeg or not src.is_file():
+        log("video variant skipped: no ffmpeg or source file here; sending the original")
+        return None
+    variants_dir = config.asset_storage_dir / variant_files.VARIANTS_DIRNAME
+    variant_files.sweep_stale(variants_dir)
+    made = variant_files.make_variant(src, variants_dir, ffmpeg)
+    if made is None:
+        log("video variant failed; sending the original")
+        return None
+    plan["asset_urls"] = [f"{base}/{variant_files.VARIANTS_DIRNAME}/{made.name}"]
+    log("sending this account its own metadata-varied copy of the video")
+    return made
+
+
+def publish_one(conn, pub, config: Config, client, **kwargs) -> PublishOutcome:
+    """Publish one row. The real work is _publish_one_core; this only guarantees that any
+    per-send video variant it made is deleted however the send ends (posted, failed,
+    retry, exception) — a leaked copy of a video would eat a disk that is already small."""
+    made: list[Path] = []
+    try:
+        return _publish_one_core(conn, pub, config, client, _made_variants=made, **kwargs)
+    finally:
+        for path in made:
+            variant_files.discard(path)
+
+
+def _publish_one_core(
     conn,
     pub,
     config: Config,
@@ -1379,6 +1457,7 @@ def publish_one(
     # same-default parameter; main()'s daemon loop and --once mode are the two real
     # callers that opt in by passing requests.get.
     verify_url_fn=None,
+    _made_variants: list | None = None,
 ) -> PublishOutcome:
     now = now or _utcnow()
 
@@ -1486,6 +1565,15 @@ def publish_one(
         except Exception as exc:  # noqa: BLE001 — a quota-check failure is retryable
             log(f"quota check failed: {exc}")
             return _mark_failure(conn, pub, config, now, f"quota check: {exc}", terminal=False)
+
+    # 3a. Per-account video variant. AFTER the quota gate so a deferred send never writes a
+    #     file, and BEFORE 3b so the reachability check tests the URL Meta will really get.
+    #     Only when the caller (publish_one) gave us somewhere to record the file, so it
+    #     always gets deleted.
+    if _made_variants is not None:
+        variant = _apply_video_variant(plan, assets, config, asset_base_url, log)
+        if variant is not None:
+            _made_variants.append(variant)
 
     # 3b. Confirm every asset URL Meta is about to be handed actually serves real media
     #     bytes — see _verify_asset_url's docstring for why this exists (a broken tunnel

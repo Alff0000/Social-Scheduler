@@ -229,6 +229,10 @@ class Config:
     tod_morning: str = "09:00"
     tod_afternoon: str = "13:00"
     tod_evening: str = "18:00"
+    # Give every account its own copy of a video with different container metadata (see
+    # worker/variants.py). False here so direct Config(...) constructions in tests keep
+    # publishing the untouched file; from_env() turns it ON unless VIDEO_VARIANTS=0.
+    video_variants: bool = False
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -321,4 +325,5 @@ class Config:
             tod_morning=os.environ.get("TOD_MORNING", "09:00"),
             tod_afternoon=os.environ.get("TOD_AFTERNOON", "13:00"),
             tod_evening=os.environ.get("TOD_EVENING", "18:00"),
+            video_variants=_as_bool(os.environ.get("VIDEO_VARIANTS"), default=True),
         )
