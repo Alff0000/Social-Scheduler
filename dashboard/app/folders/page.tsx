@@ -1,4 +1,4 @@
-import { getChannels, listFolders } from "@/lib/queries";
+import { getChannels, getRemovedChannelCounts, listFolders } from "@/lib/queries";
 import { PageHeader } from "@/components/ui";
 import { FolderManager } from "@/components/folder-manager";
 import { getSessionUser } from "@/lib/auth";
@@ -10,6 +10,12 @@ export default async function FoldersPage() {
   const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
   const folders = listFolders(ownerId);
   const channels = getChannels(ownerId);
+  const lostByFolder = Object.fromEntries(
+    getRemovedChannelCounts(ownerId).map((c) => [
+      c.folder_id === null ? "none" : String(c.folder_id),
+      c.count,
+    ]),
+  );
 
   return (
     <div>
@@ -20,6 +26,7 @@ export default async function FoldersPage() {
       <div className="px-8 py-6">
         <FolderManager
           folders={folders.map((f) => ({ id: f.id, name: f.name }))}
+          lostByFolder={lostByFolder}
           channels={channels.map((c) => ({
             id: c.id,
             account_name: c.account_name,

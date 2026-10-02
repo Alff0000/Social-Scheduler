@@ -6,6 +6,7 @@ import {
   getBandCounts,
   getAutofillLanes,
   listFolders,
+  getRemovedChannelCounts,
 } from "@/lib/queries";
 import { config } from "@/lib/config";
 import { toLanePanels } from "@/lib/autofill-lanes";
@@ -35,6 +36,7 @@ import { ChannelDeleteButton } from "@/components/channel-delete-button";
 import { TestConnectionButton } from "@/components/test-connection-button";
 import { ChannelSearchGrid } from "@/components/channel-search-grid";
 import { MetaConnectPanel } from "@/components/meta-connect-panel";
+import { LostAccountsStrip } from "@/components/lost-accounts-strip";
 import { tzAbbrev, timeAgo } from "@/lib/format";
 import { getSessionUser } from "@/lib/auth";
 import { listMetaApps } from "@/lib/meta-apps-queries";
@@ -67,6 +69,10 @@ export default async function ChannelsPage({
   const channels = getChannels(ownerId);
   const folders = listFolders(ownerId);
   const metaApps = listMetaApps(ownerId);
+  const removedCounts = getRemovedChannelCounts(ownerId);
+  const lostByFolder = Object.fromEntries(
+    removedCounts.map((c) => [c.folder_id === null ? "none" : String(c.folder_id), c.count]),
+  );
   const groups = listChannelGroups(ownerId).map((g) => {
     const members = getGroupMembers(g.id);
     const memberIds = members.map((m) => m.id);
@@ -137,6 +143,10 @@ export default async function ChannelsPage({
             httpOnly cookie, so this panel is what reads it (indirectly, via GET
             /api/channels/meta/pages) and lets the owner pick what to connect. */}
         {params.meta_connect === "1" ? <MetaConnectPanel /> : null}
+        <LostAccountsStrip
+          counts={removedCounts}
+          folders={folders.map((f) => ({ id: f.id, name: f.name }))}
+        />
         <ChannelForm
           defaultTimezone={config.defaultTimezone}
           nextChannelId={channels.reduce((max, c) => Math.max(max, c.id), 0) + 1}
@@ -158,7 +168,11 @@ export default async function ChannelsPage({
             defaultTimezone={config.defaultTimezone}
             bandTimes={config.bandTimes}
           />
-          <ChannelSearchGrid channels={channels} folders={folders.map((f) => ({ id: f.id, name: f.name }))}>
+          <ChannelSearchGrid
+            channels={channels}
+            folders={folders.map((f) => ({ id: f.id, name: f.name }))}
+            lostByFolder={lostByFolder}
+          >
             {channels.map((c) => (
               <div
                 key={c.id}

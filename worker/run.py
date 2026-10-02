@@ -67,9 +67,17 @@ def run_once(conn, config: Config, client, *, client_for=None, now=None, logger=
     # never get to run — the exact moment it is needed. It honours the kill switch like every
     # other automation, and never raises (see prune.run_media_prune).
     if not kill_switch_active():
+        from .lost_channels import run_lost_channel_cleanup
         from .prune import run_media_prune
 
         run_media_prune(conn, config, now, logger=logger)
+        # Removes accounts that stayed disconnected (worker/lost_channels.py). Same spot and
+        # same reasons as the media cleanup above; additionally skipped in dry-run, where a
+        # fresh clone is being sanity-checked and nothing should be deleted.
+        run_lost_channel_cleanup(
+            conn, config, now, client_for=pick_client, logger=logger,
+            dry_run=dry_run_active(),
+        )
 
     # Liveness first — the worker is "alive" whenever it polls, even if the kill switch is on
     # (alive != publishing). The dashboard reads this to know a queued refresh will be picked up.

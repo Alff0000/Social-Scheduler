@@ -80,14 +80,30 @@ function ChannelMoveRow({
   );
 }
 
+/** Red "N perdidas" next to a folder's account count — accounts of that folder that fell and
+ *  were removed. Nothing is rendered at zero. */
+function LostBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      className="ml-2 rounded-full bg-status-failed px-2 py-0.5 text-[10px] font-semibold text-white"
+      title="Contas desta pasta que caíram e foram removidas"
+    >
+      {count} perdida{count === 1 ? "" : "s"}
+    </span>
+  );
+}
+
 function FolderCard({
   folder,
   members,
   allFolders,
+  lost,
 }: {
   folder: FolderLite;
   members: ChannelLite[];
   allFolders: FolderLite[];
+  lost: number;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -164,6 +180,7 @@ function FolderCard({
             <p className="truncate text-sm font-semibold text-ink">{folder.name}</p>
             <p className="mt-0.5 text-xs text-muted">
               {members.length} conta{members.length === 1 ? "" : "s"}
+              <LostBadge count={lost} />
             </p>
           </div>
         )}
@@ -246,9 +263,12 @@ function FolderCard({
 export function FolderManager({
   folders,
   channels,
+  lostByFolder = {},
 }: {
   folders: FolderLite[];
   channels: ChannelLite[];
+  /** Fallen accounts already removed, per folder id ("none" = Sem pasta). */
+  lostByFolder?: Record<string, number>;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -326,6 +346,7 @@ export function FolderManager({
               folder={f}
               members={byFolder.get(f.id) ?? []}
               allFolders={folders}
+              lost={lostByFolder[String(f.id)] ?? 0}
             />
           ))}
         </div>
@@ -334,6 +355,7 @@ export function FolderManager({
       <div>
         <h2 className="mb-2 font-display text-sm font-semibold text-ink">
           Sem pasta ({unfoldered.length})
+          <LostBadge count={lostByFolder.none ?? 0} />
         </h2>
         {unfoldered.length === 0 ? (
           <p className="text-sm text-muted">Toda conta já está em alguma pasta.</p>

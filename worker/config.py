@@ -38,10 +38,14 @@ def _as_bool(value: str | None, default: bool = False) -> bool:
     return value.strip().lower() in ("1", "true", "yes", "on")
 
 
-def _non_negative_int(value: str | None) -> int:
-    """A blank, missing or garbage value is 0 (off) — never an exception at startup."""
+def _non_negative_int(value: str | None, default: int = 0) -> int:
+    """A missing value is `default`; a blank or garbage one is 0 (off) — never an exception
+    at startup. Only a genuinely absent variable gets the default, so an owner who writes
+    VAR= or VAR=0 to turn something off is believed."""
+    if value is None:
+        return default
     try:
-        return max(0, int((value or "0").strip()))
+        return max(0, int(value.strip() or "0"))
     except ValueError:
         return 0
 
@@ -247,6 +251,12 @@ class Config:
     # that is the default everywhere: deleting the owner's files is something they turn on,
     # not something that happens to them.
     media_prune_days: int = 0
+    # Remove an account this many hours after its connection was marked lost and it was not
+    # reconnected (see worker/lost_channels.py). 0 = never remove anything. 0 here like
+    # video_variants above, so direct Config(...) constructions in tests stay untouched;
+    # from_env() defaults it to 24 because removing fallen accounts is what the owner asked
+    # for, and LOST_CHANNEL_PRUNE_HOURS=0 turns it off.
+    lost_channel_prune_hours: int = 0
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -341,4 +351,7 @@ class Config:
             tod_evening=os.environ.get("TOD_EVENING", "18:00"),
             video_variants=_as_bool(os.environ.get("VIDEO_VARIANTS"), default=True),
             media_prune_days=_non_negative_int(os.environ.get("MEDIA_PRUNE_DAYS")),
+            lost_channel_prune_hours=_non_negative_int(
+                os.environ.get("LOST_CHANNEL_PRUNE_HOURS"), default=24
+            ),
         )

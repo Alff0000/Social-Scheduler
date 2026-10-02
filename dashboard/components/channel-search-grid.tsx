@@ -34,6 +34,7 @@ function ChevronGlyph() {
 export function ChannelSearchGrid({
   channels,
   folders,
+  lostByFolder,
   children,
 }: {
   channels: { id: number; account_name: string; platform: string; folder_id?: number | null }[];
@@ -41,6 +42,9 @@ export function ChannelSearchGrid({
    *  before — grouping only kicks in once there's more than one group to tell apart,
    *  same rule the composer's own folder picker uses. */
   folders?: { id: number; name: string }[];
+  /** Fallen accounts already removed, per folder — keyed by folder id, or "none" for Sem
+   *  pasta. Shown as a red badge on the folder's heading. */
+  lostByFolder?: Record<string, number>;
   children: ReactNode[];
 }) {
   const [query, setQuery] = useState("");
@@ -123,6 +127,14 @@ export function ChannelSearchGrid({
                     {g.title}
                   </span>
                   <span className="data text-[11px] text-faint">{g.items.length}</span>
+                  {(lostByFolder?.[g.key] ?? 0) > 0 ? (
+                    <span
+                      className="rounded-full bg-status-failed px-2 py-0.5 text-[10px] font-semibold text-white"
+                      title="Contas desta pasta que caíram e foram removidas"
+                    >
+                      {lostByFolder![g.key]} perdida{lostByFolder![g.key] === 1 ? "" : "s"}
+                    </span>
+                  ) : null}
                 </button>
                 {isCollapsed ? null : (
                   <div className="grid gap-4 md:grid-cols-2">

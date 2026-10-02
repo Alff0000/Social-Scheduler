@@ -3905,13 +3905,48 @@ export function getPostedTodayCount(ownerId: number | null, today: string): numb
  *  picking Hoje/Últimos 7 dias/Este mês/Personalizado moves both at once. */
 export function getLostChannelsCount(range: DateRange, ownerId: number | null): number {
   const ownerClause = ownerId === null ? "" : "AND owner_user_id = ?";
-  const row = getDb()
+  const ownerArgs = ownerId === null ? [] : [ownerId];
+  const db = getDb();
+  const row = db
     .prepare(
       `SELECT COUNT(*) AS n FROM channels
        WHERE lost_at IS NOT NULL AND date(lost_at) >= ? AND date(lost_at) <= ? ${ownerClause}`,
     )
-    .get(range.start, range.end, ...(ownerId === null ? [] : [ownerId])) as { n: number };
-  return row.n;
+    .get(range.start, range.end, ...ownerArgs) as { n: number };
+  // Accounts the worker already removed (migration 0039's lost_channel_log) no longer have
+  // a channels row to count — without this, deleting a fallen account would also erase it
+  // from the very metric that exists to say how many fell.
+  const removed = db
+    .prepare(
+      `SELECT COUNT(*) AS n FROM lost_channel_log
+       WHERE date(lost_at) >= ? AND date(lost_at) <= ? ${ownerClause}`,
+    )
+    .get(range.start, range.end, ...ownerArgs) as { n: number };
+  return row.n + removed.n;
+}
+
+export interface RemovedChannelCount {
+  /** null = "Sem pasta" (never in a folder, or its folder was since deleted). */
+  folder_id: number | null;
+  count: number;
+}
+
+/** How many fallen accounts the worker has removed, per folder they belonged to — the red
+ *  counter on /channels and /folders. Read from the log rather than derived from channels
+ *  because the whole point is that the channel rows are gone. A folder that no longer
+ *  exists folds into null instead of leaving a count nobody can attach to a name. */
+export function getRemovedChannelCounts(ownerId: number | null): RemovedChannelCount[] {
+  const where = ownerId === null ? "" : "WHERE l.owner_user_id = ?";
+  return getDb()
+    .prepare(
+      `SELECT f.id AS folder_id, COUNT(*) AS count
+         FROM lost_channel_log l
+         LEFT JOIN folders f ON f.id = l.folder_id
+         ${where}
+        GROUP BY f.id
+        ORDER BY count DESC`,
+    )
+    .all(...(ownerId === null ? [] : [ownerId])) as RemovedChannelCount[];
 }
 
 /** The Overview page's "agendados" count — every publication still scheduled or awaiting
