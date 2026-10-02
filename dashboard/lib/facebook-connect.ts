@@ -46,12 +46,18 @@ export type PageSummary = {
   name: string;
   /** Roles required to publish that this account lacks on this Page. Empty means fine. */
   missingTasks: string[];
+  /** The Instagram Business/Creator account linked to this Page, if any — null means the
+   *  Page has none connected (Instagram publishing isn't available from it). */
+  instagram: { id: string; username: string } | null;
 };
 
 export type ConnectError = { ok: false; error: string };
 export type ListResult = { ok: true; pages: PageSummary[] } | ConnectError;
 export type SelectResult =
   | { ok: true; pageId: string; name: string; pageToken: string }
+  | ConnectError;
+export type SelectInstagramResult =
+  | { ok: true; igId: string; username: string; pageToken: string }
   | ConnectError;
 
 const TIMEOUT_MS = 20_000;
@@ -95,7 +101,9 @@ async function metaGet(
   let response: Response;
   try {
     response = await fetchImpl(url, {
-      headers: { Authorization: `Bearer ${bearer}` },
+      // The authorization-code exchange authenticates via client_id/client_secret in the
+      // query string, not a bearer token — an empty bearer means "none to send" there.
+      headers: bearer ? { Authorization: `Bearer ${bearer}` } : {},
       signal: AbortSignal.timeout(TIMEOUT_MS),
       cache: "no-store",
     });
@@ -120,6 +128,40 @@ async function metaGet(
     throw new MetaError(`Meta rejected the request: ${scrub(message, secrets)} (code ${error.code})`);
   }
   return record;
+}
+
+/**
+ * The OAuth authorization-code exchange: the code the login redirect handed back ->
+ * a short-lived USER token. This is the automated connect flow's first hop — the manual
+ * flow (paste a token from the Graph API Explorer) skips straight to extendUserToken
+ * below with a token obtained some other way, so this function has no caller there.
+ *
+ * redirectUri must be byte-identical to the one the authorize step sent Meta — it is not
+ * used to redirect anywhere here, only matched against what Meta has on file for this code.
+ */
+export async function exchangeCodeForToken(
+  code: string,
+  redirectUri: string,
+  config: MetaAppConfig,
+  fetchImpl: typeof fetch = fetch
+): Promise<string> {
+  const params = new URLSearchParams({
+    client_id: config.appId,
+    client_secret: config.appSecret,
+    redirect_uri: redirectUri,
+    code,
+  });
+  const data = await metaGet(
+    `https://graph.facebook.com/${config.graphVersion}/oauth/access_token?${params}`,
+    "",
+    [code, config.appSecret],
+    fetchImpl
+  );
+  const token = data.access_token;
+  if (typeof token !== "string" || !token) {
+    throw new MetaError("Meta returned no access_token for the authorization code.");
+  }
+  return token;
 }
 
 /**
@@ -156,7 +198,13 @@ export async function extendUserToken(
   return token;
 }
 
-type RawPage = { id?: unknown; name?: unknown; access_token?: unknown; tasks?: unknown };
+type RawPage = {
+  id?: unknown;
+  name?: unknown;
+  access_token?: unknown;
+  tasks?: unknown;
+  instagram_business_account?: { id?: unknown; username?: unknown };
+};
 
 /**
  * Every Page this user administers.
@@ -172,7 +220,7 @@ async function fetchPages(
 ): Promise<RawPage[]> {
   const data = await metaGet(
     `https://graph.facebook.com/${config.graphVersion}/me/accounts` +
-      `?fields=id,name,access_token,tasks&limit=100`,
+      `?fields=id,name,access_token,tasks,instagram_business_account{id,username}&limit=100`,
     extendedUserToken,
     [extendedUserToken, config.appSecret],
     fetchImpl
@@ -188,10 +236,15 @@ export function missingTasks(tasks: unknown): string[] {
 
 function summarise(page: RawPage): PageSummary | null {
   if (typeof page.id !== "string" && typeof page.id !== "number") return null;
+  const ig = page.instagram_business_account;
+  const igId = ig && (typeof ig.id === "string" || typeof ig.id === "number") ? String(ig.id) : null;
   return {
     id: String(page.id),
     name: typeof page.name === "string" ? page.name : "Unnamed Page",
     missingTasks: missingTasks(page.tasks),
+    instagram: igId
+      ? { id: igId, username: typeof ig!.username === "string" ? ig!.username : igId }
+      : null,
   };
 }
 
@@ -342,6 +395,93 @@ export async function selectPage(
     if (problem) return { ok: false, error: problem };
 
     return { ok: true, pageId: summary.id, name: summary.name, pageToken };
+  } catch (err) {
+    return { ok: false, error: asMessage(err) };
+  }
+}
+
+/**
+ * The Instagram-publishing equivalent of verifyPageToken. Same token, same debug_token
+ * call — Instagram Business publishing through Facebook Login uses the PAGE's own access
+ * token, not a separate Instagram one — but a different scope and no profile_id check
+ * (debug_token's profile_id names the Page, not the linked Instagram account).
+ */
+export function verifyInstagramToken(info: TokenInfo): string | null {
+  if (info.type !== "PAGE") {
+    return (
+      `That is a ${String(info.type ?? "unknown")} token, not a Page token. Instagram ` +
+      `publishing through Facebook Login still needs a Page token — a user token reads ` +
+      `fine here and then never publishes.`
+    );
+  }
+
+  const scopes = Array.isArray(info.scopes) ? info.scopes.map(String) : [];
+  if (!scopes.includes("instagram_content_publish")) {
+    return (
+      "The token is missing instagram_content_publish, so publishing would fail with " +
+      "'(#200) Permissions error'. Add that permission to the app's Instagram use case, " +
+      "then generate a NEW token — an existing token never gains a permission retroactively."
+    );
+  }
+
+  if (info.expires_at !== NEVER) {
+    return (
+      "This Page token still expires, which means it came from a user token that had not " +
+      "been extended. That is the failure this whole step exists to prevent — paste the " +
+      "USER token from the Graph API Explorer, not a Page token and not one you have " +
+      "already exchanged."
+    );
+  }
+
+  return null;
+}
+
+/** Step two for Instagram: verify the chosen Page's linked IG account and hand back the
+ *  Page token Instagram publishing actually uses. */
+export async function selectInstagram(
+  userToken: string,
+  pageId: string,
+  config: MetaAppConfig,
+  fetchImpl: typeof fetch = fetch
+): Promise<SelectInstagramResult> {
+  const configError = appConfigError(config);
+  if (configError) return { ok: false, error: configError };
+
+  try {
+    const extended = await extendUserToken(userToken, config, fetchImpl);
+    const raw = (await fetchPages(extended, config, fetchImpl)).find(
+      (p) => String(p.id) === String(pageId)
+    );
+    if (!raw) {
+      return {
+        ok: false,
+        error: `That token no longer administers Page ${pageId}. Start the lookup again.`,
+      };
+    }
+
+    const summary = summarise(raw)!;
+    if (!summary.instagram) {
+      return {
+        ok: false,
+        error: `'${summary.name}' has no Instagram Business account linked to it.`,
+      };
+    }
+
+    const pageToken = typeof raw.access_token === "string" ? raw.access_token : "";
+    if (!pageToken) {
+      return {
+        ok: false,
+        error:
+          `Meta returned no Page token for '${summary.name}'. That usually means the user ` +
+          `token was generated without pages_show_list.`,
+      };
+    }
+
+    const info = await debugToken(pageToken, config, fetchImpl);
+    const problem = verifyInstagramToken(info);
+    if (problem) return { ok: false, error: problem };
+
+    return { ok: true, igId: summary.instagram.id, username: summary.instagram.username, pageToken };
   } catch (err) {
     return { ok: false, error: asMessage(err) };
   }

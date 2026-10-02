@@ -229,6 +229,30 @@ as long as you're an **admin** on both the app and the Page. Same arrangement as
    machine except to Meta. Pages you lack publishing rights on appear greyed out with the
    role you are missing, rather than silently vanishing from the list.
 
+   **Connect automatically instead — no token to find or paste.** If this install is
+   reachable at a public HTTPS URL (true once it's deployed, e.g. to Railway; not true for
+   a bare `localhost` dev server), you can skip the Explorer entirely:
+
+   1. **Register the redirect URI.** App Dashboard → your app → **Facebook Login →
+      Settings** → add under **Valid OAuth Redirect URIs**:
+      ```
+      https://your-domain/api/channels/meta/callback
+      ```
+      (On Railway, `your-domain` is the one shown on the service, e.g. `app.xxxxx.site`.)
+   2. **Register the app in this install**, if you haven't: **Configurações → Apps Meta**
+      → Add app, with the same App ID/Secret from Step 1.
+   3. **Channels → Add channel** → Platform **Instagram** or **Facebook Page** → click
+      **Conectar com `<your app's name>`**. You're sent to Meta's own login/approve screen
+      and land back on **Contas** already signed in, with every Page you administer listed —
+      pick **Conectar Instagram**, **Conectar Facebook**, or both (one Page can become two
+      separate channels: the Page itself and its linked Instagram account). Each creates
+      the channel immediately; there's no form to fill in or token to copy afterwards.
+
+   This uses the SAME verification table below — a bad or under-permissioned token still
+   gets refused, just automatically rather than by pasting one in. Scopes come from this
+   install's own defaults (`dashboard/lib/oauth-links.ts`); if Meta renames one, the
+   connect attempt fails with Meta's own message naming which permission is missing.
+
    **Prefer the terminal, or on a machine with no dashboard running?** The original helper
    still does the same job, and is still the only path for Instagram and Threads:
 

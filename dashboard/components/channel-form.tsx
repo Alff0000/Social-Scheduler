@@ -25,6 +25,7 @@ export function ChannelForm({
   defaultTimezone,
   nextChannelId,
   folders,
+  metaApps,
 }: {
   defaultTimezone: string;
   /**
@@ -35,6 +36,10 @@ export function ChannelForm({
    */
   nextChannelId: number;
   folders: { id: number; name: string }[];
+  /** Registered Meta apps (migration 0032) this login can authorize through — see
+   *  /api/channels/meta/authorize. Empty means none registered yet, in which case the
+   *  manual access-token field below is the only way to connect Instagram/Facebook. */
+  metaApps: { id: number; name: string }[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -70,6 +75,11 @@ export function ChannelForm({
   // short-lived USER token) is NOT the token the channel stores (a permanent PAGE token).
   // Offering the generic id lookup here invited pasting the former where the latter goes.
   const isFacebook = form.platform === "facebook";
+  // Instagram and Facebook can both be connected the same way the TikTok panel below
+  // works — a redirect to Meta and back, no token to find or paste — because Instagram
+  // Business publishing through Facebook Login uses a Page's own access token (see
+  // lib/facebook-connect.ts's instagram_business_account field).
+  const isMeta = form.platform === "instagram" || form.platform === "facebook";
 
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -222,6 +232,41 @@ export function ChannelForm({
             />
           ) : null}
         </div>
+        {isMeta ? (
+          <div className="sm:col-span-2 rounded-lg border border-border bg-surface-muted p-4">
+            {metaApps.length === 0 ? (
+              <p className="text-sm text-ink-soft">
+                Nenhum app Meta cadastrado ainda. Cadastre um em{" "}
+                <a href="/settings/meta-apps" className="text-brand-strong underline">
+                  Apps Meta
+                </a>{" "}
+                pra conectar automaticamente — ou cole um access token manualmente abaixo.
+              </p>
+            ) : (
+              <>
+                <p className="mb-3 text-sm text-ink-soft">
+                  Conecte automaticamente pela Meta — você aprova o login lá e volta direto
+                  pra cá, sem token pra copiar.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {metaApps.map((app) => (
+                    // eslint-disable-next-line @next/next/no-html-link-for-pages
+                    <a
+                      key={app.id}
+                      href={`/api/channels/meta/authorize?appId=${app.id}`}
+                      className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-brand hover:bg-brand-ink"
+                    >
+                      Conectar com {app.name}
+                    </a>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-muted">
+                  Prefere colar um token manualmente? Use o campo abaixo em vez disso.
+                </p>
+              </>
+            )}
+          </div>
+        ) : null}
         {isFacebook ? (
           <FacebookConnect
             onConnected={({ pageId, name, pageToken }) =>

@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { missingTasks, verifyPageToken } from "./facebook-connect.ts";
+import {
+  missingTasks,
+  verifyPageToken,
+  verifyInstagramToken,
+  exchangeCodeForToken,
+  listPages,
+  selectInstagram,
+  type MetaAppConfig,
+} from "./facebook-connect.ts";
 
 const PAGE_ID = "111222333";
 
@@ -83,4 +91,151 @@ test("an absent or malformed tasks list means no roles, not all roles", () => {
   assert.deepEqual(missingTasks(undefined), ["CREATE_CONTENT", "MANAGE"]);
   assert.deepEqual(missingTasks(null), ["CREATE_CONTENT", "MANAGE"]);
   assert.deepEqual(missingTasks("CREATE_CONTENT"), ["CREATE_CONTENT", "MANAGE"]);
+});
+
+// ---- verifyInstagramToken: the Instagram-publishing equivalent of verifyPageToken ------
+
+const GOOD_IG = {
+  type: "PAGE",
+  scopes: ["pages_show_list", "instagram_basic", "instagram_content_publish"],
+  expires_at: 0,
+};
+
+test("a fully valid Instagram-publishing Page token is accepted", () => {
+  assert.equal(verifyInstagramToken(GOOD_IG), null);
+});
+
+test("a USER token is refused for Instagram publishing too", () => {
+  const problem = verifyInstagramToken({ ...GOOD_IG, type: "USER" });
+  assert.ok(problem);
+  assert.match(problem!, /not a Page token/);
+});
+
+test("a token without instagram_content_publish is refused, naming the error it would cause", () => {
+  const scopes = GOOD_IG.scopes.filter((s) => s !== "instagram_content_publish");
+  const problem = verifyInstagramToken({ ...GOOD_IG, scopes });
+  assert.ok(problem);
+  assert.match(problem!, /instagram_content_publish/);
+  assert.match(problem!, /#200/);
+});
+
+test("an Instagram Page token that still expires is refused", () => {
+  const problem = verifyInstagramToken({ ...GOOD_IG, expires_at: 1_777_000_000 });
+  assert.ok(problem);
+  assert.match(problem!, /still expires/);
+});
+
+// ---- fetch-mocked: the OAuth hops that never ran against real Meta --------------------
+
+const CONFIG: MetaAppConfig = { graphVersion: "v25.0", appId: "app123", appSecret: "shh" };
+
+function fakeFetch(responses: Record<string, unknown>) {
+  const calls: string[] = [];
+  const impl = (async (url: string | URL) => {
+    const href = String(url);
+    calls.push(href);
+    for (const [match, body] of Object.entries(responses)) {
+      if (href.includes(match)) {
+        return { json: async () => body } as Response;
+      }
+    }
+    throw new Error(`fakeFetch: no stub for ${href}`);
+  }) as typeof fetch;
+  return { impl, calls };
+}
+
+test("exchangeCodeForToken trades a code for a short-lived access_token", async () => {
+  const { impl, calls } = fakeFetch({
+    "oauth/access_token": { access_token: "short-lived-token" },
+  });
+  const token = await exchangeCodeForToken("auth-code", "https://app.test/callback", CONFIG, impl);
+  assert.equal(token, "short-lived-token");
+  assert.match(calls[0], /code=auth-code/);
+  assert.match(calls[0], /client_secret=shh/);
+});
+
+test("exchangeCodeForToken surfaces Meta's own error message", async () => {
+  const { impl } = fakeFetch({
+    "oauth/access_token": { error: { message: "Invalid verification code format.", code: 100 } },
+  });
+  await assert.rejects(
+    () => exchangeCodeForToken("bad-code", "https://app.test/callback", CONFIG, impl),
+    /Invalid verification code format/,
+  );
+});
+
+test("listPages reports each Page's linked Instagram account, or null when it has none", async () => {
+  const { impl } = fakeFetch({
+    "oauth/access_token": { access_token: "extended-user-token" },
+    "me/accounts": {
+      data: [
+        {
+          id: "111", name: "Clinic Page", tasks: ["CREATE_CONTENT", "MANAGE"],
+          access_token: "page-token-1",
+          instagram_business_account: { id: "999", username: "clinic_ig" },
+        },
+        { id: "222", name: "No-IG Page", tasks: ["CREATE_CONTENT", "MANAGE"], access_token: "page-token-2" },
+      ],
+    },
+  });
+  const result = await listPages("user-token", CONFIG, impl);
+  assert.ok(result.ok);
+  if (!result.ok) return;
+  assert.deepEqual(result.pages[0].instagram, { id: "999", username: "clinic_ig" });
+  assert.equal(result.pages[1].instagram, null);
+});
+
+test("selectInstagram refuses a Page with no linked Instagram account", async () => {
+  const { impl } = fakeFetch({
+    "oauth/access_token": { access_token: "extended-user-token" },
+    "me/accounts": {
+      data: [{ id: "222", name: "No-IG Page", tasks: ["CREATE_CONTENT", "MANAGE"], access_token: "t" }],
+    },
+  });
+  const result = await selectInstagram("user-token", "222", CONFIG, impl);
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.match(result.error, /no Instagram Business account/);
+});
+
+test("selectInstagram verifies the token and returns the Page token Instagram publishing uses", async () => {
+  const { impl } = fakeFetch({
+    "oauth/access_token": { access_token: "extended-user-token" },
+    "me/accounts": {
+      data: [
+        {
+          id: "111", name: "Clinic Page", tasks: ["CREATE_CONTENT", "MANAGE"],
+          access_token: "page-token-1",
+          instagram_business_account: { id: "999", username: "clinic_ig" },
+        },
+      ],
+    },
+    debug_token: { data: { ...GOOD_IG } },
+  });
+  const result = await selectInstagram("user-token", "111", CONFIG, impl);
+  assert.ok(result.ok);
+  if (!result.ok) return;
+  assert.equal(result.igId, "999");
+  assert.equal(result.username, "clinic_ig");
+  assert.equal(result.pageToken, "page-token-1");
+});
+
+test("selectInstagram refuses a token missing instagram_content_publish", async () => {
+  const { impl } = fakeFetch({
+    "oauth/access_token": { access_token: "extended-user-token" },
+    "me/accounts": {
+      data: [
+        {
+          id: "111", name: "Clinic Page", tasks: ["CREATE_CONTENT", "MANAGE"],
+          access_token: "page-token-1",
+          instagram_business_account: { id: "999", username: "clinic_ig" },
+        },
+      ],
+    },
+    debug_token: { data: { type: "PAGE", scopes: ["pages_show_list"], expires_at: 0 } },
+  });
+  const result = await selectInstagram("user-token", "111", CONFIG, impl);
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.match(result.error, /instagram_content_publish/);
 });

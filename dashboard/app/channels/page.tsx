@@ -34,8 +34,10 @@ import { ChannelFolderSelect } from "@/components/channel-folder-select";
 import { ChannelDeleteButton } from "@/components/channel-delete-button";
 import { TestConnectionButton } from "@/components/test-connection-button";
 import { ChannelSearchGrid } from "@/components/channel-search-grid";
+import { MetaConnectPanel } from "@/components/meta-connect-panel";
 import { tzAbbrev, timeAgo } from "@/lib/format";
 import { getSessionUser } from "@/lib/auth";
+import { listMetaApps } from "@/lib/meta-apps-queries";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +55,8 @@ export default async function ChannelsPage({
     tiktok_connected?: string;
     tiktok_reconnected?: string;
     tiktok_error?: string;
+    meta_connect?: string;
+    meta_error?: string;
   }>;
 }) {
   // The TikTok OAuth callback redirects here with an outcome. Without showing it, a failed
@@ -62,6 +66,7 @@ export default async function ChannelsPage({
   const ownerId = viewer && !viewer.is_admin ? viewer.id : null;
   const channels = getChannels(ownerId);
   const folders = listFolders(ownerId);
+  const metaApps = listMetaApps(ownerId);
   const groups = listChannelGroups(ownerId).map((g) => {
     const members = getGroupMembers(g.id);
     const memberIds = members.map((m) => m.id);
@@ -122,10 +127,21 @@ export default async function ChannelsPage({
             {params.tiktok_error}
           </div>
         ) : null}
+        {params.meta_error ? (
+          <div className="rounded-card border border-status-failed bg-surface-muted p-4 text-sm text-status-failed">
+            {params.meta_error}
+          </div>
+        ) : null}
+        {/* The Meta OAuth callback (app/api/channels/meta/callback) redirects here once the
+            login/approve round trip is done — the user token it obtained lives only in an
+            httpOnly cookie, so this panel is what reads it (indirectly, via GET
+            /api/channels/meta/pages) and lets the owner pick what to connect. */}
+        {params.meta_connect === "1" ? <MetaConnectPanel /> : null}
         <ChannelForm
           defaultTimezone={config.defaultTimezone}
           nextChannelId={channels.reduce((max, c) => Math.max(max, c.id), 0) + 1}
           folders={folders.map((f) => ({ id: f.id, name: f.name }))}
+          metaApps={metaApps.map((a) => ({ id: a.id, name: a.name }))}
         />
 
         {channels.length === 0 ? (
