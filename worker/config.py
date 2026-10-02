@@ -241,10 +241,11 @@ class Config:
     # worker/variants.py). False here so direct Config(...) constructions in tests keep
     # publishing the untouched file; from_env() turns it ON unless VIDEO_VARIANTS=0.
     video_variants: bool = False
-    # Delete a post's media this many days after its last real publish, to keep the volume
-    # from filling (see worker/prune.py). 0 = never delete anything, and that is the default
-    # everywhere: deleting the owner's files is something they turn on, not something that
-    # happens to them.
+    # Turns on deleting a post's media once it is done, to keep the volume from filling (see
+    # worker/prune.py). A post published everywhere goes soon after its last send; this many
+    # days is only the patience for a post with a FAILED send. 0 = never delete anything, and
+    # that is the default everywhere: deleting the owner's files is something they turn on,
+    # not something that happens to them.
     media_prune_days: int = 0
 
     @classmethod

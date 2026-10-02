@@ -1,7 +1,9 @@
-"""Media prune (worker/prune.py): delete media of long-published posts, and only those.
+"""Media prune (worker/prune.py): delete the media of posts that finished publishing.
 
 The rows below are seeded by hand rather than through make_publication, because what is
-under test is precisely which combinations of post / publication state are safe to delete.
+under test is precisely which combinations of post / publication state are safe to delete:
+a post published everywhere goes soon after its last send (after a short grace); one with a
+failed send waits MEDIA_PRUNE_DAYS.
 """
 
 from __future__ import annotations
@@ -14,6 +16,7 @@ import pytest
 from worker import prune
 
 NOW = datetime(2026, 9, 20, 12, 0, tzinfo=timezone.utc)
+MINUTE = 1 / 1440  # _iso() takes days
 
 
 @pytest.fixture(autouse=True)
@@ -92,10 +95,42 @@ def test_old_posted_media_is_deleted_files_row_and_post_is_retired(conn, config)
     assert conn.execute("SELECT content_status FROM posts WHERE id=?", (post,)).fetchone()[0] == "retired"
 
 
+def test_a_post_published_everywhere_goes_within_the_hour_not_after_days(conn, config):
+    # The point of the rule: scheduled -> every profile posted -> the video leaves the disk,
+    # without waiting out MEDIA_PRUNE_DAYS. Three profiles, the last one posted 45 minutes ago.
+    ch = _channel(conn)
+    a = _asset(conn, config, "everywhere")
+    post = _post(
+        conn, a, ch,
+        pubs=[("posted", 90 * MINUTE, 0), ("posted", 60 * MINUTE, 0), ("posted", 45 * MINUTE, 0)],
+    )
+
+    assert prune.prune_media(conn, config, 3, NOW) == 1
+
+    assert not _alive(conn, a)
+    assert _files(config, "everywhere") == [False, False, False]
+    assert conn.execute("SELECT content_status FROM posts WHERE id=?", (post,)).fetchone()[0] == "retired"
+
+
+def test_a_post_with_a_failed_send_waits_out_the_patience_then_goes(conn, config):
+    ch = _channel(conn)
+    a = _asset(conn, config, "stuck")
+    _post(conn, a, ch, pubs=[("posted", 10, 0), ("failed", 10, 0)])
+    young = _asset(conn, config, "stuck-young")
+    _post(conn, young, ch, pubs=[("posted", 1, 0), ("failed", 1, 0)])
+
+    assert prune.prune_media(conn, config, 3, NOW) == 1
+
+    assert not _alive(conn, a)          # 10 days > 3 days of patience
+    assert _alive(conn, young)          # a retry may still want this one
+    assert _files(config, "stuck-young") == [True, True, True]
+
+
 @pytest.mark.parametrize(
     "pubs, bpp, why",
     [
-        ([("posted", 1, 0)], 0, "published too recently"),
+        ([("posted", 10 * MINUTE, 0)], 0, "inside the 30 minute grace after the last send"),
+        ([("posted", 1, 0), ("failed", 1, 0)], 0, "one send failed and the patience is not over"),
         ([("posted", 10, 0), ("scheduled", None, 0)], 0, "another send is still pending"),
         ([("posted", 10, 0), ("pending_approval", None, 0)], 0, "awaiting approval"),
         ([("posted", 10, 0), ("publishing", None, 0)], 0, "mid-publish"),
@@ -202,8 +237,9 @@ def test_off_by_default_and_throttled_when_on(conn, config):
     assert prune.run_media_prune(conn, config, NOW) == 1
     b = _asset(conn, config, "gated2")
     _post(conn, b, ch, pubs=[("posted", 10, 0)])
-    assert prune.run_media_prune(conn, config, NOW + timedelta(seconds=60)) == 0  # throttled
-    assert prune.run_media_prune(conn, config, NOW + timedelta(seconds=1000)) == 1
+    gap = prune.PRUNE_INTERVAL_SECONDS
+    assert prune.run_media_prune(conn, config, NOW + timedelta(seconds=gap - 1)) == 0  # throttled
+    assert prune.run_media_prune(conn, config, NOW + timedelta(seconds=gap)) == 1
 
 
 def test_run_media_prune_never_raises(conn, config, monkeypatch):

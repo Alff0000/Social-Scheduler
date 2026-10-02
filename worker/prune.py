@@ -1,7 +1,12 @@
 """Free disk by deleting the media of posts that already went out.
 
-Opt-in: MEDIA_PRUNE_DAYS=N deletes a post's media N days after its last real publish.
-Unset or 0 keeps everything, which is the default.
+Opt-in: MEDIA_PRUNE_DAYS=N turns it on (unset or 0 keeps everything, the default).
+
+The rule, per post:
+  * Every send finished and none failed  -> its media is deleted SOON AFTER the last one
+    posted (a short grace, see GRACE_MINUTES). N does not matter here.
+  * Some send failed (a retry may still want the file) -> its media waits N days after the
+    last real publish, then goes anyway so one stuck account cannot hold a video forever.
 
 Why it exists: the volume is small, and a scheduled video has to sit on it until it posts,
 so with many accounts it fills within days. Once a post has gone out, its files are only
@@ -13,6 +18,10 @@ What is NEVER touched:
   * posts that only "posted" in dry-run,
   * a file that another asset row also points at (dedup is per owner, so two rows can
     share one file on disk).
+
+The grace exists because a send being marked posted does not always mean the platform has
+finished pulling the file: Facebook fetches a video by URL and keeps processing after our
+short poll gives up, so deleting the instant the row says posted could break that upload.
 
 Files are deleted BEFORE their database rows, on purpose: unlinking needs no free space,
 while every database write does. On a full disk the file deletion still works and frees the
@@ -27,13 +36,19 @@ from pathlib import Path
 
 from .redact import redact
 
-PRUNE_INTERVAL_SECONDS = 900
+PRUNE_INTERVAL_SECONDS = 60
+GRACE_MINUTES = 30
 MAX_ASSETS_PER_RUN = 100
 
 _PATH_COLUMNS = ("storage_path", "publish_path", "thumbnail_path", "story_path")
 _last_run: dict = {"at": None}
 
-_ELIGIBLE_SQL = """
+_LAST_POSTED_SQL = """(SELECT MAX(COALESCE(b.published_at, b.updated_at, b.created_at))
+                         FROM publications b
+                        WHERE b.post_id = p.id AND b.status = 'posted'
+                          AND b.is_dry_run = 0)"""
+
+_ELIGIBLE_SQL = f"""
 SELECT a.id
   FROM assets a
  WHERE EXISTS (SELECT 1 FROM post_assets pa WHERE pa.asset_id = a.id)
@@ -50,19 +65,25 @@ SELECT a.id
                 OR NOT EXISTS (SELECT 1 FROM publications b
                                 WHERE b.post_id = p.id AND b.status = 'posted'
                                   AND b.is_dry_run = 0)
-                OR (SELECT MAX(COALESCE(b.published_at, b.updated_at, b.created_at))
-                      FROM publications b
-                     WHERE b.post_id = p.id AND b.status = 'posted'
-                       AND b.is_dry_run = 0) >= ?
+                OR {_LAST_POSTED_SQL} >= :recent
+                OR (EXISTS (SELECT 1 FROM publications b
+                             WHERE b.post_id = p.id AND b.status = 'failed')
+                    AND {_LAST_POSTED_SQL} >= :patience)
            )
        )
  ORDER BY a.id
- LIMIT ?
+ LIMIT :limit
 """
 
 
-def eligible_asset_ids(conn, cutoff_iso: str, limit: int = MAX_ASSETS_PER_RUN) -> list[int]:
-    return [row[0] for row in conn.execute(_ELIGIBLE_SQL, (cutoff_iso, limit))]
+def eligible_asset_ids(
+    conn, recent_cutoff_iso: str, patience_cutoff_iso: str, limit: int = MAX_ASSETS_PER_RUN
+) -> list[int]:
+    rows = conn.execute(
+        _ELIGIBLE_SQL,
+        {"recent": recent_cutoff_iso, "patience": patience_cutoff_iso, "limit": limit},
+    )
+    return [row[0] for row in rows]
 
 
 def _shared_with_another_asset(conn, asset_id: int, rel: str) -> bool:
@@ -132,8 +153,9 @@ def _orphaned_cover_ids(conn, cover_ids: list[int]) -> list[int]:
 
 
 def prune_media(conn, config, days: int, now: datetime, logger=None) -> int:
-    """Delete the media of posts last published more than `days` ago. Returns assets removed."""
-    cutoff = (now - timedelta(days=days)).isoformat()
+    """Delete the media of finished posts (see the module docstring). Returns assets removed."""
+    recent = (now - timedelta(minutes=GRACE_MINUTES)).isoformat()
+    patience = (now - timedelta(days=days)).isoformat()
     base = Path(config.asset_storage_dir)
     now_iso = now.isoformat()
     removed = 0
@@ -156,7 +178,7 @@ def prune_media(conn, config, days: int, now: datetime, logger=None) -> int:
             return False
         return True
 
-    for asset_id in eligible_asset_ids(conn, cutoff):
+    for asset_id in eligible_asset_ids(conn, recent, patience):
         cover = conn.execute(
             "SELECT cover_asset_id FROM assets WHERE id = ?", (asset_id,)
         ).fetchone()
@@ -169,7 +191,8 @@ def prune_media(conn, config, days: int, now: datetime, logger=None) -> int:
 
     if removed and logger:
         logger.info(
-            "media prune: removed %d asset(s) from posts published over %d day(s) ago, freed ~%.1f MB",
+            "media prune: removed %d asset(s) from posts already published everywhere "
+            "(posts with a failed send wait %d day(s)), freed ~%.1f MB",
             removed, days, freed / (1024 * 1024),
         )
     return removed
