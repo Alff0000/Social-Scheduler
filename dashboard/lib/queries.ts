@@ -3839,6 +3839,78 @@ export function getTopChannelsByReach(
     ) as TopChannelRow[];
 }
 
+export interface ChannelRankingRow {
+  id: number;
+  account_name: string;
+  platform: string;
+  color_hue: number | null;
+  avatar_path: string | null;
+  folder_name: string | null;
+  /** Summed over the range. null (not 0) when the account has no metrics row in it at all —
+   *  "no data yet" must not read as "zero views". */
+  views: number | null;
+  reach: number | null;
+  likes: number | null;
+  comments: number | null;
+  saves: number | null;
+  shares: number | null;
+  /** The latest follower count on or before the range's last day, whenever it was synced. */
+  followers: number | null;
+  /** Posts that really went out from this account in the range (dry runs excluded). */
+  posts: number;
+  /** How many days of the range have a metrics row — lets the page say "sem dados" apart
+   *  from a real zero. */
+  days_with_data: number;
+}
+
+/**
+ * Every active account with its totals over `range` — the /ranking page. Unlike
+ * getTopChannelsByReach (the Overview's top 5, which drops accounts with no data), this
+ * keeps every account: one with zero views, or none recorded yet, is exactly the kind the
+ * owner needs to see in the list rather than have silently absent. The date filter lives in
+ * the JOIN's ON clause, not the WHERE, so an account with no rows in the window still
+ * comes back (with null totals) instead of vanishing.
+ */
+export function getChannelRanking(range: DateRange, ownerId: number | null): ChannelRankingRow[] {
+  const ownerClause = ownerId === null ? "" : "AND c.owner_user_id = @owner";
+  const params: Record<string, string | number> = {
+    start: range.start,
+    end: range.end,
+    // range.end is an inclusive DAY but published_at a full timestamp, so the upper bound is
+    // the start of the next day — same reasoning as getPublicationsByHour.
+    since: `${range.start}T00:00:00.000Z`,
+    until: `${shiftDay(range.end, 1)}T00:00:00.000Z`,
+  };
+  if (ownerId !== null) params.owner = ownerId;
+  return getDb()
+    .prepare(
+      `SELECT c.id, c.account_name, c.platform, c.color_hue, c.avatar_path,
+              f.name AS folder_name,
+              SUM(am.views) AS views,
+              SUM(am.reach) AS reach,
+              SUM(am.likes) AS likes,
+              SUM(am.comments) AS comments,
+              SUM(am.saves) AS saves,
+              SUM(am.shares) AS shares,
+              COUNT(am.id) AS days_with_data,
+              (SELECT a2.followers_count FROM account_metrics a2
+                WHERE a2.channel_id = c.id AND a2.followers_count IS NOT NULL
+                  AND a2.day <= @end
+                ORDER BY a2.day DESC LIMIT 1) AS followers,
+              (SELECT COUNT(*) FROM publications p
+                WHERE p.channel_id = c.id AND p.status = 'posted' AND p.is_dry_run = 0
+                  AND p.published_at >= @since AND p.published_at < @until) AS posts
+         FROM channels c
+         LEFT JOIN account_metrics am
+                ON am.channel_id = c.id AND am.day >= @start AND am.day <= @end
+         LEFT JOIN folders f ON f.id = c.folder_id
+        WHERE c.is_active = 1 ${ownerClause}
+        GROUP BY c.id
+        ORDER BY (SUM(am.views) IS NULL), SUM(am.views) DESC, c.account_name ASC`,
+    )
+    .all(params) as ChannelRankingRow[];
+}
+
 /**
  * How many posts actually went out in each hour of the day, within `range` — the Overview
  * page's "publicações por horário" chart. Grouped by the UTC hour in published_at:

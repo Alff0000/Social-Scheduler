@@ -37,6 +37,7 @@ const NAV_GROUPS = [
   {
     group: "Desempenho",
     items: [
+      { href: "/ranking", label: "Ranking de contas", hint: "Quem mais performou, com views e curtidas" },
       { href: "/insights", label: "Relatório", hint: "Desempenho das contas" },
       { href: "/insights/reels", label: "Métricas de Reels", hint: "Views, likes e comentários por reel" },
       { href: "/insights/funnel", label: "Funil de Stories", hint: "Publicado → visualizado → toque → link → resposta" },

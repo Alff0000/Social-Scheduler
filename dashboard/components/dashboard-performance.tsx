@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { compact, exact, formatDelta, type DayRow, type MetricKey } from "@/lib/insights";
 import {
   buildRangeKpis,
@@ -172,9 +173,22 @@ export function DashboardPerformance({
 
       <div className="grid gap-3 lg:grid-cols-2">
         <div className="rounded-card border border-border bg-surface p-4">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">
-            Top contas — alcance {rangeLabel(preset, range)}
-          </h3>
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">
+              Top contas — alcance {rangeLabel(preset, range)}
+            </h3>
+            {/* Carries the period over, so the full ranking opens on the same window. */}
+            <Link
+              href={
+                preset === "custom"
+                  ? `/ranking?range=custom&start=${range.start}&end=${range.end}`
+                  : `/ranking?range=${preset}`
+              }
+              className="shrink-0 text-xs font-medium text-brand-strong hover:underline"
+            >
+              Ver ranking completo
+            </Link>
+          </div>
           {topChannels.length === 0 ? (
             <p className="text-xs text-muted">Sem dados de alcance ainda.</p>
           ) : (
